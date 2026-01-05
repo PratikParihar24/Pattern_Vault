@@ -1,0 +1,368 @@
+/* GLOBAL DARK THEME */
+body {
+    background-color: #121212;
+    color: #e0e0e0;
+    font-family: 'Courier New', Courier, monospace; /* Matrix vibes */
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* SCREEN VISIBILITY LOGIC */
+.screen {
+    display: none; /* Hidden by default */
+    width: 100%;
+    max-width: 500px;
+}
+
+.screen.active {
+    display: block; /* Only the active one shows */
+    animation: fadeIn 0.5s;
+}
+
+.screen.hidden {
+    display: none;
+}
+
+/* LOGIN BOX */
+.login-box {
+    background: #1e1e1e;
+    padding: 2rem;
+    border-radius: 10px;
+    border: 1px solid #333;
+    text-align: center;
+}
+
+input {
+    width: 90%;
+    padding: 10px;
+    margin: 10px 0;
+    background: #2c2c2c;
+    border: 1px solid #444;
+    color: white;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background: #007bff; /* Decoy Blue */
+    color: white;
+    border: none;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+button:hover {
+    background: #0056b3;
+}
+
+/* QUIZ STYLES */
+.options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.opt-btn {
+    background: #333;
+    padding: 20px;
+    font-size: 1.2rem;
+}
+
+.opt-btn:active {
+    background: #555; /* Click feedback */
+}
+
+/* FULL SCREEN VAULT OVERRIDE */
+#vault-screen {
+    max-width: 100vw; /* Allow full width */
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    position: fixed; /* Force it to top-left, ignoring body centering */
+    top: 0;
+    left: 0;
+    background: #121212;
+}
+
+/* ADJUST CONTENT SCROLLING */
+.dashboard-container {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    height: 100%; /* Fill the fixed screen */
+    width: 100%;
+}
+
+.dashboard {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+textarea {
+    width: 100%;
+    height: 200px;
+    background: #1e1e1e;
+    color: #0f0; /* Hacker Green text */
+    border: 1px solid #333;
+    padding: 10px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+
+/* PHOTO GRID */
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.photo-card {
+    height: 100px;
+    background: #2c2c2c;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+}
+
+.photo-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Crops image nicely to square */
+    transition: transform 0.3s;
+}
+
+.photo-card img:hover {
+    transform: scale(1.1);
+}
+
+.upload-card {
+    border: 2px dashed #444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+}
+
+.upload-card:hover {
+    background: #333;
+    color: white;
+}
+
+/* LOADING SCREEN STYLES */
+.loader-container {
+    text-align: center;
+    color: #00ff00; /* Hacker Green for "System" feel */
+}
+
+.spinner {
+    border: 4px solid #333; /* Dark Grey background */
+    border-top: 4px solid #00ff00; /* Green Spinner */
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px auto; /* Center it */
+}
+
+.blink {
+    animation: blinker 1.5s linear infinite;
+    color: #888;
+}
+
+/* ANIMATIONS */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes blinker {
+    50% { opacity: 0; }
+}
+
+/* CAPTCHA STYLES */
+#captcha-screen {
+    display: none; /* Hidden by default */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+#captcha-screen.active {
+    display: flex; /* We use flex to center it */
+}
+
+.captcha-box {
+    background: #f9f9f9; /* Standard Light Grey */
+    border: 1px solid #d3d3d3;
+    border-radius: 3px;
+    width: 300px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: black; /* Override dark mode for this box */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.captcha-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* The Checkbox */
+#robot-check {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    margin: 0;
+}
+
+/* The Label */
+.captcha-row label {
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+}
+
+/* The Fake Logo Area */
+.captcha-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.captcha-logo img {
+    width: 32px;
+    opacity: 0.7;
+}
+
+.captcha-logo span {
+    font-size: 10px;
+    color: #555;
+    margin-top: 2px;
+}
+
+.captcha-logo small {
+    font-size: 8px;
+    color: #999;
+}
+
+.instruction-text {
+    margin-top: 20px;
+    color: #888;
+    font-size: 0.9rem;
+}
+
+
+/* DASHBOARD LAYOUT */
+.dashboard-container {
+    display: grid;
+    grid-template-columns: 250px 1fr; /* Sidebar is 250px, Content is the rest */
+    height: 100vh; /* Full screen height */
+    width: 100vw;
+    background: #121212;
+}
+
+/* SIDEBAR STYLES */
+.sidebar {
+    background: #1e1e1e;
+    border-right: 1px solid #333;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    flex-grow: 1; /* Pushes actions to the bottom */
+}
+
+.nav-list li {
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    color: #888;
+    margin-bottom: 5px;
+}
+
+.nav-list li:hover {
+    background: #2c2c2c;
+    color: #fff;
+}
+
+.nav-list li.active {
+    background: #007bff; /* Active Blue */
+    color: white;
+}
+
+.section-title {
+    font-size: 0.8rem;
+    color: #555 !important;
+    text-transform: uppercase;
+    pointer-events: none; /* Cannot click title */
+    margin-top: 15px;
+}
+
+.divider {
+    height: 1px;
+    background: #333;
+    margin: 10px 0;
+}
+
+/* ACTION INPUTS */
+.sidebar-actions input {
+    width: 90%; /* Fit inside padding */
+    font-size: 0.8rem;
+    margin-bottom: 5px;
+}
+
+.small-btn {
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    width: auto;
+}
+
+/* CONTENT AREA */
+.content-area {
+    padding: 30px;
+    overflow-y: auto; /* Scroll if content is long */
+}
+
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+}
+
+.code-badge {
+    background: #333;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-family: monospace;
+    color: #0f0;
+}

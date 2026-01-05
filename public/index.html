@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindMaster Trivia</title> <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <div id="login-screen" class="screen active">
+        <div class="login-box">
+            <h1>MindMaster 🧠</h1>
+            <p>Login to save your high scores</p>
+            
+            <form id="login-form">
+                <input type="email" id="email" placeholder="Player Email" required>
+                <input type="password" id="password" placeholder="Password" required>
+                <button type="submit">Start Game</button>
+            </form>
+            
+            <p class="small-text">New player? <a href="#" id="show-register">Register</a></p>
+        </div>
+    </div>
+
+    <div id="loading-screen" class="screen hidden">
+    <div class="loader-container">
+        <div class="spinner"></div>
+        <h2 id="loading-text">Verifying Credentials...</h2>
+        <p class="small-text blink">Do not close the window</p>
+    </div>
+    </div>
+
+    <div id="captcha-screen" class="screen hidden">
+    <div class="captcha-box">
+        <div class="captcha-row">
+            <input type="checkbox" id="robot-check">
+            <label for="robot-check">I'm not a robot</label>
+        </div>
+        <div class="captcha-logo">
+            <img src="https://www.gstatic.com/recaptcha/api2/logo_48.png" alt="logo">
+            <span>reCAPTCHA</span>
+            <small>Privacy - Terms</small>
+        </div>
+    </div>
+    <p class="instruction-text">Please verify to continue.</p>
+</div>
+
+    <div id="quiz-overlay" class="screen hidden">
+        <div class="quiz-container">
+            <h2>Security Check</h2>
+            <p>Prove you are human by answering 5 questions.</p>
+            
+            <div class="progress-bar">
+                <div class="fill" id="progress-fill"></div>
+            </div>
+
+            <h3 id="question-text">Loading...</h3>
+            
+            <div class="options-grid">
+                <button class="opt-btn" data-val="A">Option A</button>
+                <button class="opt-btn" data-val="B">Option B</button>
+                <button class="opt-btn" data-val="C">Option C</button>
+                <button class="opt-btn" data-val="D">Option D</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="vault-screen" class="screen hidden">
+    
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h3>MINDMASTER 🔒</h3>
+                <button id="logout-btn" class="small-btn">Exit</button>
+            </div>
+
+            <ul class="nav-list">
+                <li class="active" id="nav-personal">My Private Vault</li>
+                <div class="divider"></div>
+                <li class="section-title">SHARED GROUPS</li>
+                <div id="groups-list">
+                    </div>
+            </ul>
+
+            <div class="sidebar-actions">
+                <input type="text" id="new-group-name" placeholder="New Group Name">
+                <button id="create-group-btn">Create Group</button>
+                
+                <div class="divider"></div>
+                
+                <input type="text" id="join-group-code" placeholder="Enter Invite Code">
+                <button id="join-group-btn">Join Group</button>
+            </div>
+        </aside>
+
+        <main class="content-area">
+            
+            <header class="content-header">
+                <h2 id="current-view-title">Personal Vault</h2>
+                <span id="group-code-display" class="code-badge hidden">Code: ---</span>
+            </header>
+
+            <section class="card">
+                <h3>📝 Notes</h3>
+                <textarea id="notes-area" placeholder="Write something..."></textarea>
+                <button id="save-notes-btn">Save Changes</button>
+            </section>
+
+            <section class="card">
+                <h3>📷 Photos</h3>
+                <div class="photo-grid" id="photo-grid">
+                    </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+    <script src="js/quiz-logic.js"></script> <script src="js/main.js"></script>       </body>
+</html>
