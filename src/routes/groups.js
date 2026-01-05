@@ -114,14 +114,15 @@ router.get('/:id', authMiddleware, async (req, res) => {
     try {
         
         // 1. Find the group
-        const group = await Group.findById(req.params.id);
+        const group = await Group.findById(req.params.id).populate('members', 'email'); // <--- LOOKUP THE EMAILS
+
         if (!group) {
             return res.status(404).json({ msg: "Group not found" });
         }
 
-        // 2. SECURITY: Is the requester a member?
-        // We compare strings to be safe
-        const isMember = group.members.some(memberId => memberId.toString() === req.user.id);
+        // 2. SECURITY CHECK (UPDATED)
+        // Since 'members' is now an array of Objects, we map it to IDs first
+        const isMember = group.members.some(member => member._id.toString() === req.user.id);
         
         if (!isMember) {
             return res.status(403).json({ msg: "Access Denied. You are not a member." });

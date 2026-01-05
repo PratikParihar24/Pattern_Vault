@@ -366,3 +366,25 @@ textarea {
     font-family: monospace;
     color: #0f0;
 }
+
+/* MEMBER LIST STYLES */
+.members-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px; /* Space between names */
+    margin-top: 8px;
+}
+
+.member-tag {
+    background-color: #333;
+    color: #ccc;
+    font-size: 0.75rem; /* Small text */
+    padding: 2px 8px;
+    border-radius: 12px; /* Rounded pill shape */
+    border: 1px solid #444;
+}
+
+/* Hide it when needed */
+.members-container.hidden {
+    display: none;
+}

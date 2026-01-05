@@ -179,12 +179,13 @@ async function loadVaultData() {
         // Show Personal Data
         currentViewTitle.innerText = "My Private Vault";
         groupCodeDisplay.classList.add('hidden');
+        document.getElementById('members-display').classList.add('hidden');
         
         noteArea.value = userData.personal_notes || "";
         renderPhotos(userData.personal_photos || []);
         
     } else if (currentContext.type === 'group') {
-        // Show Group Data
+        // --- GROUP VIEW LOGIC ---
         const groupRes = await fetch(`/api/groups/${currentContext.id}`, {
             headers: { 'x-auth-token': token }
         });
@@ -192,15 +193,39 @@ async function loadVaultData() {
         if (groupRes.ok) {
             const groupData = await groupRes.json();
             
+            // 1. Basic Info
             currentViewTitle.innerText = groupData.name;
             groupCodeDisplay.innerText = `Code: ${groupData.inviteCode}`;
             groupCodeDisplay.classList.remove('hidden');
             
+            // 2. RENDER MEMBERS (With Safety Checks)
+            const membersContainer = document.getElementById('members-display');
+            
+            if (membersContainer) {
+                membersContainer.innerHTML = ''; // Clear previous list
+                membersContainer.classList.remove('hidden'); // Show container
+
+                // Check if members array exists and has items
+                if (groupData.members && groupData.members.length > 0) {
+                    groupData.members.forEach(member => {
+                        // Create the Chip
+                        const span = document.createElement('span');
+                        span.className = 'member-tag';
+                        span.innerText = member.email || "Unknown"; // Fallback text
+                        membersContainer.appendChild(span);
+                    });
+                }
+            }
+
+            // 3. Content
             noteArea.value = groupData.shared_notes || "";
             renderPhotos(groupData.shared_photos || []);
         }
     }
 }
+
+
+
 
 // --- EVENT 3: SAVE NOTES ---
 // --- SMART SAVE BUTTON (FIXED) ---
