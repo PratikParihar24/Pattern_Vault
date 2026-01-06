@@ -69,29 +69,35 @@
     
     <div class="dashboard-container">
         <aside class="sidebar">
-            <div class="sidebar-header">
-                <h3>MINDMASTER 🔒</h3>
-                <button id="logout-btn" class="small-btn">Exit</button>
-            </div>
+    <div class="sidebar-top">
+        <div class="logo">
+            <h2>🔐 Vault</h2>
+        </div>
+        
+        <ul class="nav-static">
+            <li id="personal-vault-btn" class="active">My Private Vault</li>
+        </ul>
+        
+        <hr class="divider">
+        <p class="section-label">SHARED GROUPS</p>
+    </div>
 
-            <ul class="nav-list">
-                <li class="active" id="nav-personal">My Private Vault</li>
-                <div class="divider"></div>
-                <li class="section-title">SHARED GROUPS</li>
-                <div id="groups-list">
-                    </div>
-            </ul>
+    <ul class="nav-list" id="group-list">
+        </ul>
 
-            <div class="sidebar-actions">
-                <input type="text" id="new-group-name" placeholder="New Group Name">
-                <button id="create-group-btn">Create Group</button>
-                
-                <div class="divider"></div>
-                
-                <input type="text" id="join-group-code" placeholder="Enter Invite Code">
-                <button id="join-group-btn">Join Group</button>
-            </div>
-        </aside>
+    <div class="sidebar-bottom">
+        <input type="text" id="new-group-name" placeholder="New Group Name">
+        
+        <button id="create-group-btn">Create Group</button>
+        
+        <div class="join-zone">
+            <input type="text" id="join-group-code" placeholder="Enter Code">
+            <button id="join-group-btn">Join</button>
+        </div>
+
+        <button id="logout-btn" class="logout-btn">Logout</button>
+    </div>
+</aside>
 
         <main class="content-area">
             
@@ -102,7 +108,6 @@
                 <div id="members-display" class="members-container hidden">
                 </div>
                 </div>
-                <h2 id="current-view-title">Personal Vault</h2>
                 <div class="header-right">
                 <span id="group-code-display" class="code-badge hidden">Code: ---</span>
     
@@ -125,5 +130,6 @@
     </div>
 </div>
 
-    <script src="js/quiz-logic.js"></script> <script src="js/main.js"></script>       </body>
+    <script src="js/quiz-logic.js" defer></script> 
+    <script src="js/main.js" defer></script>       </body>
 </html>

@@ -21,11 +21,13 @@ const questionText = document.getElementById('question-text');
 let currentContext = { type: 'personal', id: null }; // Default to Personal
 
 // NEW DOM ELEMENTS (Sidebar & Actions)
-const navPersonal = document.getElementById('nav-personal');
+const navPersonal = document.getElementById('personal-vault-btn');
 const groupsListEl = document.getElementById('groups-list');
 const currentViewTitle = document.getElementById('current-view-title');
 const groupCodeDisplay = document.getElementById('group-code-display');
 const noteArea = document.getElementById('notes-area');
+// Ensure we are targeting the list, NOT the whole sidebar
+const list = document.getElementById('group-list');
 
 // INPUTS
 const newGroupNameInput = document.getElementById('new-group-name');
@@ -412,29 +414,42 @@ async function handleFileUpload(e) {
 }
 
 // --- RENDER SIDEBAR ---
+// --- RENDER SIDEBAR ---
 function renderSidebar(groups) {
-    groupsListEl.innerHTML = ''; // Clear list
+    console.log("Rendering Sidebar with groups:", groups); // Debug Log
+
+    const list = document.getElementById('group-list');
+    
+    // SAFETY CHECK: Does the list exist?
+    if (!list) {
+        console.error("🚨 CRITICAL ERROR: HTML element <ul id='group-list'> is missing!");
+        return; // Stop the crash here.
+    }
+
+    list.innerHTML = ""; // Clear list
 
     groups.forEach(group => {
         const li = document.createElement('li');
-        li.innerText = group.name || "Unnamed Group"; // We need to populate names!
+        li.innerText = group.name;
         
-        // Highlight if active
+        // Highlight active
         if (currentContext.type === 'group' && currentContext.id === group._id) {
             li.classList.add('active');
         }
 
-        // Click Event: Switch Context
+        // Click Listener
         li.addEventListener('click', () => {
             currentContext = { type: 'group', id: group._id };
-            updateActiveNav(); // Visual update
-            loadVaultData();   // Fetch new data
+            loadVaultData();
+            
+            // Highlight update
+            document.querySelectorAll('.nav-list li, .nav-static li').forEach(el => el.classList.remove('active'));
+            li.classList.add('active');
         });
 
-        groupsListEl.appendChild(li);
+        list.appendChild(li);
     });
 }
-
 // Helper to toggle the "Active" blue class
 function updateActiveNav() {
     // Reset Personal Button
@@ -445,13 +460,21 @@ function updateActiveNav() {
     }
 }
 
-// Click Event for "My Private Vault"
-navPersonal.addEventListener('click', () => {
-    currentContext = { type: 'personal', id: null };
-    updateActiveNav();
-    loadVaultData();
-});
+// 2. Safety Check (Prevent the crash)
+if (navPersonal) {
+    navPersonal.addEventListener('click', () => {
+        console.log("Switching to Personal Vault..."); // Debug log
+        currentContext = { type: 'personal', id: null };
+        
+        // Visual Update
+        document.querySelectorAll('.nav-list li, .nav-static li').forEach(el => el.classList.remove('active'));
+        navPersonal.classList.add('active');
 
+        loadVaultData();
+    });
+} else {
+    console.error("❌ Error: Could not find element with ID 'personal-vault-btn'");
+}
 
 // --- ACTION: CREATE GROUP ---
 document.getElementById('create-group-btn').addEventListener('click', async () => {
