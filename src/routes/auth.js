@@ -1,8 +1,10 @@
 // src/routes/auth.js
-const router = require('express').Router();
+const express = require('express');
+const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const authMiddleware = require('../middleware/authMiddleware'); // <--- NEED THIS
+const User = require('../models/User'); // <--- NEED THIS
 
 // --- HELPER: The QWERTY Cipher Logic (Backend Side) ---
 // We repeat this logic here to verify the user isn't lying.
@@ -92,6 +94,21 @@ router.post('/login', async (req, res) => {
 
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+router.get('/', authMiddleware, async (req, res) => {
+    try {
+        // Find the user by ID (from the token)
+        // .select('-password') means: "Don't send back the password!"
+        const user = await User.findById(req.user.id)
+            .select('-password')
+            .populate('groups'); // Also fetch their groups
+
+        res.json(user);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
     }
 });
 

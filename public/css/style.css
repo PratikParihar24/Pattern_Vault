@@ -515,3 +515,110 @@ textarea {
 .hidden {
     display: none !important;
 }
+
+/* --- NOTION STYLE SPLIT VIEW --- */
+/* Update this to allow scrolling if Photos are below */
+.vault-container {
+    height: calc(100vh - 80px); /* Fill screen */
+    overflow-y: auto;           /* Enable scrolling for the WHOLE container */
+    padding-bottom: 50px;       /* Extra space at bottom */
+}
+
+/* Important: The Split View should NOT scroll itself anymore, 
+   let the main container handle it if photos are below */
+/* --- NOTION STYLE SPLIT VIEW (FIXED) --- */
+.vault-split-view {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    min-height: 600px; /* Force a tall workspace */
+    background-color: #1e1e1e; /* Match editor bg */
+    border: 1px solid #333;
+    border-radius: 8px;
+    overflow: hidden; /* Keep corners rounded */
+    margin-bottom: 30px; /* Space before photos */
+}
+
+/* LEFT: Page List */
+.page-sidebar {
+    width: 250px;
+    min-width: 250px; /* Prevent shrinking */
+    background: #111;
+    border-right: 1px solid #444;
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+}
+
+.page-list {
+    list-style: none;
+    padding: 0;
+    margin-top: 15px;
+    overflow-y: auto; /* Scroll ONLY the list if it gets long */
+    flex-grow: 1;
+}
+
+/* RIGHT: Editor Area */
+.editor-container {
+    flex-grow: 1; /* Take remaining width */
+    display: flex;
+    flex-direction: column;
+    background: #1e1e1e;
+    position: relative;
+}
+
+/* The "Select a page" placeholder */
+.editor-placeholder {
+    color: #555;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-style: italic;
+}
+
+/* Inputs inside Editor */
+#page-title-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 1.5rem;
+    font-weight: bold;
+    padding: 5px;
+}
+
+#page-content-input {
+    width: 100%;
+    flex-grow: 1; /* Fill height */
+    background: transparent;
+    border: none;
+    color: #ccc;
+    font-size: 1rem;
+    padding: 20px;
+    resize: none;
+    line-height: 1.6;
+    font-family: monospace;
+}
+#page-title-input:focus { outline: none; }
+
+#save-page-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+#page-content-input {
+    background: transparent;
+    border: none;
+    color: #ccc;
+    font-size: 1rem;
+    flex-grow: 1;
+    padding: 20px;
+    resize: none;
+    line-height: 1.6;
+}

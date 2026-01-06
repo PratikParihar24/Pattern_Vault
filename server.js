@@ -9,7 +9,7 @@ const path = require('path');
 const authRoute = require('./src/routes/auth');
 const vaultRoute = require('./src/routes/vault'); 
 const groupsRoute = require('./src/routes/groups');
-
+const pagesRoute = require('./src/routes/pages');
 // 2. Load the secret variables from your .env file
 // (We do this so we don't hardcode passwords in our code)
 dotenv.config();
@@ -28,6 +28,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/auth', authRoute);
 app.use('/api/vault', vaultRoute);
 app.use('/api/groups', groupsRoute);
+app.use('/api/pages', pagesRoute);
 
 // 4. The Database Connection Function
 const connectDB = async () => {

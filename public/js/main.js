@@ -158,193 +158,392 @@ async function attemptLogin() {
 }
 
 // --- MAIN LOADER ---
+// ==========================================
+// 🔄 MAIN CONTROLLER: LOAD VAULT DATA
+// ==========================================
 async function loadVaultData() {
     const token = localStorage.getItem('token');
     
-    // 1. Fetch the SIDEBAR List (Which groups am I in?)
-    // We need a helper route for this (We will build it in a second, 
-    // but for now let's assume we get the list from the User object)
-    const userRes = await fetch('/api/vault/personal', {
-        headers: { 'x-auth-token': token }
-    });
-    const userData = await userRes.json();
-
-    // --- NEW LOG ---
-    console.log("DEBUG: User Data from Server:", userData); 
-    // ----------------
-    
-    // Use '|| []' to default to an empty array if data is missing
-    renderSidebar(userData.groups || []); 
-
-    // 2. Fetch the MAIN CONTENT based on context
-    if (currentContext.type === 'personal') {
-        // Show Personal Data
-        currentViewTitle.innerText = "My Private Vault";
-        groupCodeDisplay.classList.add('hidden');
-        document.getElementById('members-display').classList.add('hidden');
-
-        const dBtn = document.getElementById('danger-btn');
-        if(dBtn) dBtn.classList.add('hidden');
-        
-        noteArea.value = userData.personal_notes || "";
-        renderPhotos(userData.personal_photos || []);
-        
-    } else if (currentContext.type === 'group') {
-        // --- GROUP VIEW LOGIC ---
-        const groupRes = await fetch(`/api/groups/${currentContext.id}`, {
-            headers: { 'x-auth-token': token }
-        });
-        
-        if (groupRes.ok) {
-            const groupData = await groupRes.json();
-            
-            // 1. Basic Info
-            currentViewTitle.innerText = groupData.name;
-            groupCodeDisplay.innerText = `Code: ${groupData.inviteCode}`;
-            groupCodeDisplay.classList.remove('hidden');
-            
-            // 2. RENDER MEMBERS (With Safety Checks)
-            const membersContainer = document.getElementById('members-display');
-            
-            if (membersContainer) {
-                membersContainer.innerHTML = ''; // Clear previous list
-                membersContainer.classList.remove('hidden'); // Show container
-
-                // Check if members array exists and has items
-                if (groupData.members && groupData.members.length > 0) {
-                    groupData.members.forEach(member => {
-                        // Create the Chip
-                        const span = document.createElement('span');
-                        span.className = 'member-tag';
-                        span.innerText = member.email || "Unknown"; // Fallback text
-                        membersContainer.appendChild(span);
-                    });
-                }
-            }
-
-            // ... (previous member rendering code) ...
-
-            // 5. DANGER BUTTON LOGIC (Leave vs Delete)
-            const dangerBtn = document.getElementById('danger-btn');
-            
-            if (dangerBtn) {
-                // 1. Reset Button State
-                dangerBtn.classList.remove('hidden'); 
-                dangerBtn.className = "danger-btn"; // Reset to default orange
-                
-                // 2. Clear old clicks (Clone method to wipe listeners)
-                const newBtn = dangerBtn.cloneNode(true);
-                dangerBtn.parentNode.replaceChild(newBtn, dangerBtn);
-
-                // 3. Check Role
-                const myId = getUserIdFromToken(token);
-                // Admin ID might be an object (populated) or string
-                const adminId = (groupData.admin && groupData.admin._id) ? groupData.admin._id : groupData.admin;
-
-                if (myId && adminId && myId === adminId) {
-                    // --- I AM ADMIN ---
-                    newBtn.innerText = "Delete Group 🗑️";
-                    newBtn.classList.add('admin-mode'); // Turn Red
-                    
-                    newBtn.onclick = async () => {
-                        if(!confirm("WARNING: Delete this group permanently? Cannot be undone.")) return;
-                        
-                        const res = await fetch(`/api/groups/${groupData._id}`, { 
-                            method: 'DELETE', 
-                            headers: { 'x-auth-token': token } 
-                        });
-
-                        if(res.ok) {
-                            alert("Group Deleted.");
-                            // Switch back to personal vault
-                            currentContext = { type: 'personal', id: null };
-                            loadVaultData();
-                        } else {
-                            alert("Error deleting group");
-                        }
-                    };
-                } else {
-                    // --- I AM MEMBER ---
-                    newBtn.innerText = "Leave Group 🏃";
-                    
-                    newBtn.onclick = async () => {
-                        if(!confirm("Are you sure you want to leave this group?")) return;
-                        
-                        const res = await fetch(`/api/groups/${groupData._id}/leave`, { 
-                            method: 'POST', 
-                            headers: { 'x-auth-token': token } 
-                        });
-
-                        if(res.ok) {
-                            alert("You left the group.");
-                            // Switch back to personal vault
-                            currentContext = { type: 'personal', id: null };
-                            loadVaultData();
-                        } else {
-                            alert("Error leaving group");
-                        }
-                    };
-                }
-            }
-
-            // 3. Content
-            noteArea.value = groupData.shared_notes || "";
-            renderPhotos(groupData.shared_photos || []);
-        }
-    }
-}
-
-
-
-
-// --- EVENT 3: SAVE NOTES ---
-// --- SMART SAVE BUTTON (FIXED) ---
-document.getElementById('save-notes-btn').addEventListener('click', async () => {
-    // 1. We use 'notes-area' because that is what we put in the HTML Dashboard
-    const textArea = document.getElementById('notes-area'); 
-    
-    // Safety Check: If HTML is missing the ID, stop here.
-    if (!textArea) {
-        console.error("CRITICAL ERROR: Could not find <textarea id='notes-area'> in HTML");
+    // 1. Auth Check
+    if (!token) {
+        document.getElementById('auth-section').classList.remove('hidden');
+        document.getElementById('vault-section').classList.add('hidden');
         return;
     }
 
-    const noteContent = textArea.value;
-    const token = localStorage.getItem('token');
+    try {
+        // 2. Fetch User & Sidebar Data
+        // (We use /api/auth because it returns the user + populated groups)
+        const res = await fetch('/api/auth', { headers: { 'x-auth-token': token } });
+        if (!res.ok) throw new Error("Failed to fetch user data");
+        
+        const userData = await res.json();
+        
+        // Switch to Vault UI
+        document.getElementById('auth-section').classList.add('hidden');
+        document.getElementById('vault-section').classList.remove('hidden');
+        
+        // Render the Sidebar List
+        renderSidebar(userData.groups || []);
 
-    let url = '';
+        // 3. DECIDE VIEW BASED ON CONTEXT
+        if (currentContext.type === 'personal') {
+            // ===================================
+            // 👤 PERSONAL VAULT (Private Pages)
+            // ===================================
+            document.getElementById('current-view-title').innerText = "My Private Vault";
+            
+            // UI Cleanup: Hide all Group-specific elements
+            ['group-code-display', 'danger-btn', 'members-display'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+
+            // A. Fetch Personal Pages
+            const pageRes = await fetch('/api/pages/personal', { headers: { 'x-auth-token': token } });
+            const pages = await pageRes.json();
+            
+            // B. Render Notion View
+            renderNotionView(pages, 'personal', null);
+
+
+        } else if (currentContext.type === 'group') {
+            // ===================================
+            // 👥 GROUP VAULT (Shared Pages)
+            // ===================================
+            const groupId = currentContext.id;
+            
+            // A. Fetch Group Metadata
+            const groupRes = await fetch(`/api/groups/${groupId}`, { headers: { 'x-auth-token': token } });
+            
+            if (groupRes.ok) {
+                const groupData = await groupRes.json();
+                
+                // Update Header Info
+                document.getElementById('current-view-title').innerText = groupData.name;
+                
+                // Show "Join Code"
+                const codeBadge = document.getElementById('group-code-display');
+                if (codeBadge) {
+                    codeBadge.innerText = `Code: ${groupData.inviteCode}`;
+                    codeBadge.classList.remove('hidden');
+                }
+
+                // Show "Members" (Simple Count or List)
+                const membersDiv = document.getElementById('members-display');
+                if (membersDiv) {
+                    membersDiv.classList.remove('hidden');
+                    membersDiv.innerHTML = `<span style="font-size:0.8rem; color:#888;">${groupData.members.length} Members</span>`;
+                }
+
+                // --- DANGER BUTTON LOGIC (Leave/Delete) ---
+                const dangerBtn = document.getElementById('danger-btn');
+                if (dangerBtn) {
+                    dangerBtn.classList.remove('hidden');
+                    // Clone to strip old listeners
+                    const newBtn = dangerBtn.cloneNode(true);
+                    dangerBtn.parentNode.replaceChild(newBtn, dangerBtn);
+                    
+                    // Check Admin Status
+                    const myId = userData._id; 
+                    const adminId = groupData.admin; // Assuming admin returns ID string
+
+                    if (myId === adminId) {
+                        // Admin Mode
+                        newBtn.innerText = "Delete Group 🗑️";
+                        newBtn.classList.add('danger-btn'); // Style as red
+                        newBtn.onclick = async () => {
+                            if(!confirm("Delete this group permanently?")) return;
+                            await fetch(`/api/groups/${groupId}`, { method: 'DELETE', headers: { 'x-auth-token': token } });
+                            location.reload(); // Hard reload is safest here
+                        };
+                    } else {
+                        // Member Mode
+                        newBtn.innerText = "Leave Group 🏃";
+                        newBtn.classList.remove('danger-btn'); // Optional style change
+                        newBtn.onclick = async () => {
+                            if(!confirm("Leave this group?")) return;
+                            await fetch(`/api/groups/${groupId}/leave`, { method: 'POST', headers: { 'x-auth-token': token } });
+                            location.reload();
+                        };
+                    }
+                }
+
+                // B. Fetch Group Pages
+                const pageRes = await fetch(`/api/pages/group/${groupId}`, { headers: { 'x-auth-token': token } });
+                const pages = await pageRes.json();
+
+                // C. Render Notion View (Group Context)
+                renderNotionView(pages, 'group', groupId);
+            }
+        }
+
+    } catch (err) {
+        console.error("Load Error:", err);
+    }
+}
+
+// ==========================================
+// 🔄 MAIN CONTROLLER: LOAD VAULT DATA
+// ==========================================
+async function loadVaultData() {
+    const token = localStorage.getItem('token');
     
-    // 2. Decide URL based on context
-    if (currentContext.type === 'personal') {
-        url = '/api/vault/personal/update';
-    } else {
-        url = `/api/groups/${currentContext.id}/notes`;
+    // 1. Auth Check
+    if (!token) {
+        document.getElementById('login-screen').classList.remove('hidden');
+        document.getElementById('vault-screen').classList.add('hidden');
+        return;
     }
 
-    // 3. Send Request
     try {
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'x-auth-token': token
-            },
-            body: JSON.stringify({ noteText: noteContent })
-        });
+        // 2. Fetch User & Sidebar Data
+        const res = await fetch('/api/auth', { headers: { 'x-auth-token': token } });
+        if (!res.ok) throw new Error("Failed to fetch user data");
+        
+        const userData = await res.json();
+        
+        // Switch to Vault UI
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('vault-screen').classList.remove('hidden');
+        renderSidebar(userData.groups || []);
 
-        if (res.ok) {
-            alert("Saved! ✅");
-        } else {
-            const errData = await res.json();
-            alert("Error: " + (errData.msg || "Save failed"));
+        // 3. DECIDE VIEW BASED ON CONTEXT
+        const photoCard = document.querySelector('.card'); // The Photo Section wrapper
+        
+        if (currentContext.type === 'personal') {
+            // ===================================
+            // 👤 PERSONAL VAULT
+            // ===================================
+            document.getElementById('current-view-title').innerText = "My Private Vault";
+            
+            // HIDE Group specific items
+            ['group-code-display', 'danger-btn', 'members-display'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('hidden');
+            });
+
+            // A. Fetch & Render Pages
+            const pageRes = await fetch('/api/pages/personal', { headers: { 'x-auth-token': token } });
+            const pages = await pageRes.json();
+            renderNotionView(pages, 'personal', null);
+
+            // B. Restore Photos (Use personal_photos)
+            if (photoCard) photoCard.style.display = 'block'; // Make visible
+            // Ensure renderPhotos exists, if not we skip
+            if (typeof renderPhotos === 'function') {
+                renderPhotos(userData.personal_photos || []);
+            }
+
+        } else if (currentContext.type === 'group') {
+            // ===================================
+            // 👥 GROUP VAULT
+            // ===================================
+            const groupId = currentContext.id;
+            const groupRes = await fetch(`/api/groups/${groupId}`, { headers: { 'x-auth-token': token } });
+            
+            if (groupRes.ok) {
+                const groupData = await groupRes.json();
+                document.getElementById('current-view-title').innerText = groupData.name;
+                
+                // --- 1. GROUP INFO (Code & Members) ---
+                const codeBadge = document.getElementById('group-code-display');
+                if (codeBadge) {
+                    codeBadge.innerText = `Code: ${groupData.inviteCode}`;
+                    codeBadge.classList.remove('hidden'); // SHOW IT
+                }
+
+                const membersDiv = document.getElementById('members-display');
+                if (membersDiv) {
+                    membersDiv.classList.remove('hidden');
+                    membersDiv.innerHTML = `<span style="font-size:0.8rem; color:#888;">${groupData.members.length} Members</span>`;
+                }
+
+                // --- 2. BUTTON LOGIC (Leave vs Delete) ---
+                const dangerBtn = document.getElementById('danger-btn');
+                if (dangerBtn) {
+                    dangerBtn.classList.remove('hidden'); // SHOW IT
+                    
+                    // Clone to strip old listeners
+                    const newBtn = dangerBtn.cloneNode(true);
+                    dangerBtn.parentNode.replaceChild(newBtn, dangerBtn);
+                    
+                    // Check Admin Status
+                    const myId = userData._id; 
+                    // Handle admin if it's an object or string
+                    const adminId = (groupData.admin && groupData.admin._id) ? groupData.admin._id : groupData.admin;
+
+                    if (myId === adminId) {
+                        // Admin Mode
+                        newBtn.innerText = "Delete Group 🗑️";
+                        newBtn.classList.add('danger-btn'); 
+                        newBtn.onclick = async () => {
+                            if(!confirm("Delete this group permanently?")) return;
+                            await fetch(`/api/groups/${groupId}`, { method: 'DELETE', headers: { 'x-auth-token': token } });
+                            currentContext = { type: 'personal', id: null };
+                            loadVaultData();
+                        };
+                    } else {
+                        // Member Mode
+                        newBtn.innerText = "Leave Group 🏃";
+                        newBtn.classList.remove('danger-btn');
+                        newBtn.onclick = async () => {
+                            if(!confirm("Leave this group?")) return;
+                            await fetch(`/api/groups/${groupId}/leave`, { method: 'POST', headers: { 'x-auth-token': token } });
+                            currentContext = { type: 'personal', id: null };
+                            loadVaultData();
+                        };
+                    }
+                }
+
+                // --- 3. PAGES ---
+                const pageRes = await fetch(`/api/pages/group/${groupId}`, { headers: { 'x-auth-token': token } });
+                const pages = await pageRes.json();
+                renderNotionView(pages, 'group', groupId);
+
+                // --- 4. PHOTOS ---
+                if (photoCard) photoCard.style.display = 'block'; // Make visible
+                if (typeof renderPhotos === 'function') {
+                    renderPhotos(groupData.shared_photos || []);
+                }
+            }
         }
+
     } catch (err) {
-        console.error(err);
-        alert("Network Error");
+        console.error("Load Error:", err);
+    }
+}
+
+// 🛡️ SAFETY WRAPPER: Wait for HTML to load
+document.addEventListener('DOMContentLoaded', () => {
+
+// --- ACTION: CREATE GROUP ---
+document.getElementById('create-group-btn').addEventListener('click', async () => {
+    try{
+        
+    const name = newGroupNameInput.value;
+    console.log("1. Button Clicked. Name:", name); // LOG 1
+    if (!name) return alert("Enter a name!");
+
+    const token = localStorage.getItem('token');
+
+    const res = await fetch('/api/groups/create', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'x-auth-token': token
+        },
+        body: JSON.stringify({ name: name })
+    });
+
+    console.log("2. Server Responded. Status:", res.status);
+
+    if (res.ok) {
+        const data = await res.json();
+        console.log("3. Group Created:", data); // LOG 3
+
+        newGroupNameInput.value = ""; // Clear input
+        console.log("4. Refreshing Sidebar..."); // LOG 4
+
+        loadVaultData(); // Refresh sidebar to show new group
+    } else {
+        alert("Failed to create group");
+    }}catch (err) {
+        console.error("Network Error:", err);
     }
 });
 
-// ... existing code ...
+// --- ACTION: JOIN GROUP ---
+document.getElementById('join-group-btn').addEventListener('click', async () => {
+    const code = joinGroupCodeInput.value;
+    if (!code) return alert("Enter a code!");
+
+    const token = localStorage.getItem('token');
+
+    const res = await fetch('/api/groups/join', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'x-auth-token': token
+        },
+        body: JSON.stringify({ inviteCode: code })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+        joinGroupCodeInput.value = "";
+        alert(`Joined ${data.group.name}!`);
+        loadVaultData(); // Refresh sidebar
+    } else {
+        alert(data.msg); // "Invalid Code" etc.
+    }
+});
+
+
+})
+
+// --- RENDERER: Notion Split View ---
+function renderNotionView(pages, contextType, contextId) {
+    const container = document.getElementById('vault-content');
+    if (!container) return; // Safety check
+
+    // 1. Draw the Layout
+    container.innerHTML = `
+        <div class="vault-split-view">
+            <div class="page-sidebar">
+                <button id="create-page-btn" class="small-btn" style="width:100%">+ New Page</button>
+                <ul class="page-list" id="page-list-ul"></ul>
+            </div>
+            <div class="editor-container" id="editor-area">
+                <div class="editor-placeholder">Select a page to start writing...</div>
+            </div>
+        </div>
+    `;
+
+    // 2. Populate List
+    const list = document.getElementById('page-list-ul');
+    pages.forEach(page => {
+        const li = document.createElement('li');
+        li.className = 'page-item';
+        li.innerText = page.title;
+        li.onclick = () => loadPageIntoEditor(page);
+        list.appendChild(li);
+    });
+
+    // 3. Create Button Logic
+    document.getElementById('create-page-btn').onclick = async () => {
+        const title = prompt("Page Title:");
+        if (!title) return;
+        
+        // Decide URL based on Context (Personal vs Group)
+        const url = contextType === 'personal' ? '/api/pages/personal' : `/api/pages/group/${contextId}`;
+
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
+            body: JSON.stringify({ title })
+        });
+
+        if (res.ok) loadVaultData(); // Refresh list
+    };
+}
+
+
+// --- HELPER: Get User ID from Token ---
+function getUserIdFromToken(tokenString) {
+    if (!tokenString) return null;
+    try {
+        const payload = JSON.parse(atob(tokenString.split('.')[1]));
+        // Handle different token structures
+        if (payload.user && payload.user.id) return payload.user.id;
+        if (payload.id) return payload.id;
+        return null;
+    } catch (e) {
+        console.error("Token Error:", e);
+        return null;
+    }
+}
 
 // --- FUNCTION: RENDER PHOTOS ---
 // We call this inside 'loadVaultData()'
@@ -476,80 +675,68 @@ if (navPersonal) {
     console.error("❌ Error: Could not find element with ID 'personal-vault-btn'");
 }
 
-// --- ACTION: CREATE GROUP ---
-document.getElementById('create-group-btn').addEventListener('click', async () => {
-    try{
-        
-    const name = newGroupNameInput.value;
-    console.log("1. Button Clicked. Name:", name); // LOG 1
-    if (!name) return alert("Enter a name!");
 
-    const token = localStorage.getItem('token');
 
-    const res = await fetch('/api/groups/create', {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-        },
-        body: JSON.stringify({ name: name })
-    });
+// --- HELPER: Load Editor ---
+// ==========================================
+// 📝 EDITOR LOGIC (Handles Display & Saving)
+// ==========================================
+function loadPageIntoEditor(page) {
+    const editorArea = document.getElementById('editor-area');
+    
+    // 1. Inject the HTML (This creates the button)
+    editorArea.innerHTML = `
+        <div class="editor-header">
+            <input type="text" id="page-title-input" value="${page.title}">
+            <button id="save-page-btn">Save Changes</button>
+        </div>
+        <textarea id="page-content-input" placeholder="Start typing...">${page.content || ''}</textarea>
+    `;
 
-    console.log("2. Server Responded. Status:", res.status);
+    // 2. NOW we can find the button (because we just created it above)
+    const saveBtn = document.getElementById('save-page-btn');
 
-    if (res.ok) {
-        const data = await res.json();
-        console.log("3. Group Created:", data); // LOG 3
+    if (saveBtn) {
+        saveBtn.onclick = async () => {
+            // Get current values
+            const titleVal = document.getElementById('page-title-input').value;
+            const contentVal = document.getElementById('page-content-input').value;
 
-        newGroupNameInput.value = ""; // Clear input
-        console.log("4. Refreshing Sidebar..."); // LOG 4
+            // Visual Feedback
+            const originalText = saveBtn.innerText;
+            saveBtn.innerText = "Saving...";
+            saveBtn.disabled = true;
 
-        loadVaultData(); // Refresh sidebar to show new group
+            try {
+                const res = await fetch(`/api/pages/${page._id}`, {
+                    method: 'PUT',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-auth-token': localStorage.getItem('token') 
+                    },
+                    body: JSON.stringify({ title: titleVal, content: contentVal })
+                });
+
+                if (res.ok) {
+                    saveBtn.innerText = "Saved! ✅";
+                    setTimeout(() => {
+                        saveBtn.innerText = originalText;
+                        saveBtn.disabled = false;
+                    }, 1500);
+                    
+                    // Optional: Refresh list silently to update titles
+                    // loadVaultData(); 
+                } else {
+                    throw new Error("Save failed");
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Error saving page");
+                saveBtn.innerText = "Retry";
+                saveBtn.disabled = false;
+            }
+        };
     } else {
-        alert("Failed to create group");
-    }}catch (err) {
-        console.error("Network Error:", err);
-    }
-});
-
-// --- ACTION: JOIN GROUP ---
-document.getElementById('join-group-btn').addEventListener('click', async () => {
-    const code = joinGroupCodeInput.value;
-    if (!code) return alert("Enter a code!");
-
-    const token = localStorage.getItem('token');
-
-    const res = await fetch('/api/groups/join', {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-        },
-        body: JSON.stringify({ inviteCode: code })
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-        joinGroupCodeInput.value = "";
-        alert(`Joined ${data.group.name}!`);
-        loadVaultData(); // Refresh sidebar
-    } else {
-        alert(data.msg); // "Invalid Code" etc.
-    }
-});
-
-// --- HELPER: Get User ID from Token ---
-function getUserIdFromToken(tokenString) {
-    if (!tokenString) return null;
-    try {
-        const payload = JSON.parse(atob(tokenString.split('.')[1]));
-        // Handle different token structures
-        if (payload.user && payload.user.id) return payload.user.id;
-        if (payload.id) return payload.id;
-        return null;
-    } catch (e) {
-        console.error("Token Error:", e);
-        return null;
+        console.error("❌ Error: Save button could not be found immediately after creation.");
     }
 }
