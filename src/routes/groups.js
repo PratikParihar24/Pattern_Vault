@@ -197,4 +197,62 @@ router.post('/:id/photos', authMiddleware, upload.single('photo'), async (req, r
     }
 });
 
+// --- ROUTE 6: LEAVE GROUP (Member Only) ---
+// POST http://localhost:5000/api/groups/:id/leave
+router.post('/:id/leave', authMiddleware, async (req, res) => {
+    try {
+        const groupId = req.params.id;
+        const userId = req.user.id;
+
+        // 1. Remove Group ID from the User's "groups" array
+        await User.findByIdAndUpdate(userId, {
+            $pull: { groups: groupId }
+        });
+
+        // 2. Remove User ID from the Group's "members" array
+        await Group.findByIdAndUpdate(groupId, {
+            $pull: { members: userId }
+        });
+
+        res.json({ msg: "You have left the group." });
+
+    } catch (err) {
+        console.error("Leave Error:", err);
+        res.status(500).send('Server Error');
+    }
+});
+
+// --- ROUTE 7: DELETE GROUP (Admin Only) ---
+// DELETE http://localhost:5000/api/groups/:id
+router.delete('/:id', authMiddleware, async (req, res) => {
+    try {
+        const groupId = req.params.id;
+        const userId = req.user.id;
+
+        const group = await Group.findById(groupId);
+        if (!group) return res.status(404).json({ msg: "Group not found" });
+
+        // 1. Security Check: Are you the Admin?
+        // We convert to string because one is an Object (ObjectId) and one is a String
+        if (group.admin.toString() !== userId) {
+            return res.status(403).json({ msg: "Only the Admin can delete this group." });
+        }
+
+        // 2. Cleanup: Remove this group ID from ALL members' profiles
+        await User.updateMany(
+            { _id: { $in: group.members } }, // Find all users in this group
+            { $pull: { groups: groupId } }   // Remove the group ID
+        );
+
+        // 3. Destroy the Group
+        await Group.findByIdAndDelete(groupId);
+
+        res.json({ msg: "Group deleted permanently." });
+
+    } catch (err) {
+        console.error("Delete Error:", err);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;

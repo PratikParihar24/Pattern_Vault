@@ -180,6 +180,9 @@ async function loadVaultData() {
         currentViewTitle.innerText = "My Private Vault";
         groupCodeDisplay.classList.add('hidden');
         document.getElementById('members-display').classList.add('hidden');
+
+        const dBtn = document.getElementById('danger-btn');
+        if(dBtn) dBtn.classList.add('hidden');
         
         noteArea.value = userData.personal_notes || "";
         renderPhotos(userData.personal_photos || []);
@@ -214,6 +217,71 @@ async function loadVaultData() {
                         span.innerText = member.email || "Unknown"; // Fallback text
                         membersContainer.appendChild(span);
                     });
+                }
+            }
+
+            // ... (previous member rendering code) ...
+
+            // 5. DANGER BUTTON LOGIC (Leave vs Delete)
+            const dangerBtn = document.getElementById('danger-btn');
+            
+            if (dangerBtn) {
+                // 1. Reset Button State
+                dangerBtn.classList.remove('hidden'); 
+                dangerBtn.className = "danger-btn"; // Reset to default orange
+                
+                // 2. Clear old clicks (Clone method to wipe listeners)
+                const newBtn = dangerBtn.cloneNode(true);
+                dangerBtn.parentNode.replaceChild(newBtn, dangerBtn);
+
+                // 3. Check Role
+                const myId = getUserIdFromToken(token);
+                // Admin ID might be an object (populated) or string
+                const adminId = (groupData.admin && groupData.admin._id) ? groupData.admin._id : groupData.admin;
+
+                if (myId && adminId && myId === adminId) {
+                    // --- I AM ADMIN ---
+                    newBtn.innerText = "Delete Group 🗑️";
+                    newBtn.classList.add('admin-mode'); // Turn Red
+                    
+                    newBtn.onclick = async () => {
+                        if(!confirm("WARNING: Delete this group permanently? Cannot be undone.")) return;
+                        
+                        const res = await fetch(`/api/groups/${groupData._id}`, { 
+                            method: 'DELETE', 
+                            headers: { 'x-auth-token': token } 
+                        });
+
+                        if(res.ok) {
+                            alert("Group Deleted.");
+                            // Switch back to personal vault
+                            currentContext = { type: 'personal', id: null };
+                            loadVaultData();
+                        } else {
+                            alert("Error deleting group");
+                        }
+                    };
+                } else {
+                    // --- I AM MEMBER ---
+                    newBtn.innerText = "Leave Group 🏃";
+                    
+                    newBtn.onclick = async () => {
+                        if(!confirm("Are you sure you want to leave this group?")) return;
+                        
+                        const res = await fetch(`/api/groups/${groupData._id}/leave`, { 
+                            method: 'POST', 
+                            headers: { 'x-auth-token': token } 
+                        });
+
+                        if(res.ok) {
+                            alert("You left the group.");
+                            // Switch back to personal vault
+                            currentContext = { type: 'personal', id: null };
+                            loadVaultData();
+                        } else {
+                            alert("Error leaving group");
+                        }
+                    };
                 }
             }
 
@@ -447,3 +515,18 @@ document.getElementById('join-group-btn').addEventListener('click', async () => 
         alert(data.msg); // "Invalid Code" etc.
     }
 });
+
+// --- HELPER: Get User ID from Token ---
+function getUserIdFromToken(tokenString) {
+    if (!tokenString) return null;
+    try {
+        const payload = JSON.parse(atob(tokenString.split('.')[1]));
+        // Handle different token structures
+        if (payload.user && payload.user.id) return payload.user.id;
+        if (payload.id) return payload.id;
+        return null;
+    } catch (e) {
+        console.error("Token Error:", e);
+        return null;
+    }
+}
