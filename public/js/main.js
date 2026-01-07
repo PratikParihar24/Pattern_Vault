@@ -331,8 +331,8 @@ async function loadVaultData() {
             // B. Restore Photos (Use personal_photos)
             if (photoCard) photoCard.style.display = 'block'; // Make visible
             // Ensure renderPhotos exists, if not we skip
-            if (typeof renderPhotos === 'function') {
-                renderPhotos(userData.personal_photos || []);
+            if (typeof loadAlbumView === 'function') {
+                loadAlbumView();
             }
 
         } else if (currentContext.type === 'group') {
@@ -403,8 +403,8 @@ async function loadVaultData() {
 
                 // --- 4. PHOTOS ---
                 if (photoCard) photoCard.style.display = 'block'; // Make visible
-                if (typeof renderPhotos === 'function') {
-                    renderPhotos(groupData.shared_photos || []);
+                if (typeof loadAlbumView === 'function') {
+                    loadAlbumView();
                 }
             }
         }
@@ -484,48 +484,67 @@ document.getElementById('join-group-btn').addEventListener('click', async () => 
 })
 
 // --- RENDERER: Notion Split View ---
+// --- UPDATED: Render Notion View ---
 function renderNotionView(pages, contextType, contextId) {
     const container = document.getElementById('vault-content');
-    if (!container) return; // Safety check
+    if (!container) return;
 
-    // 1. Draw the Layout
+    // 1. Draw Layout
     container.innerHTML = `
         <div class="vault-split-view">
             <div class="page-sidebar">
-                <button id="create-page-btn" class="small-btn" style="width:100%">+ New Page</button>
+                <button id="create-page-btn">+ New Page</button>
                 <ul class="page-list" id="page-list-ul"></ul>
             </div>
             <div class="editor-container" id="editor-area">
-                <div class="editor-placeholder">Select a page to start writing...</div>
+                <div class="editor-placeholder">
+                    Select a page from the left to start writing...
+                </div>
             </div>
         </div>
     `;
 
     // 2. Populate List
     const list = document.getElementById('page-list-ul');
+    
     pages.forEach(page => {
         const li = document.createElement('li');
         li.className = 'page-item';
-        li.innerText = page.title;
-        li.onclick = () => loadPageIntoEditor(page);
+        li.innerText = page.title || "Untitled Page"; // Fallback title
+        li.id = `page-link-${page._id}`; // Assign ID for highlighting
+
+        li.onclick = () => {
+            // A. Highlight Active Item
+            document.querySelectorAll('.page-item').forEach(el => el.classList.remove('active-page'));
+            li.classList.add('active-page');
+            
+            // B. Load Editor
+            loadPageIntoEditor(page);
+        };
         list.appendChild(li);
     });
 
     // 3. Create Button Logic
     document.getElementById('create-page-btn').onclick = async () => {
-        const title = prompt("Page Title:");
-        if (!title) return;
+        const title = prompt("Enter Page Title:");
+        if (!title) return; // Allow cancel
         
-        // Decide URL based on Context (Personal vs Group)
         const url = contextType === 'personal' ? '/api/pages/personal' : `/api/pages/group/${contextId}`;
 
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
-            body: JSON.stringify({ title })
-        });
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
+                body: JSON.stringify({ title })
+            });
 
-        if (res.ok) loadVaultData(); // Refresh list
+            if (res.ok) {
+                // Refresh data to show new page
+                loadVaultData(); 
+            }
+        } catch (err) {
+            console.error(err);
+        }
     };
 }
 
@@ -546,35 +565,258 @@ function getUserIdFromToken(tokenString) {
 }
 
 // --- FUNCTION: RENDER PHOTOS ---
-// We call this inside 'loadVaultData()'
-function renderPhotos(photosArray) {
-    const grid = document.getElementById('photo-grid');
-    grid.innerHTML = ''; // Clear current grid
+// --- ALBUM MANAGER ---
 
-    // Add the "Upload New" Button as the first item
-    const uploadDiv = document.createElement('div');
-    uploadDiv.className = 'photo-card upload-card';
-    uploadDiv.innerHTML = `
-        <label for="file-input" style="cursor: pointer;">
-            <span>+ Add Photo</span>
-        </label>
-        <input type="file" id="file-input" accept="image/*" style="display: none;">
+// --- 1. RENDER ALBUM LIST (Horizontal Fix) ---
+async function loadAlbumView() {
+    const container = document.getElementById('photo-grid');
+    
+    // Determine URL based on context
+    let url = '/api/albums?type=personal';
+    if (currentContext.type === 'group') {
+        url = `/api/albums?type=group&groupId=${currentContext.id}`;
+    }
+
+    try {
+        const res = await fetch(url, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+        const albums = await res.json();
+
+        // Structure: 
+        // 1. Controls Div (Create Button)
+        // 2. Grid Div (Albums)
+        container.innerHTML = `
+            <div style="width:100%; margin-bottom: 20px; padding-bottom:10px; border-bottom:1px solid #333;">
+                <button onclick="createNewAlbum()" class="btn-blue">
+                    + Create New Album
+                </button>
+            </div>
+            
+            <div class="album-grid" id="albums-wrapper">
+                </div>
+        `;
+
+        const wrapper = document.getElementById('albums-wrapper');
+
+        if (albums.length === 0) {
+            wrapper.innerHTML = `<p style="color:#666; width:100%;">No albums found. Create one above.</p>`;
+        }
+
+        albums.forEach(album => {
+            const div = document.createElement('div');
+            div.className = 'album-card';
+            // Inside the albums.forEach loop in loadAlbumView...
+
+div.innerHTML = `
+    <div class="album-folder-icon">📁</div>
+    <div class="album-title">${album.name}</div>
+    <div style="font-size:0.7rem; color:#888;">${album.photos.length} items</div>
+    
+    <button onclick="deleteAlbum('${album._id}', event)" class="album-delete-btn">
+        &times;
+    </button>
+`;
+            // Click Area
+            div.onclick = (e) => {
+                if (e.target.tagName !== 'BUTTON') openAlbum(album);
+            };
+            wrapper.appendChild(div);
+        });
+
+    } catch (err) {
+        console.error("Error loading albums:", err);
+    }
+}
+
+// --- 2. OPEN ALBUM (Upload Fix) ---
+// --- UPDATED OPEN ALBUM (With Hard-Wired Upload) ---
+function openAlbum(album) {
+    const container = document.getElementById('photo-grid');
+    
+    // We create a specific unique ID for this album's input
+    const inputId = `upload-${album._id}`;
+
+    container.innerHTML = `
+        <div class="album-view-controls">
+            <button onclick="loadAlbumView()" class="btn-gray">← Back</button>
+            
+            <h3 style="margin:0; color:#fff;">${album.name}</h3>
+            
+            <div>
+                <button onclick="triggerUpload('${inputId}')" class="btn-green">
+                    + Upload Photos
+                </button>
+                
+                <input type="file" id="${inputId}" multiple accept="image/*" style="display:none">
+            </div>
+        </div>
+
+        <div class="photo-wrapper" id="photos-wrapper"></div>
     `;
-    grid.appendChild(uploadDiv);
 
-    // Add the Listeners for the new input
-    document.getElementById('file-input').addEventListener('change', handleFileUpload);
+    // 3. Attach the Change Listener immediately
+    const inputEl = document.getElementById(inputId);
+    inputEl.onchange = (e) => {
+        console.log("Files selected..."); // Debug log
+        uploadPhotos(e, album._id);
+    };
 
-    // Loop through photos and display them
-    photosArray.forEach(filename => {
-        const imgDiv = document.createElement('div');
-        imgDiv.className = 'photo-card';
-        // We point to the static folder 'uploads/'
-        imgDiv.innerHTML = `<img src="/uploads/${filename}" alt="Secret Memory">`;
-        grid.appendChild(imgDiv);
+    // --- RENDER PHOTOS ---
+    const wrapper = document.getElementById('photos-wrapper');
+    
+    // Apply Flex style to wrapper just in case CSS missed it
+    wrapper.style.display = "flex";
+    wrapper.style.flexWrap = "wrap";
+    wrapper.style.gap = "15px";
+
+    if (album.photos.length === 0) {
+        wrapper.innerHTML = `<p style="color:#666; width:100%; text-align:center; padding:20px;">
+            No photos yet. Click "Upload Photos" to add some.
+        </p>`;
+    }
+
+    album.photos.forEach(photo => {
+        const div = document.createElement('div');
+        div.className = 'photo-item';
+        div.innerHTML = `
+            <img src="/uploads/${photo.filename}" onclick="openLightbox('/uploads/${photo.filename}')">
+            <button class="delete-photo-btn" onclick="deletePhoto('${album._id}', '${photo.filename}')">×</button>
+        `;
+        wrapper.appendChild(div);
     });
 }
 
+// --- GLOBAL HELPER (Add this at the bottom of main.js) ---
+// This ensures the button click ALWAYS finds the input
+window.triggerUpload = function(inputId) {
+    const el = document.getElementById(inputId);
+    if(el) {
+        el.click();
+    } else {
+        console.error("Input not found:", inputId);
+    }
+};
+
+// Create Album
+async function createNewAlbum() {
+    const name = prompt("Enter Album Name:");
+    if (!name) return;
+
+    const payload = {
+        name: name,
+        type: currentContext.type,
+        groupId: currentContext.id
+    };
+
+    await fetch('/api/albums', {
+        method: 'POST',
+        headers: { 
+            'Content-Type': 'application/json',
+            'x-auth-token': localStorage.getItem('token') 
+        },
+        body: JSON.stringify(payload)
+    });
+    loadAlbumView(); // Refresh
+}
+
+// Upload Logic
+// --- UPDATED UPLOAD LOGIC ---
+async function uploadPhotos(e, albumId) {
+    const files = e.target.files;
+    if (!files.length) return;
+
+    // 1. Visual Feedback
+    const uploadBtn = document.getElementById('trigger-upload');
+    if(uploadBtn) {
+        uploadBtn.innerText = "Uploading...";
+        uploadBtn.disabled = true;
+        uploadBtn.style.background = "#555";
+    }
+
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+        formData.append('photos', files[i]);
+    }
+
+    try {
+        // 2. Send to Server
+        const res = await fetch(`/api/albums/${albumId}/upload`, {
+            method: 'POST',
+            headers: { 'x-auth-token': localStorage.getItem('token') },
+            body: formData
+        });
+
+        if (res.ok) {
+            // 3. SUCCESS! Fetch the updated album to show new photos immediately
+            const updatedAlbum = await res.json();
+            
+            // Refresh the view with new data
+            openAlbum(updatedAlbum); 
+            
+            console.log("Upload Success");
+        } else {
+            alert("Upload failed.");
+            // Reset button if failed
+            if(uploadBtn) {
+                uploadBtn.innerText = "+ Upload Photos";
+                uploadBtn.disabled = false;
+                uploadBtn.style.background = "#28a745";
+            }
+        }
+    } catch (err) {
+        console.error("Upload Error:", err);
+        alert("Error uploading photos");
+    }
+}
+// Lightbox Logic
+function openLightbox(src) {
+    const box = document.getElementById('lightbox');
+    const img = document.getElementById('lightbox-img');
+    const dl = document.getElementById('lb-download');
+
+    img.src = src;
+    dl.href = src; // Direct link allows download
+    box.classList.remove('hidden');
+}
+
+function closeLightbox() {
+    document.getElementById('lightbox').classList.add('hidden');
+}
+
+// Delete Logic
+async function deleteAlbum(id, e) {
+    e.stopPropagation(); // Stop click from opening album
+    if(!confirm("Delete this album and all photos inside?")) return;
+
+    await fetch(`/api/albums/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-auth-token': localStorage.getItem('token') }
+    });
+    loadAlbumView();
+}
+
+// public/js/main.js
+
+async function deletePhoto(albumId, filename) {
+    if(!confirm("Delete this photo?")) return;
+
+    try {
+        const res = await fetch(`/api/albums/${albumId}/photo/${filename}`, {
+            method: 'DELETE',
+            headers: { 'x-auth-token': localStorage.getItem('token') }
+        });
+
+        if (res.ok) {
+            // 1. Get the updated album data from the server response
+            const updatedAlbum = await res.json();
+            
+            // 2. STAY in the album: Re-render the current album view
+            openAlbum(updatedAlbum); 
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Error deleting photo");
+    }
+}
 // --- FUNCTION: HANDLE FILE UPLOAD ---
 // --- SMART UPLOAD FUNCTION ---
 async function handleFileUpload(e) {
@@ -681,62 +923,95 @@ if (navPersonal) {
 // ==========================================
 // 📝 EDITOR LOGIC (Handles Display & Saving)
 // ==========================================
+// --- UPDATED EDITOR (With Delete Button) ---
+// public/js/main.js
+
 function loadPageIntoEditor(page) {
     const editorArea = document.getElementById('editor-area');
     
-    // 1. Inject the HTML (This creates the button)
+    // 1. Inject HTML (Title, Save, DELETE)
     editorArea.innerHTML = `
-        <div class="editor-header">
-            <input type="text" id="page-title-input" value="${page.title}">
-            <button id="save-page-btn">Save Changes</button>
+        <div class="editor-header" style="display: flex; gap: 10px; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 10px;">
+            <input type="text" id="page-title-input" value="${page.title}" 
+                   style="flex-grow: 1; font-size: 1.5rem; background: transparent; border: none; color: white; font-weight: bold;">
+            
+            <button id="save-page-btn" class="btn-blue">Save</button>
+            <button id="delete-page-btn" class="btn-red" style="background: #dc3545; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer;">Delete</button>
         </div>
-        <textarea id="page-content-input" placeholder="Start typing...">${page.content || ''}</textarea>
+        
+        <textarea id="page-content-input" placeholder="Start typing..." 
+                  style="width: 100%; height: calc(100% - 60px); background: transparent; border: none; color: #ccc; resize: none; font-family: sans-serif; line-height: 1.6; font-size: 1rem; outline: none;">${page.content || ''}</textarea>
     `;
 
-    // 2. NOW we can find the button (because we just created it above)
+    // 2. SAVE LOGIC (The Fix)
     const saveBtn = document.getElementById('save-page-btn');
-
-    if (saveBtn) {
-        saveBtn.onclick = async () => {
-            // Get current values
-            const titleVal = document.getElementById('page-title-input').value;
-            const contentVal = document.getElementById('page-content-input').value;
-
-            // Visual Feedback
-            const originalText = saveBtn.innerText;
-            saveBtn.innerText = "Saving...";
-            saveBtn.disabled = true;
-
-            try {
-                const res = await fetch(`/api/pages/${page._id}`, {
-                    method: 'PUT',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'x-auth-token': localStorage.getItem('token') 
-                    },
-                    body: JSON.stringify({ title: titleVal, content: contentVal })
-                });
-
-                if (res.ok) {
-                    saveBtn.innerText = "Saved! ✅";
-                    setTimeout(() => {
-                        saveBtn.innerText = originalText;
-                        saveBtn.disabled = false;
-                    }, 1500);
-                    
-                    // Optional: Refresh list silently to update titles
-                    // loadVaultData(); 
-                } else {
-                    throw new Error("Save failed");
+    saveBtn.onclick = async () => {
+        const titleVal = document.getElementById('page-title-input').value;
+        const contentVal = document.getElementById('page-content-input').value;
+        
+        // Visual Feedback
+        const originalText = saveBtn.innerText;
+        saveBtn.innerText = "Saving...";
+        saveBtn.disabled = true;
+        
+        try {
+            const res = await fetch(`/api/pages/${page._id}`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-auth-token': localStorage.getItem('token') 
+                },
+                body: JSON.stringify({ title: titleVal, content: contentVal })
+            });
+            
+            if (res.ok) {
+                saveBtn.innerText = "Saved! ✅";
+                
+                // --- THE FIX IS HERE ---
+                // Instead of reloading everything, we just find the sidebar item and update the text.
+                const sidebarItem = document.getElementById(`page-link-${page._id}`);
+                if (sidebarItem) {
+                    sidebarItem.innerText = titleVal || "Untitled Page";
                 }
-            } catch (err) {
-                console.error(err);
-                alert("Error saving page");
-                saveBtn.innerText = "Retry";
-                saveBtn.disabled = false;
+                
+                // Reset button after 1.5 seconds
+                setTimeout(() => { 
+                    saveBtn.innerText = originalText; 
+                    saveBtn.disabled = false;
+                }, 1500);
+
+            } else {
+                throw new Error("Save failed");
             }
-        };
-    } else {
-        console.error("❌ Error: Save button could not be found immediately after creation.");
-    }
+            
+        } catch (err) {
+            console.error(err);
+            saveBtn.innerText = "Error";
+            saveBtn.disabled = false;
+        }
+    };
+
+    // 3. DELETE LOGIC (Kept exactly the same)
+    const deleteBtn = document.getElementById('delete-page-btn');
+    deleteBtn.onclick = async () => {
+        if (!confirm("Are you sure you want to delete this page? This cannot be undone.")) return;
+
+        try {
+            const res = await fetch(`/api/pages/${page._id}`, {
+                method: 'DELETE',
+                headers: { 'x-auth-token': localStorage.getItem('token') }
+            });
+
+            if (res.ok) {
+                editorArea.innerHTML = `<div class="editor-placeholder">Select a page...</div>`;
+                // For DELETE, we DO want to reload the list to remove the item
+                loadVaultData(); 
+            } else {
+                alert("Failed to delete page");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Error deleting page");
+        }
+    };
 }

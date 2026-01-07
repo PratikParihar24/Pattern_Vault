@@ -114,4 +114,37 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 });
 
+// ==========================================
+// 4. DELETE PAGE
+// ==========================================
+router.delete('/:id', authMiddleware, async (req, res) => {
+    try {
+        const pageId = req.params.id;
+        const page = await Page.findById(pageId);
+
+        if (!page) return res.status(404).json({ msg: 'Page not found' });
+
+        // SECURITY CHECK:
+        // 1. If it's a Personal Page, only the Owner can delete.
+        if (!page.group && page.user.toString() !== req.user.id) {
+            return res.status(401).json({ msg: 'Not authorized' });
+        }
+
+        // 2. If it's a Group Page, verify user is in the group (Simple check)
+        if (page.group) {
+            const group = await Group.findById(page.group);
+            if (!group.members.includes(req.user.id)) {
+                return res.status(401).json({ msg: 'Not authorized' });
+            }
+        }
+
+        await Page.findByIdAndDelete(pageId);
+        res.json({ msg: 'Page deleted' });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;

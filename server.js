@@ -10,6 +10,9 @@ const authRoute = require('./src/routes/auth');
 const vaultRoute = require('./src/routes/vault'); 
 const groupsRoute = require('./src/routes/groups');
 const pagesRoute = require('./src/routes/pages');
+const albumsRoute = require('./src/routes/albums');
+
+
 // 2. Load the secret variables from your .env file
 // (We do this so we don't hardcode passwords in our code)
 dotenv.config();
@@ -29,6 +32,7 @@ app.use('/api/auth', authRoute);
 app.use('/api/vault', vaultRoute);
 app.use('/api/groups', groupsRoute);
 app.use('/api/pages', pagesRoute);
+app.use('/api/albums', albumsRoute);
 
 // 4. The Database Connection Function
 const connectDB = async () => {
