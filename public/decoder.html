@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pattern Decoder 🕵️‍♂️</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #0f0; /* Matrix Green */
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            border: 2px solid #333;
+            padding: 2rem;
+            background: #111;
+            text-align: center;
+            width: 400px;
+        }
+        input {
+            width: 90%;
+            padding: 10px;
+            background: #222;
+            border: 1px solid #444;
+            color: #fff;
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        button {
+            background: #333;
+            color: #fff;
+            border: 1px solid #0f0;
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        button:hover { background: #0f0; color: #000; }
+        
+        #result-area {
+            margin-top: 30px;
+            display: none; /* Hidden initially */
+        }
+        
+        .sequence-box {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .key-card {
+            background: #222;
+            border: 1px solid #444;
+            padding: 10px;
+            width: 50px;
+        }
+        .key-char { font-size: 0.8rem; color: #888; }
+        .key-val { font-size: 1.5rem; font-weight: bold; color: #fff; }
+        
+        .zone-A { color: #ff5555; } /* Red */
+        .zone-B { color: #5555ff; } /* Blue */
+        .zone-C { color: #55ff55; } /* Green */
+        .zone-D { color: #ffff55; } /* Yellow */
+
+        .warning {
+            margin-top: 40px;
+            color: #555;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>CMD_DECODER_V1</h2>
+        <p>Enter Target Email:</p>
+        <input type="text" id="target-email" placeholder="user@example.com">
+        <button onclick="decode()">GENERATE SEQUENCE</button>
+
+        <div id="result-area">
+            <p>Target Pattern:</p>
+            <div class="sequence-box" id="sequence-display">
+                </div>
+            <p style="margin-top:20px; font-size:0.9rem;">
+                Based on characters: <span id="clean-str" style="color:#fff">---</span>
+            </p>
+        </div>
+
+        <p class="warning">⚠ SYSTEM NOTICE: Delete this file before production deployment.</p>
+    </div>
+
+    <script>
+        // THE CIPHER MAP (Identical to auth.js / quiz-logic.js)
+        const map = {
+            'q': 'A', 'w': 'A', 'e': 'A', 'r': 'A', 't': 'A',
+            'y': 'B', 'u': 'B', 'i': 'B', 'o': 'B', 'p': 'B',
+            'a': 'C', 's': 'C', 'd': 'C', 'f': 'C', 'g': 'C',
+            'z': 'C', 'x': 'C', 'c': 'C', 'v': 'C',
+            'h': 'D', 'j': 'D', 'k': 'D', 'l': 'D',
+            'b': 'D', 'n': 'D', 'm': 'D'
+        };
+
+        function decode() {
+            const email = document.getElementById('target-email').value;
+            if (!email) return;
+
+            // 1. Clean the string (Same logic as Backend)
+            // Lowercase -> Remove non-letters -> Take first 5
+            const cleanStr = email.toLowerCase().replace(/[^a-z]/g, '').substring(0, 5);
+            
+            // 2. Map to Pattern
+            const pattern = cleanStr.split('').map(char => {
+                return { char: char, val: map[char] || 'A' }; // Default to A if unknown
+            });
+
+            // 3. Render
+            const display = document.getElementById('sequence-display');
+            display.innerHTML = ''; // Clear old
+
+            pattern.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'key-card';
+                // Add color class for visual pop
+                const colorClass = `zone-${item.val}`;
+                
+                div.innerHTML = `
+                    <div class="key-char">${item.char.toUpperCase()}</div>
+                    <div class="key-val ${colorClass}">${item.val}</div>
+                `;
+                display.appendChild(div);
+            });
+
+            document.getElementById('clean-str').innerText = cleanStr.toUpperCase();
+            document.getElementById('result-area').style.display = 'block';
+        }
+        
+        // Allow "Enter" key to trigger
+        document.getElementById('target-email').addEventListener("keyup", function(event) {
+            if (event.key === "Enter") {
+                decode();
+            }
+        });
+    </script>
+</body>
+</html>
