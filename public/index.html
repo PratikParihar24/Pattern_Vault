@@ -45,25 +45,35 @@
     <p class="instruction-text">Please verify to continue.</p>
 </div>
 
-    <div id="quiz-overlay" class="screen hidden">
-        <div class="quiz-container">
-            <h2>Security Check</h2>
-            <p>Prove you are human by answering 5 questions.</p>
-            
-            <div class="progress-bar">
-                <div class="fill" id="progress-fill"></div>
-            </div>
 
-            <h3 id="question-text">Loading...</h3>
-            
-            <div class="options-grid">
-                <button class="opt-btn" data-val="A">Option A</button>
-                <button class="opt-btn" data-val="B">Option B</button>
-                <button class="opt-btn" data-val="C">Option C</button>
-                <button class="opt-btn" data-val="D">Option D</button>
-            </div>
+
+    <div id="quiz-overlay" class="hidden">
+    
+    <div id="quiz-intro">
+        <div style="font-size: 3rem; margin-bottom: 10px;">🧠</div>
+        
+        <h2>Daily Brain Teaser</h2>
+        <p>Answer 5 questions to test your IQ.</p>
+        
+        <button id="start-quiz-btn" class="action-btn">Start Game</button>
+    </div>
+
+    <div id="quiz-game" class="hidden">
+        <div class="progress-bar"><div id="progress-fill"></div></div>
+        
+        <h2 id="question-text">Loading question...</h2>
+        
+        <div class="options-grid">
+            <button class="opt-btn" data-val="A">A</button>
+            <button class="opt-btn" data-val="B">B</button>
+            <button class="opt-btn" data-val="C">C</button>
+            <button class="opt-btn" data-val="D">D</button>
         </div>
     </div>
+
+</div>
+
+</div>
 
     <div id="vault-screen" class="screen hidden">
     

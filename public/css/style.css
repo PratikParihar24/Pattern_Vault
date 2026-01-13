@@ -891,3 +891,29 @@ textarea {
     cursor: pointer;
 }
 
+/* In your style.css */
+#quiz-intro {
+    text-align: center;
+    padding: 40px;
+    background: white; /* Clean look */
+    border-radius: 12px;
+    color: #333;
+}
+
+#start-quiz-btn {
+    background-color: #4a90e2; /* Nice generic blue */
+    color: white;
+    padding: 15px 30px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: transform 0.2s;
+}
+
+#start-quiz-btn:hover {
+    transform: scale(1.05); /* Small pop effect */
+    background-color: #357abd;
+}
+

@@ -29,6 +29,11 @@ const noteArea = document.getElementById('notes-area');
 // Ensure we are targeting the list, NOT the whole sidebar
 const list = document.getElementById('group-list');
 
+// ... existing elements ...
+const quizIntro = document.getElementById('quiz-intro');
+const quizGame = document.getElementById('quiz-game');
+const startQuizBtn = document.getElementById('start-quiz-btn');
+
 // INPUTS
 const newGroupNameInput = document.getElementById('new-group-name');
 const joinGroupCodeInput = document.getElementById('join-group-code');
@@ -77,21 +82,46 @@ loginForm.addEventListener('submit', (e) => {
 });
 
 // --- EVENT: CAPTCHA CHECKED ---
+/// --- EVENT: CAPTCHA CHECKED ---
 robotCheck.addEventListener('change', (e) => {
     if (e.target.checked) {
-        // Wait a tiny bit for the visual "check" to appear
         setTimeout(() => {
-            // Hide Captcha -> Show Quiz
+            // 1. Hide Captcha
             captchaScreen.classList.remove('active');
             captchaScreen.classList.add('hidden');
 
+            // 2. Show the Quiz Wrapper
             quizScreen.classList.remove('hidden');
             quizScreen.classList.add('active');
 
-            // NOW we load the first question
-            questionText.innerText = Cipher.getRandomQuestion();
-        }, 500); // 0.5 second delay feels realistic
+            // 3. Ensure we see the Intro first, not the questions
+            quizIntro.classList.remove('hidden');
+            quizGame.classList.add('hidden');
+            
+        }, 500);
     }
+});
+
+// --- NEW EVENT: START BUTTON CLICKED ---
+startQuizBtn.addEventListener('click', () => {
+    // 1. Switch visual containers
+    quizIntro.classList.add('hidden');
+    quizGame.classList.remove('hidden');
+
+    // 2. Load the first question
+    // (Assuming you have your Cipher object ready)
+    questionText.innerText = Cipher.getRandomQuestion();
+});
+// --- NEW EVENT: START BUTTON CLICKED ---
+startQuizBtn.addEventListener('click', () => {
+    // 1. Hide the Intro/Button
+    quizIntro.classList.add('hidden');
+
+    // 2. Show the Actual Game
+    quizGame.classList.remove('hidden');
+
+    // 3. Load the First Question (using your existing Cipher logic)
+    questionText.innerText = Cipher.getRandomQuestion();
 });
 
 // --- EVENT 2: QUIZ BUTTON CLICKS ---
