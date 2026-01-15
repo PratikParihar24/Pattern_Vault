@@ -1,151 +1,106 @@
 // public/js/main.js
 
-// State Variables
+// ==========================================
+// 1. STATE & VARIABLES
+// ==========================================
 let userCredentials = { email: '', password: '' };
-let currentPattern = []; // Stores the user's clicks [A, C, B...]
+let currentPattern = []; 
+let currentContext = { type: 'personal', id: null }; 
 
-// DOM Elements for Loading Screen & CAPTCHA VERIFICATION
+// DOM Elements
 const loadingScreen = document.getElementById('loading-screen');
 const loadingText = document.getElementById('loading-text');
 const captchaScreen = document.getElementById('captcha-screen');
 const robotCheck = document.getElementById('robot-check');
-
-// DOM Elements
-const loginScreen = document.getElementById('login-screen');
+const loginScreen = document.querySelector('.login-box').parentElement; 
 const quizScreen = document.getElementById('quiz-overlay');
 const vaultScreen = document.getElementById('vault-screen');
 const loginForm = document.getElementById('login-form');
 const questionText = document.getElementById('question-text');
-
-// STATE MANAGEMENT
-let currentContext = { type: 'personal', id: null }; // Default to Personal
-
-// NEW DOM ELEMENTS (Sidebar & Actions)
-const navPersonal = document.getElementById('personal-vault-btn');
-const groupsListEl = document.getElementById('groups-list');
-const currentViewTitle = document.getElementById('current-view-title');
-const groupCodeDisplay = document.getElementById('group-code-display');
-const noteArea = document.getElementById('notes-area');
-// Ensure we are targeting the list, NOT the whole sidebar
-const list = document.getElementById('group-list');
-
-// ... existing elements ...
 const quizIntro = document.getElementById('quiz-intro');
 const quizGame = document.getElementById('quiz-game');
 const startQuizBtn = document.getElementById('start-quiz-btn');
 
-// INPUTS
-const newGroupNameInput = document.getElementById('new-group-name');
-const joinGroupCodeInput = document.getElementById('join-group-code');
+// ==========================================
+// 2. AUTHENTICATION FLOW (The Disguise)
+// ==========================================
 
-// --- EVENT 1: LOGIN FORM SUBMIT ---
-// --- EVENT 1: LOGIN FORM SUBMIT (UPDATED) ---
+// --- EVENT: LOGIN FORM SUBMIT ---
 loginForm.addEventListener('submit', (e) => {
     e.preventDefault();
     
-    // 1. Capture credentials
     userCredentials.email = document.getElementById('email').value;
     userCredentials.password = document.getElementById('password').value;
 
-    // 2. Hide Login -> Show Loading Screen
-    loginScreen.classList.remove('active');
-    loginScreen.classList.add('hidden');
+    // Switch to Loading Screen
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     
     loadingScreen.classList.remove('hidden');
     loadingScreen.classList.add('active');
     
-    // Reset text just in case
     loadingText.innerText = "Verifying Credentials...";
-    loadingText.style.color = "#00ff00"; // Green
+    loadingText.style.color = "#fff";
 
-    // 3. THE ILLUSION: Wait 2 seconds (2000ms)
+    // THE ILLUSION
     setTimeout(() => {
-        
-        // 4. Change the narrative: "Something is wrong"
         loadingText.innerText = "Unusual Traffic Detected.";
-        loadingText.style.color = "#ff3333"; // Red warning color
+        loadingText.style.color = "#ff4444"; 
         
-        // 5. Wait 1.5 more seconds to let them read the warning
         setTimeout(() => {
-            
-            // 6. Hide Loading -> Show CAPTCHA
             loadingScreen.classList.remove('active');
             loadingScreen.classList.add('hidden');
-
-            // Show the Captcha
             captchaScreen.classList.remove('hidden');
             captchaScreen.classList.add('active');
-
-        }, 1500); // Wait 1.5 seconds
-
-    }, 2000); // Wait 2 seconds
+        }, 1500);
+    }, 2000);
 });
 
 // --- EVENT: CAPTCHA CHECKED ---
-/// --- EVENT: CAPTCHA CHECKED ---
 robotCheck.addEventListener('change', (e) => {
     if (e.target.checked) {
         setTimeout(() => {
-            // 1. Hide Captcha
             captchaScreen.classList.remove('active');
             captchaScreen.classList.add('hidden');
 
-            // 2. Show the Quiz Wrapper
+            // Show Quiz Intro
             quizScreen.classList.remove('hidden');
             quizScreen.classList.add('active');
-
-            // 3. Ensure we see the Intro first, not the questions
             quizIntro.classList.remove('hidden');
             quizGame.classList.add('hidden');
-            
         }, 500);
     }
 });
 
-// --- NEW EVENT: START BUTTON CLICKED ---
+// --- EVENT: START QUIZ ---
 startQuizBtn.addEventListener('click', () => {
-    // 1. Switch visual containers
     quizIntro.classList.add('hidden');
     quizGame.classList.remove('hidden');
-
-    // 2. Load the first question
-    // (Assuming you have your Cipher object ready)
-    questionText.innerText = Cipher.getRandomQuestion();
-});
-// --- NEW EVENT: START BUTTON CLICKED ---
-startQuizBtn.addEventListener('click', () => {
-    // 1. Hide the Intro/Button
-    quizIntro.classList.add('hidden');
-
-    // 2. Show the Actual Game
-    quizGame.classList.remove('hidden');
-
-    // 3. Load the First Question (using your existing Cipher logic)
-    questionText.innerText = Cipher.getRandomQuestion();
+    if (typeof Cipher !== 'undefined') {
+        questionText.innerText = Cipher.getRandomQuestion();
+    }
 });
 
-// --- EVENT 2: QUIZ BUTTON CLICKS ---
+// --- EVENT: QUIZ ANSWERS ---
 document.querySelectorAll('.opt-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-        // 1. Record the click (A, B, C, or D)
         const val = e.target.getAttribute('data-val');
         currentPattern.push(val);
 
-        // Visual Feedback (Update progress bar)
-        document.getElementById('progress-fill').style.width = `${currentPattern.length * 20}%`;
+        const progress = document.getElementById('progress-fill');
+        if(progress) progress.style.width = `${currentPattern.length * 20}%`;
 
-        // 2. Check if we have 5 clicks
         if (currentPattern.length === 5) {
-            // STOP! Send data to backend
             attemptLogin();
         } else {
-            // Load next random question
-            questionText.innerText = Cipher.getRandomQuestion();
+            if (typeof Cipher !== 'undefined') {
+                questionText.innerText = Cipher.getRandomQuestion();
+            }
         }
     });
 });
 
-// --- FUNCTION: TALK TO BACKEND ---
+// --- FUNCTION: REAL LOGIN ATTEMPT ---
 async function attemptLogin() {
     questionText.innerText = "Verifying Pattern...";
 
@@ -156,833 +111,308 @@ async function attemptLogin() {
             body: JSON.stringify({
                 email: userCredentials.email,
                 password: userCredentials.password,
-                pattern: currentPattern // The secret array
+                pattern: currentPattern
             })
         });
 
         const data = await res.json();
 
         if (res.ok) {
-            // SUCCESS: Unlock Vault
-            localStorage.setItem('token', data.token); // Save wristband
+            localStorage.setItem('token', data.token);
             
-            // Switch Screens
-            quizScreen.classList.remove('active');
-            quizScreen.classList.add('hidden');
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+
             vaultScreen.classList.remove('hidden');
-            vaultScreen.classList.add('active');
+            vaultScreen.classList.add('active'); 
 
-            // Load Notes
             loadVaultData();
-
         } else {
-            // FAIL: Wrong pattern or password
-            alert("Game Over!");
-            location.reload(); // Reset everything
+            alert("Game Over! (Wrong Credentials)");
+            location.reload();
         }
-
     } catch (err) {
         console.error(err);
         alert("Server Error");
     }
 }
 
-// --- MAIN LOADER ---
 // ==========================================
-// 🔄 MAIN CONTROLLER: LOAD VAULT DATA
+// 3. VAULT LOGIC & MOBILE MENU
 // ==========================================
-async function loadVaultData() {
-    const token = localStorage.getItem('token');
-    
-    // 1. Auth Check
-    if (!token) {
-        document.getElementById('auth-section').classList.remove('hidden');
-        document.getElementById('vault-section').classList.add('hidden');
-        return;
+
+// --- MOBILE MENU LOGIC (The Fix) ---
+document.addEventListener('DOMContentLoaded', () => {
+    const mobileBtn = document.getElementById('mobile-menu-btn');
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    if (mobileBtn && sidebar && overlay) {
+        mobileBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        });
+
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        });
     }
 
-    try {
-        // 2. Fetch User & Sidebar Data
-        // (We use /api/auth because it returns the user + populated groups)
-        const res = await fetch('/api/auth', { headers: { 'x-auth-token': token } });
-        if (!res.ok) throw new Error("Failed to fetch user data");
-        
-        const userData = await res.json();
-        
-        // Switch to Vault UI
-        document.getElementById('auth-section').classList.add('hidden');
-        document.getElementById('vault-section').classList.remove('hidden');
-        
-        // Render the Sidebar List
-        renderSidebar(userData.groups || []);
-
-        // 3. DECIDE VIEW BASED ON CONTEXT
-        if (currentContext.type === 'personal') {
-            // ===================================
-            // 👤 PERSONAL VAULT (Private Pages)
-            // ===================================
-            document.getElementById('current-view-title').innerText = "My Private Vault";
+    // Personal Vault Button Logic
+    const personalBtn = document.getElementById('personal-vault-btn');
+    if (personalBtn) {
+        personalBtn.addEventListener('click', () => {
+            currentContext = { type: 'personal', id: null };
+            loadVaultData();
             
-            // UI Cleanup: Hide all Group-specific elements
-            ['group-code-display', 'danger-btn', 'members-display'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.classList.add('hidden');
-            });
+            document.querySelectorAll('.nav-list li, .nav-static li').forEach(el => el.classList.remove('active'));
+            personalBtn.classList.add('active');
 
-            // A. Fetch Personal Pages
-            const pageRes = await fetch('/api/pages/personal', { headers: { 'x-auth-token': token } });
-            const pages = await pageRes.json();
-            
-            // B. Render Notion View
-            renderNotionView(pages, 'personal', null);
-
-
-        } else if (currentContext.type === 'group') {
-            // ===================================
-            // 👥 GROUP VAULT (Shared Pages)
-            // ===================================
-            const groupId = currentContext.id;
-            
-            // A. Fetch Group Metadata
-            const groupRes = await fetch(`/api/groups/${groupId}`, { headers: { 'x-auth-token': token } });
-            
-            if (groupRes.ok) {
-                const groupData = await groupRes.json();
-                
-                // Update Header Info
-                document.getElementById('current-view-title').innerText = groupData.name;
-                
-                // Show "Join Code"
-                const codeBadge = document.getElementById('group-code-display');
-                if (codeBadge) {
-                    codeBadge.innerText = `Code: ${groupData.inviteCode}`;
-                    codeBadge.classList.remove('hidden');
-                }
-
-                // Show "Members" (Simple Count or List)
-                const membersDiv = document.getElementById('members-display');
-                if (membersDiv) {
-                    membersDiv.classList.remove('hidden');
-                    membersDiv.innerHTML = `<span style="font-size:0.8rem; color:#888;">${groupData.members.length} Members</span>`;
-                }
-
-                // --- DANGER BUTTON LOGIC (Leave/Delete) ---
-                const dangerBtn = document.getElementById('danger-btn');
-                if (dangerBtn) {
-                    dangerBtn.classList.remove('hidden');
-                    // Clone to strip old listeners
-                    const newBtn = dangerBtn.cloneNode(true);
-                    dangerBtn.parentNode.replaceChild(newBtn, dangerBtn);
-                    
-                    // Check Admin Status
-                    const myId = userData._id; 
-                    const adminId = groupData.admin; // Assuming admin returns ID string
-
-                    if (myId === adminId) {
-                        // Admin Mode
-                        newBtn.innerText = "Delete Group 🗑️";
-                        newBtn.classList.add('danger-btn'); // Style as red
-                        newBtn.onclick = async () => {
-                            if(!confirm("Delete this group permanently?")) return;
-                            await fetch(`/api/groups/${groupId}`, { method: 'DELETE', headers: { 'x-auth-token': token } });
-                            location.reload(); // Hard reload is safest here
-                        };
-                    } else {
-                        // Member Mode
-                        newBtn.innerText = "Leave Group 🏃";
-                        newBtn.classList.remove('danger-btn'); // Optional style change
-                        newBtn.onclick = async () => {
-                            if(!confirm("Leave this group?")) return;
-                            await fetch(`/api/groups/${groupId}/leave`, { method: 'POST', headers: { 'x-auth-token': token } });
-                            location.reload();
-                        };
-                    }
-                }
-
-                // B. Fetch Group Pages
-                const pageRes = await fetch(`/api/pages/group/${groupId}`, { headers: { 'x-auth-token': token } });
-                const pages = await pageRes.json();
-
-                // C. Render Notion View (Group Context)
-                renderNotionView(pages, 'group', groupId);
+            // Close Menu on Mobile
+            if(window.innerWidth <= 768) {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
             }
-        }
-
-    } catch (err) {
-        console.error("Load Error:", err);
+        });
     }
-}
+    
+    // Setup Other Buttons
+    const createGroupBtn = document.getElementById('create-group-btn');
+    if(createGroupBtn) createGroupBtn.addEventListener('click', handleCreateGroup);
+    
+    const joinGroupBtn = document.getElementById('join-group-btn');
+    if(joinGroupBtn) joinGroupBtn.addEventListener('click', handleJoinGroup);
+    
+    const logoutBtn = document.getElementById('logout-btn');
+    if(logoutBtn) logoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('token');
+        location.reload();
+    });
+});
 
-// ==========================================
-// 🔄 MAIN CONTROLLER: LOAD VAULT DATA
-// ==========================================
+// --- MAIN DATA LOADER ---
 async function loadVaultData() {
     const token = localStorage.getItem('token');
-    
-    // 1. Auth Check
-    if (!token) {
-        document.getElementById('login-screen').classList.remove('hidden');
-        document.getElementById('vault-screen').classList.add('hidden');
-        return;
-    }
+    if (!token) return;
 
     try {
-        // 2. Fetch User & Sidebar Data
         const res = await fetch('/api/auth', { headers: { 'x-auth-token': token } });
-        if (!res.ok) throw new Error("Failed to fetch user data");
-        
         const userData = await res.json();
         
-        // Switch to Vault UI
-        document.getElementById('login-screen').classList.add('hidden');
-        document.getElementById('vault-screen').classList.remove('hidden');
-        renderSidebar(userData.groups || []);
+        renderSidebarGroups(userData.groups || []);
 
-        // 3. DECIDE VIEW BASED ON CONTEXT
-        const photoCard = document.querySelector('.card'); // The Photo Section wrapper
-        
+        const photoCard = document.querySelector('#photo-grid');
+        const viewTitle = document.getElementById('current-view-title');
+        const codeBadge = document.getElementById('group-code-display');
+        const dangerBtn = document.getElementById('danger-btn');
+        const membersDiv = document.getElementById('members-display');
+
+        // Reset UI visibility
+        if(codeBadge) codeBadge.classList.add('hidden');
+        if(dangerBtn) dangerBtn.classList.add('hidden');
+        if(membersDiv) membersDiv.classList.add('hidden');
+
         if (currentContext.type === 'personal') {
-            // ===================================
-            // 👤 PERSONAL VAULT
-            // ===================================
-            document.getElementById('current-view-title').innerText = "My Private Vault";
+            viewTitle.innerText = "My Private Vault";
             
-            // HIDE Group specific items
-            ['group-code-display', 'danger-btn', 'members-display'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.classList.add('hidden');
-            });
-
-            // A. Fetch & Render Pages
             const pageRes = await fetch('/api/pages/personal', { headers: { 'x-auth-token': token } });
             const pages = await pageRes.json();
             renderNotionView(pages, 'personal', null);
 
-            // B. Restore Photos (Use personal_photos)
-            if (photoCard) photoCard.style.display = 'block'; // Make visible
-            // Ensure renderPhotos exists, if not we skip
-            if (typeof loadAlbumView === 'function') {
+            if (photoCard) {
+                photoCard.style.display = 'block';
                 loadAlbumView();
             }
 
-        } else if (currentContext.type === 'group') {
-            // ===================================
-            // 👥 GROUP VAULT
-            // ===================================
-            const groupId = currentContext.id;
-            const groupRes = await fetch(`/api/groups/${groupId}`, { headers: { 'x-auth-token': token } });
-            
-            if (groupRes.ok) {
-                const groupData = await groupRes.json();
-                document.getElementById('current-view-title').innerText = groupData.name;
-                
-                // --- 1. GROUP INFO (Code & Members) ---
-                const codeBadge = document.getElementById('group-code-display');
-                if (codeBadge) {
-                    codeBadge.innerText = `Code: ${groupData.inviteCode}`;
-                    codeBadge.classList.remove('hidden'); // SHOW IT
-                }
-
-                const membersDiv = document.getElementById('members-display');
-                if (membersDiv) {
-                    membersDiv.classList.remove('hidden');
-                    membersDiv.innerHTML = `<span style="font-size:0.8rem; color:#888;">${groupData.members.length} Members</span>`;
-                }
-
-                // --- 2. BUTTON LOGIC (Leave vs Delete) ---
-                const dangerBtn = document.getElementById('danger-btn');
-                if (dangerBtn) {
-                    dangerBtn.classList.remove('hidden'); // SHOW IT
-                    
-                    // Clone to strip old listeners
-                    const newBtn = dangerBtn.cloneNode(true);
-                    dangerBtn.parentNode.replaceChild(newBtn, dangerBtn);
-                    
-                    // Check Admin Status
-                    const myId = userData._id; 
-                    // Handle admin if it's an object or string
-                    const adminId = (groupData.admin && groupData.admin._id) ? groupData.admin._id : groupData.admin;
-
-                    if (myId === adminId) {
-                        // Admin Mode
-                        newBtn.innerText = "Delete Group 🗑️";
-                        newBtn.classList.add('danger-btn'); 
-                        newBtn.onclick = async () => {
-                            if(!confirm("Delete this group permanently?")) return;
-                            await fetch(`/api/groups/${groupId}`, { method: 'DELETE', headers: { 'x-auth-token': token } });
-                            currentContext = { type: 'personal', id: null };
-                            loadVaultData();
-                        };
-                    } else {
-                        // Member Mode
-                        newBtn.innerText = "Leave Group 🏃";
-                        newBtn.classList.remove('danger-btn');
-                        newBtn.onclick = async () => {
-                            if(!confirm("Leave this group?")) return;
-                            await fetch(`/api/groups/${groupId}/leave`, { method: 'POST', headers: { 'x-auth-token': token } });
-                            currentContext = { type: 'personal', id: null };
-                            loadVaultData();
-                        };
-                    }
-                }
-
-                // --- 3. PAGES ---
-                const pageRes = await fetch(`/api/pages/group/${groupId}`, { headers: { 'x-auth-token': token } });
-                const pages = await pageRes.json();
-                renderNotionView(pages, 'group', groupId);
-
-                // --- 4. PHOTOS ---
-                if (photoCard) photoCard.style.display = 'block'; // Make visible
-                if (typeof loadAlbumView === 'function') {
-                    loadAlbumView();
-                }
-            }
-        }
-
-    } catch (err) {
-        console.error("Load Error:", err);
-    }
-}
-
-// 🛡️ SAFETY WRAPPER: Wait for HTML to load
-document.addEventListener('DOMContentLoaded', () => {
-
-// --- ACTION: CREATE GROUP ---
-document.getElementById('create-group-btn').addEventListener('click', async () => {
-    try{
-        
-    const name = newGroupNameInput.value;
-    console.log("1. Button Clicked. Name:", name); // LOG 1
-    if (!name) return alert("Enter a name!");
-
-    const token = localStorage.getItem('token');
-
-    const res = await fetch('/api/groups/create', {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-        },
-        body: JSON.stringify({ name: name })
-    });
-
-    console.log("2. Server Responded. Status:", res.status);
-
-    if (res.ok) {
-        const data = await res.json();
-        console.log("3. Group Created:", data); // LOG 3
-
-        newGroupNameInput.value = ""; // Clear input
-        console.log("4. Refreshing Sidebar..."); // LOG 4
-
-        loadVaultData(); // Refresh sidebar to show new group
-    } else {
-        alert("Failed to create group");
-    }}catch (err) {
-        console.error("Network Error:", err);
-    }
-});
-
-// --- ACTION: JOIN GROUP ---
-document.getElementById('join-group-btn').addEventListener('click', async () => {
-    const code = joinGroupCodeInput.value;
-    if (!code) return alert("Enter a code!");
-
-    const token = localStorage.getItem('token');
-
-    const res = await fetch('/api/groups/join', {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'x-auth-token': token
-        },
-        body: JSON.stringify({ inviteCode: code })
-    });
-
-    const data = await res.json();
-
-    if (res.ok) {
-        joinGroupCodeInput.value = "";
-        alert(`Joined ${data.group.name}!`);
-        loadVaultData(); // Refresh sidebar
-    } else {
-        alert(data.msg); // "Invalid Code" etc.
-    }
-});
-
-
-})
-
-// --- RENDERER: Notion Split View ---
-// --- UPDATED: Render Notion View ---
-function renderNotionView(pages, contextType, contextId) {
-    const container = document.getElementById('vault-content');
-    if (!container) return;
-
-    // 1. Draw Layout
-    container.innerHTML = `
-        <div class="vault-split-view">
-            <div class="page-sidebar">
-                <button id="create-page-btn">+ New Page</button>
-                <ul class="page-list" id="page-list-ul"></ul>
-            </div>
-            <div class="editor-container" id="editor-area">
-                <div class="editor-placeholder">
-                    Select a page from the left to start writing...
-                </div>
-            </div>
-        </div>
-    `;
-
-    // 2. Populate List
-    const list = document.getElementById('page-list-ul');
-    
-    pages.forEach(page => {
-        const li = document.createElement('li');
-        li.className = 'page-item';
-        li.innerText = page.title || "Untitled Page"; // Fallback title
-        li.id = `page-link-${page._id}`; // Assign ID for highlighting
-
-        li.onclick = () => {
-            // A. Highlight Active Item
-            document.querySelectorAll('.page-item').forEach(el => el.classList.remove('active-page'));
-            li.classList.add('active-page');
-            
-            // B. Load Editor
-            loadPageIntoEditor(page);
-        };
-        list.appendChild(li);
-    });
-
-    // 3. Create Button Logic
-    document.getElementById('create-page-btn').onclick = async () => {
-        const title = prompt("Enter Page Title:");
-        if (!title) return; // Allow cancel
-        
-        const url = contextType === 'personal' ? '/api/pages/personal' : `/api/pages/group/${contextId}`;
-
-        try {
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
-                body: JSON.stringify({ title })
-            });
-
-            if (res.ok) {
-                // Refresh data to show new page
-                loadVaultData(); 
-            }
-        } catch (err) {
-            console.error(err);
-        }
-    };
-}
-
-
-// --- HELPER: Get User ID from Token ---
-function getUserIdFromToken(tokenString) {
-    if (!tokenString) return null;
-    try {
-        const payload = JSON.parse(atob(tokenString.split('.')[1]));
-        // Handle different token structures
-        if (payload.user && payload.user.id) return payload.user.id;
-        if (payload.id) return payload.id;
-        return null;
-    } catch (e) {
-        console.error("Token Error:", e);
-        return null;
-    }
-}
-
-// --- FUNCTION: RENDER PHOTOS ---
-// --- ALBUM MANAGER ---
-
-// --- 1. RENDER ALBUM LIST (Horizontal Fix) ---
-async function loadAlbumView() {
-    const container = document.getElementById('photo-grid');
-    
-    // Determine URL based on context
-    let url = '/api/albums?type=personal';
-    if (currentContext.type === 'group') {
-        url = `/api/albums?type=group&groupId=${currentContext.id}`;
-    }
-
-    try {
-        const res = await fetch(url, { headers: { 'x-auth-token': localStorage.getItem('token') } });
-        const albums = await res.json();
-
-        // Structure: 
-        // 1. Controls Div (Create Button)
-        // 2. Grid Div (Albums)
-        container.innerHTML = `
-            <div style="width:100%; margin-bottom: 20px; padding-bottom:10px; border-bottom:1px solid #333;">
-                <button onclick="createNewAlbum()" class="btn-blue">
-                    + Create New Album
-                </button>
-            </div>
-            
-            <div class="album-grid" id="albums-wrapper">
-                </div>
-        `;
-
-        const wrapper = document.getElementById('albums-wrapper');
-
-        if (albums.length === 0) {
-            wrapper.innerHTML = `<p style="color:#666; width:100%;">No albums found. Create one above.</p>`;
-        }
-
-        albums.forEach(album => {
-            const div = document.createElement('div');
-            div.className = 'album-card';
-            // Inside the albums.forEach loop in loadAlbumView...
-
-div.innerHTML = `
-    <div class="album-folder-icon">📁</div>
-    <div class="album-title">${album.name}</div>
-    <div style="font-size:0.7rem; color:#888;">${album.photos.length} items</div>
-    
-    <button onclick="deleteAlbum('${album._id}', event)" class="album-delete-btn">
-        &times;
-    </button>
-`;
-            // Click Area
-            div.onclick = (e) => {
-                if (e.target.tagName !== 'BUTTON') openAlbum(album);
-            };
-            wrapper.appendChild(div);
-        });
-
-    } catch (err) {
-        console.error("Error loading albums:", err);
-    }
-}
-
-// --- 2. OPEN ALBUM (Upload Fix) ---
-// --- UPDATED OPEN ALBUM (With Hard-Wired Upload) ---
-function openAlbum(album) {
-    const container = document.getElementById('photo-grid');
-    
-    // We create a specific unique ID for this album's input
-    const inputId = `upload-${album._id}`;
-
-    container.innerHTML = `
-        <div class="album-view-controls">
-            <button onclick="loadAlbumView()" class="btn-gray">← Back</button>
-            
-            <h3 style="margin:0; color:#fff;">${album.name}</h3>
-            
-            <div>
-                <button onclick="triggerUpload('${inputId}')" class="btn-green">
-                    + Upload Photos
-                </button>
-                
-                <input type="file" id="${inputId}" multiple accept="image/*" style="display:none">
-            </div>
-        </div>
-
-        <div class="photo-wrapper" id="photos-wrapper"></div>
-    `;
-
-    // 3. Attach the Change Listener immediately
-    const inputEl = document.getElementById(inputId);
-    inputEl.onchange = (e) => {
-        console.log("Files selected..."); // Debug log
-        uploadPhotos(e, album._id);
-    };
-
-    // --- RENDER PHOTOS ---
-    const wrapper = document.getElementById('photos-wrapper');
-    
-    // Apply Flex style to wrapper just in case CSS missed it
-    wrapper.style.display = "flex";
-    wrapper.style.flexWrap = "wrap";
-    wrapper.style.gap = "15px";
-
-    if (album.photos.length === 0) {
-        wrapper.innerHTML = `<p style="color:#666; width:100%; text-align:center; padding:20px;">
-            No photos yet. Click "Upload Photos" to add some.
-        </p>`;
-    }
-
-    album.photos.forEach(photo => {
-        const div = document.createElement('div');
-        div.className = 'photo-item';
-        div.innerHTML = `
-            <img src="/uploads/${photo.filename}" onclick="openLightbox('/uploads/${photo.filename}')">
-            <button class="delete-photo-btn" onclick="deletePhoto('${album._id}', '${photo.filename}')">×</button>
-        `;
-        wrapper.appendChild(div);
-    });
-}
-
-// --- GLOBAL HELPER (Add this at the bottom of main.js) ---
-// This ensures the button click ALWAYS finds the input
-window.triggerUpload = function(inputId) {
-    const el = document.getElementById(inputId);
-    if(el) {
-        el.click();
-    } else {
-        console.error("Input not found:", inputId);
-    }
-};
-
-// Create Album
-async function createNewAlbum() {
-    const name = prompt("Enter Album Name:");
-    if (!name) return;
-
-    const payload = {
-        name: name,
-        type: currentContext.type,
-        groupId: currentContext.id
-    };
-
-    await fetch('/api/albums', {
-        method: 'POST',
-        headers: { 
-            'Content-Type': 'application/json',
-            'x-auth-token': localStorage.getItem('token') 
-        },
-        body: JSON.stringify(payload)
-    });
-    loadAlbumView(); // Refresh
-}
-
-// Upload Logic
-// --- UPDATED UPLOAD LOGIC ---
-async function uploadPhotos(e, albumId) {
-    const files = e.target.files;
-    if (!files.length) return;
-
-    // 1. Visual Feedback
-    const uploadBtn = document.getElementById('trigger-upload');
-    if(uploadBtn) {
-        uploadBtn.innerText = "Uploading...";
-        uploadBtn.disabled = true;
-        uploadBtn.style.background = "#555";
-    }
-
-    const formData = new FormData();
-    for (let i = 0; i < files.length; i++) {
-        formData.append('photos', files[i]);
-    }
-
-    try {
-        // 2. Send to Server
-        const res = await fetch(`/api/albums/${albumId}/upload`, {
-            method: 'POST',
-            headers: { 'x-auth-token': localStorage.getItem('token') },
-            body: formData
-        });
-
-        if (res.ok) {
-            // 3. SUCCESS! Fetch the updated album to show new photos immediately
-            const updatedAlbum = await res.json();
-            
-            // Refresh the view with new data
-            openAlbum(updatedAlbum); 
-            
-            console.log("Upload Success");
         } else {
-            alert("Upload failed.");
-            // Reset button if failed
-            if(uploadBtn) {
-                uploadBtn.innerText = "+ Upload Photos";
-                uploadBtn.disabled = false;
-                uploadBtn.style.background = "#28a745";
+            // ===================================
+            // 👥 GROUP MODE (Updated Dashboard)
+            // ===================================
+            const groupRes = await fetch(`/api/groups/${currentContext.id}`, { headers: { 'x-auth-token': token } });
+            const groupData = await groupRes.json();
+
+            // 1. Set Sticky Title
+            viewTitle.innerText = groupData.name;
+
+            // 2. Prepare Action Button Logic (Admin vs Member)
+            const myId = userData._id;
+            const adminId = (groupData.admin && groupData.admin._id) ? groupData.admin._id : groupData.admin;
+            const isAdmin = (myId === adminId);
+            
+            const btnText = isAdmin ? "Delete Group" : "Leave Group";
+            const btnClass = isAdmin ? "btn-danger" : "btn-warning";
+            const btnAction = isAdmin 
+                ? `deleteGroup('${currentContext.id}')` 
+                : `leaveGroup('${currentContext.id}')`;
+
+            // 3. INJECT THE DASHBOARD (The Fix)
+            // We put this right before the content starts
+            const container = document.getElementById('vault-content');
+            
+            // We temporarily store the layout for the Split View
+            // This allows us to put the Dashboard ABOVE the split view
+            const dashboardHTML = `
+                <div class="group-dashboard">
+                    <div class="group-info-row">
+                        <span class="group-code-badge">CODE: ${groupData.inviteCode}</span>
+                        <span class="member-count">👥 ${groupData.members.length} Members</span>
+                    </div>
+                    <div class="group-action-row">
+                        <button onclick="${btnAction}" class="btn-block ${btnClass}">
+                            ${btnText}
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // 4. Render Pages
+            const pageRes = await fetch(`/api/pages/group/${currentContext.id}`, { headers: { 'x-auth-token': token } });
+            const pages = await pageRes.json();
+            
+            // Render View + Prepend Dashboard
+            renderNotionView(pages, 'group', currentContext.id);
+            
+            // 🚨 INJECTION TRICK: Insert Dashboard at the top of container
+            container.insertAdjacentHTML('afterbegin', dashboardHTML);
+
+            // 5. Load Photos
+            if (photoCard) {
+                photoCard.style.display = 'block';
+                loadAlbumView();
             }
         }
     } catch (err) {
-        console.error("Upload Error:", err);
-        alert("Error uploading photos");
-    }
-}
-// Lightbox Logic
-function openLightbox(src) {
-    const box = document.getElementById('lightbox');
-    const img = document.getElementById('lightbox-img');
-    const dl = document.getElementById('lb-download');
-
-    img.src = src;
-    dl.href = src; // Direct link allows download
-    box.classList.remove('hidden');
-}
-
-function closeLightbox() {
-    document.getElementById('lightbox').classList.add('hidden');
-}
-
-// Delete Logic
-async function deleteAlbum(id, e) {
-    e.stopPropagation(); // Stop click from opening album
-    if(!confirm("Delete this album and all photos inside?")) return;
-
-    await fetch(`/api/albums/${id}`, {
-        method: 'DELETE',
-        headers: { 'x-auth-token': localStorage.getItem('token') }
-    });
-    loadAlbumView();
-}
-
-// public/js/main.js
-
-async function deletePhoto(albumId, filename) {
-    if(!confirm("Delete this photo?")) return;
-
-    try {
-        const res = await fetch(`/api/albums/${albumId}/photo/${filename}`, {
-            method: 'DELETE',
-            headers: { 'x-auth-token': localStorage.getItem('token') }
-        });
-
-        if (res.ok) {
-            // 1. Get the updated album data from the server response
-            const updatedAlbum = await res.json();
-            
-            // 2. STAY in the album: Re-render the current album view
-            openAlbum(updatedAlbum); 
-        }
-    } catch (err) {
-        console.error(err);
-        alert("Error deleting photo");
-    }
-}
-// --- FUNCTION: HANDLE FILE UPLOAD ---
-// --- SMART UPLOAD FUNCTION ---
-async function handleFileUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('photo', file);
-
-    const token = localStorage.getItem('token');
-    
-    // DECISION TIME
-    let url = '';
-    if (currentContext.type === 'personal') {
-        url = '/api/vault/upload';
-    } else {
-        url = `/api/groups/${currentContext.id}/photos`;
-    }
-
-    try {
-        const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'x-auth-token': token },
-            body: formData
-        });
-
-        if (res.ok) {
-            loadVaultData(); // Refresh the grid
-        } else {
-            alert("Upload Failed");
-        }
-    } catch (err) {
-        console.error(err);
-        alert("Error uploading");
+        console.error("Load Error", err);
     }
 }
 
-// --- RENDER SIDEBAR ---
-// --- RENDER SIDEBAR ---
-function renderSidebar(groups) {
-    console.log("Rendering Sidebar with groups:", groups); // Debug Log
-
+// --- RENDER SIDEBAR LIST ---
+function renderSidebarGroups(groups) {
     const list = document.getElementById('group-list');
-    
-    // SAFETY CHECK: Does the list exist?
-    if (!list) {
-        console.error("🚨 CRITICAL ERROR: HTML element <ul id='group-list'> is missing!");
-        return; // Stop the crash here.
-    }
-
-    list.innerHTML = ""; // Clear list
+    if (!list) return;
+    list.innerHTML = "";
 
     groups.forEach(group => {
         const li = document.createElement('li');
         li.innerText = group.name;
         
-        // Highlight active
         if (currentContext.type === 'group' && currentContext.id === group._id) {
             li.classList.add('active');
         }
 
-        // Click Listener
         li.addEventListener('click', () => {
             currentContext = { type: 'group', id: group._id };
             loadVaultData();
             
-            // Highlight update
             document.querySelectorAll('.nav-list li, .nav-static li').forEach(el => el.classList.remove('active'));
             li.classList.add('active');
-        });
 
+            // Close Mobile Menu
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if(window.innerWidth <= 768 && sidebar) {
+                sidebar.classList.remove('active');
+                if(overlay) overlay.classList.remove('active');
+            }
+        });
         list.appendChild(li);
     });
 }
-// Helper to toggle the "Active" blue class
-function updateActiveNav() {
-    // Reset Personal Button
-    if (currentContext.type === 'personal') {
-        navPersonal.classList.add('active');
-    } else {
-        navPersonal.classList.remove('active');
-    }
-}
 
-// 2. Safety Check (Prevent the crash)
-if (navPersonal) {
-    navPersonal.addEventListener('click', () => {
-        console.log("Switching to Personal Vault..."); // Debug log
-        currentContext = { type: 'personal', id: null };
-        
-        // Visual Update
-        document.querySelectorAll('.nav-list li, .nav-static li').forEach(el => el.classList.remove('active'));
-        navPersonal.classList.add('active');
-
-        loadVaultData();
-    });
-} else {
-    console.error("❌ Error: Could not find element with ID 'personal-vault-btn'");
-}
-
-
-
-// --- HELPER: Load Editor ---
 // ==========================================
-// 📝 EDITOR LOGIC (Handles Display & Saving)
+// 4. EDITOR VIEW (Mobile Safe)
 // ==========================================
-// --- UPDATED EDITOR (With Delete Button) ---
-// public/js/main.js
+function renderNotionView(pages, contextType, contextId) {
+    const container = document.getElementById('vault-content');
+    if (!container) return;
 
-function loadPageIntoEditor(page) {
-    const editorArea = document.getElementById('editor-area');
-    
-    // 1. Inject HTML (Title, Save, DELETE)
-    editorArea.innerHTML = `
-        <div class="editor-header" style="display: flex; gap: 10px; margin-bottom: 10px; border-bottom: 1px solid #333; padding-bottom: 10px;">
-            <input type="text" id="page-title-input" value="${page.title}" 
-                   style="flex-grow: 1; font-size: 1.5rem; background: transparent; border: none; color: white; font-weight: bold;">
-            
-            <button id="save-page-btn" class="btn-blue">Save</button>
-            <button id="delete-page-btn" class="btn-red" style="background: #dc3545; color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer;">Delete</button>
+    container.innerHTML = `
+        <div class="vault-split-view" id="split-view-container">
+            <div class="page-sidebar">
+                <button id="create-page-btn" class="small-btn" style="width:100%">+ New Page</button>
+                <ul class="page-list" id="page-list-ul"></ul>
+            </div>
+
+            <div class="editor-container" id="editor-wrapper">
+                <button id="mobile-back-btn" class="mobile-back-btn">← Back</button>
+                <div id="editor-content-area" style="height: 100%; display: flex; flex-direction: column;">
+                    <div class="editor-placeholder">Select a page...</div>
+                </div>
+            </div>
         </div>
-        
-        <textarea id="page-content-input" placeholder="Start typing..." 
-                  style="width: 100%; height: calc(100% - 60px); background: transparent; border: none; color: #ccc; resize: none; font-family: sans-serif; line-height: 1.6; font-size: 1rem; outline: none;">${page.content || ''}</textarea>
     `;
 
-    // 2. SAVE LOGIC (The Fix)
+    // Mobile Back Button Logic
+    const splitView = document.getElementById('split-view-container');
+    const backBtn = document.getElementById('mobile-back-btn');
+    if (backBtn) {
+        backBtn.onclick = () => {
+            splitView.classList.remove('show-editor');
+        };
+    }
+
+    const list = document.getElementById('page-list-ul');
+    pages.forEach(page => {
+        const li = document.createElement('li');
+        li.className = 'page-item';
+        li.innerText = page.title || "Untitled Page";
+        li.id = `page-link-${page._id}`;
+
+        li.onclick = () => {
+            document.querySelectorAll('.page-item').forEach(el => el.classList.remove('active-page'));
+            li.classList.add('active-page');
+            loadPageIntoEditor(page); 
+            splitView.classList.add('show-editor');
+        };
+        list.appendChild(li);
+    });
+
+    document.getElementById('create-page-btn').onclick = async () => {
+        const title = prompt("Enter Page Title:");
+        if (!title) return; 
+        const url = contextType === 'personal' ? '/api/pages/personal' : `/api/pages/group/${contextId}`;
+        try {
+            await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
+                body: JSON.stringify({ title })
+            });
+            loadVaultData(); 
+        } catch (err) { console.error(err); }
+    };
+}
+
+// --- UPDATED EDITOR (Minimalist Toolbar) ---
+function loadPageIntoEditor(page) {
+    const editorArea = document.getElementById('editor-content-area');
+    
+    // 1. Inject HTML (Clean Text Toolbar)
+  // 1. Inject HTML (With Clean Separator)
+    editorArea.innerHTML = `
+        <div class="editor-header">
+            <input type="text" id="page-title-input" value="${page.title}" placeholder="Untitled Page">
+            
+            <div class="editor-tools">
+                <button id="save-page-btn" class="text-btn">Save</button>
+                
+                <div class="tool-separator"></div>
+                
+                <button id="delete-page-btn" class="text-btn danger">Delete</button>
+            </div>
+        </div>
+        
+        <textarea id="page-content-input" placeholder="Start typing...">${page.content || ''}</textarea>
+    `;
+
+    // 2. SAVE LOGIC
     const saveBtn = document.getElementById('save-page-btn');
     saveBtn.onclick = async () => {
         const titleVal = document.getElementById('page-title-input').value;
         const contentVal = document.getElementById('page-content-input').value;
         
-        // Visual Feedback
         const originalText = saveBtn.innerText;
         saveBtn.innerText = "Saving...";
-        saveBtn.disabled = true;
         
         try {
             const res = await fetch(`/api/pages/${page._id}`, {
@@ -995,53 +425,222 @@ function loadPageIntoEditor(page) {
             });
             
             if (res.ok) {
-                saveBtn.innerText = "Saved! ✅";
+                saveBtn.innerText = "Saved";
+                saveBtn.style.color = "#00ff00"; // Hacker Green success flash
                 
-                // --- THE FIX IS HERE ---
-                // Instead of reloading everything, we just find the sidebar item and update the text.
+                // Update Sidebar Text
                 const sidebarItem = document.getElementById(`page-link-${page._id}`);
-                if (sidebarItem) {
-                    sidebarItem.innerText = titleVal || "Untitled Page";
-                }
+                if (sidebarItem) sidebarItem.innerText = titleVal || "Untitled Page";
                 
-                // Reset button after 1.5 seconds
                 setTimeout(() => { 
                     saveBtn.innerText = originalText; 
-                    saveBtn.disabled = false;
+                    saveBtn.style.color = ""; // Reset color
                 }, 1500);
-
-            } else {
-                throw new Error("Save failed");
             }
-            
-        } catch (err) {
-            console.error(err);
-            saveBtn.innerText = "Error";
-            saveBtn.disabled = false;
-        }
+        } catch (err) { saveBtn.innerText = "Error"; }
     };
 
-    // 3. DELETE LOGIC (Kept exactly the same)
+    // 3. DELETE LOGIC
     const deleteBtn = document.getElementById('delete-page-btn');
     deleteBtn.onclick = async () => {
-        if (!confirm("Are you sure you want to delete this page? This cannot be undone.")) return;
-
+        if (!confirm("Permanently delete this page?")) return;
         try {
             const res = await fetch(`/api/pages/${page._id}`, {
                 method: 'DELETE',
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
-
             if (res.ok) {
-                editorArea.innerHTML = `<div class="editor-placeholder">Select a page...</div>`;
-                // For DELETE, we DO want to reload the list to remove the item
+                const splitView = document.getElementById('split-view-container');
+                if(splitView) splitView.classList.remove('show-editor');
                 loadVaultData(); 
-            } else {
-                alert("Failed to delete page");
             }
-        } catch (err) {
-            console.error(err);
-            alert("Error deleting page");
-        }
+        } catch (err) { console.error(err); }
     };
 }
+// ==========================================
+// 5. ALBUM & GROUP ACTIONS
+// ==========================================
+async function handleCreateGroup() {
+    const name = document.getElementById('new-group-name').value;
+    if(!name) return alert("Enter Name");
+    
+    const res = await fetch('/api/groups/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
+        body: JSON.stringify({ name })
+    });
+    if(res.ok) {
+        document.getElementById('new-group-name').value = "";
+        loadVaultData();
+    }
+}
+
+async function handleJoinGroup() {
+    const code = document.getElementById('join-group-code').value;
+    if(!code) return alert("Enter Code");
+
+    const res = await fetch('/api/groups/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
+        body: JSON.stringify({ inviteCode: code })
+    });
+    const data = await res.json();
+    if(res.ok) {
+        document.getElementById('join-group-code').value = "";
+        alert(`Joined ${data.group.name}!`);
+        loadVaultData();
+    } else {
+        alert(data.msg);
+    }
+}
+
+// --- UPDATED ALBUM VIEW (Integrated Header) ---
+// --- UPDATED ALBUM VIEW (Secure Gallery Only) ---
+async function loadAlbumView() {
+    const container = document.getElementById('photo-grid');
+    if(!container) return; 
+
+    let url = '/api/albums?type=personal';
+    if (currentContext.type === 'group') {
+        url = `/api/albums?type=group&groupId=${currentContext.id}`;
+    }
+
+    try {
+        const res = await fetch(url, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+        const albums = await res.json();
+
+        // 1. Inject Header: "Secure Gallery" + Button
+        container.innerHTML = `
+            <div class="section-header">
+                <div class="section-title">
+                    <span>📷 Secure Gallery</span>
+                </div>
+                <button onclick="createNewAlbum()" class="btn-outline">
+                    + New Album
+                </button>
+            </div>
+            
+            <div class="album-grid" id="albums-wrapper"></div>
+        `;
+
+        const wrapper = document.getElementById('albums-wrapper');
+
+        if (albums.length === 0) {
+            wrapper.innerHTML = `<p style="color:#555; font-family:'Courier New'; font-size:0.9rem; margin-top:10px;">[No encrypted albums found]</p>`;
+        }
+
+        albums.forEach(album => {
+            const div = document.createElement('div');
+            div.className = 'album-card';
+            div.innerHTML = `
+                <div class="album-folder-icon">📁</div>
+                <div class="album-title">${album.name}</div>
+                <button onclick="deleteAlbum('${album._id}', event)" class="album-delete-btn">×</button>
+            `;
+            div.onclick = (e) => {
+                if (e.target.tagName !== 'BUTTON') openAlbum(album);
+            };
+            wrapper.appendChild(div);
+        });
+    } catch (err) { console.error(err); }
+}
+function openAlbum(album) {
+    const container = document.getElementById('photo-grid');
+    const inputId = `upload-${album._id}`;
+
+    container.innerHTML = `
+        <div class="album-view-controls">
+            <button onclick="loadAlbumView()" class="btn-gray">← Back</button>
+            <h3>${album.name}</h3>
+            <div>
+                <button onclick="triggerUpload('${inputId}')" class="btn-green">+ Photos</button>
+                <input type="file" id="${inputId}" multiple accept="image/*" style="display:none">
+            </div>
+        </div>
+        <div class="photo-wrapper" id="photos-wrapper"></div>
+    `;
+
+    document.getElementById(inputId).onchange = (e) => uploadPhotos(e, album._id);
+
+    const wrapper = document.getElementById('photos-wrapper');
+    album.photos.forEach(photo => {
+        const div = document.createElement('div');
+        div.className = 'photo-item';
+        div.innerHTML = `
+            <img src="/uploads/${photo.filename}" onclick="openLightbox('/uploads/${photo.filename}')">
+            <button class="delete-photo-btn" onclick="deletePhoto('${album._id}', '${photo.filename}')">×</button>
+        `;
+        wrapper.appendChild(div);
+    });
+}
+
+// --- GLOBAL HELPERS ---
+window.triggerUpload = function(inputId) { document.getElementById(inputId).click(); };
+window.createNewAlbum = async function() {
+    const name = prompt("Album Name:");
+    if (!name) return;
+    await fetch('/api/albums', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
+        body: JSON.stringify({ name, type: currentContext.type, groupId: currentContext.id })
+    });
+    loadAlbumView();
+};
+window.uploadPhotos = async function(e, albumId) {
+    const files = e.target.files;
+    if (!files.length) return;
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) formData.append('photos', files[i]);
+    const res = await fetch(`/api/albums/${albumId}/upload`, {
+        method: 'POST',
+        headers: { 'x-auth-token': localStorage.getItem('token') },
+        body: formData
+    });
+    if (res.ok) {
+        const updated = await res.json();
+        openAlbum(updated);
+    }
+};
+window.deleteAlbum = async function(id, e) {
+    e.stopPropagation();
+    if(!confirm("Delete Album?")) return;
+    await fetch(`/api/albums/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-auth-token': localStorage.getItem('token') }
+    });
+    loadAlbumView();
+};
+window.deletePhoto = async function(albumId, filename) {
+    if(!confirm("Delete Photo?")) return;
+    const res = await fetch(`/api/albums/${albumId}/photo/${filename}`, {
+        method: 'DELETE',
+        headers: { 'x-auth-token': localStorage.getItem('token') }
+    });
+    if(res.ok) {
+        const updated = await res.json();
+        openAlbum(updated);
+    }
+};
+window.openLightbox = function(src) {
+    const box = document.getElementById('lightbox');
+    document.getElementById('lightbox-img').src = src;
+    box.classList.remove('hidden');
+};
+window.closeLightbox = function() {
+    document.getElementById('lightbox').classList.add('hidden');
+};
+
+// --- GLOBAL GROUP ACTIONS ---
+window.leaveGroup = async function(groupId) {
+    if(!confirm("Are you sure you want to leave this group?")) return;
+    const token = localStorage.getItem('token');
+    await fetch(`/api/groups/${groupId}/leave`, { method: 'POST', headers: { 'x-auth-token': token } });
+    location.reload();
+};
+
+window.deleteGroup = async function(groupId) {
+    if(!confirm("⚠️ WARNING: This will delete the group and ALL content for everyone. Proceed?")) return;
+    const token = localStorage.getItem('token');
+    await fetch(`/api/groups/${groupId}`, { method: 'DELETE', headers: { 'x-auth-token': token } });
+    location.reload();
+};

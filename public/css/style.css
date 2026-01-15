@@ -1,919 +1,763 @@
-/* GLOBAL DARK THEME */
+/* =========================================
+   🚨 CRITICAL UTILITY CLASS (Add this at the top)
+   ========================================= */
+.hidden {
+    display: none !important;
+}
+/* ==========================================================================
+   🎭 PHASE 1: THE DISGUISE (Public "Game" Layer)
+   ========================================================================== */
+/* Import "Nunito" for the friendly game look */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap');
+/* Import "Merriweather" for the Vault Editor (Better reading experience) */
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&display=swap');
+
+/* 1. GLOBAL GAME WORLD (The "Happy" Layer) */
 body {
-    background-color: #121212;
-    color: #e0e0e0;
-    font-family: 'Courier New', Courier, monospace; /* Matrix vibes */
+    /* Colorful Gradient Background (Purple/Blue) */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #333;
+    font-family: 'Nunito', sans-serif;
     margin: 0;
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
-/* SCREEN VISIBILITY LOGIC */
+/* 2. SCREEN VISIBILITY LOGIC */
 .screen {
     display: none; /* Hidden by default */
     width: 100%;
-    max-width: 500px;
 }
 
 .screen.active {
-    display: block; /* Only the active one shows */
-    animation: fadeIn 0.5s;
+    display: flex; /* Active screens center themselves */
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    width: 100%;
+    min-height: 100vh;
+    animation: fadeIn 0.5s ease-out;
 }
 
 .screen.hidden {
-    display: none;
-}
-
-/* LOGIN BOX */
-.login-box {
-    background: #1e1e1e;
-    padding: 2rem;
-    border-radius: 10px;
-    border: 1px solid #333;
-    text-align: center;
-}
-
-input {
-    width: 90%;
-    padding: 10px;
-    margin: 10px 0;
-    background: #2c2c2c;
-    border: 1px solid #444;
-    color: white;
-}
-
-button {
-    width: 100%;
-    padding: 10px;
-    background: #007bff; /* Decoy Blue */
-    color: white;
-    border: none;
-    cursor: pointer;
-    margin-top: 10px;
-}
-
-button:hover {
-    background: #0056b3;
-}
-
-/* QUIZ STYLES */
-.options-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.opt-btn {
-    background: #333;
-    padding: 20px;
-    font-size: 1.2rem;
-}
-
-.opt-btn:active {
-    background: #555; /* Click feedback */
-}
-
-/* FULL SCREEN VAULT OVERRIDE */
-#vault-screen {
-    max-width: 100vw; /* Allow full width */
-    width: 100vw;
-    height: 100vh;
-    margin: 0;
-    padding: 0;
-    position: fixed; /* Force it to top-left, ignoring body centering */
-    top: 0;
-    left: 0;
-    background: #121212;
-}
-
-/* ADJUST CONTENT SCROLLING */
-.dashboard-container {
-    display: grid;
-    grid-template-columns: 250px 1fr;
-    height: 100%; /* Fill the fixed screen */
-    width: 100%;
-}
-
-.dashboard {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
-
-textarea {
-    width: 100%;
-    height: 200px;
-    background: #1e1e1e;
-    color: #0f0; /* Hacker Green text */
-    border: 1px solid #333;
-    padding: 10px;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-
-/* LOADING SCREEN STYLES */
-.loader-container {
-    text-align: center;
-    color: #00ff00; /* Hacker Green for "System" feel */
-}
-
-.spinner {
-    border: 4px solid #333; /* Dark Grey background */
-    border-top: 4px solid #00ff00; /* Green Spinner */
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 20px auto; /* Center it */
-}
-
-.blink {
-    animation: blinker 1.5s linear infinite;
-    color: #888;
-}
-
-/* ANIMATIONS */
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-@keyframes blinker {
-    50% { opacity: 0; }
-}
-
-/* CAPTCHA STYLES */
-#captcha-screen {
-    display: none; /* Hidden by default */
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-#captcha-screen.active {
-    display: flex; /* We use flex to center it */
-}
-
-.captcha-box {
-    background: #f9f9f9; /* Standard Light Grey */
-    border: 1px solid #d3d3d3;
-    border-radius: 3px;
-    width: 300px;
-    padding: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    color: black; /* Override dark mode for this box */
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-.captcha-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-/* The Checkbox */
-#robot-check {
-    width: 24px;
-    height: 24px;
-    cursor: pointer;
-    margin: 0;
-}
-
-/* The Label */
-.captcha-row label {
-    font-family: Arial, sans-serif;
-    font-size: 14px;
-    color: #333;
-    cursor: pointer;
-}
-
-/* The Fake Logo Area */
-.captcha-logo {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-}
-
-.captcha-logo img {
-    width: 32px;
-    opacity: 0.7;
-}
-
-.captcha-logo span {
-    font-size: 10px;
-    color: #555;
-    margin-top: 2px;
-}
-
-.captcha-logo small {
-    font-size: 8px;
-    color: #999;
-}
-
-.instruction-text {
-    margin-top: 20px;
-    color: #888;
-    font-size: 0.9rem;
-}
-
-
-/* DASHBOARD LAYOUT */
-.dashboard-container {
-    display: grid;
-    grid-template-columns: 250px 1fr; /* Sidebar is 250px, Content is the rest */
-    height: 100vh; /* Full screen height */
-    width: 100vw;
-    background: #121212;
-}
-
-/* =========================================
-   SIDEBAR (INTEGRATED STYLES)
-   ========================================= */
-
-/* 1. THE CONTAINER */
-.sidebar {
-    width: 260px;
-    height: 100vh;         /* Full Height */
-    background: #1e1e1e;
-    border-right: 1px solid #333;
-    display: flex;         /* Flexbox */
-    flex-direction: column; 
-    overflow: hidden;      /* No global scroll */
-    flex-shrink: 0;
-}
-
-/* 2. TOP ZONE (Fixed) */
-.sidebar-top {
-    padding: 20px 20px 10px 20px;
-    flex-shrink: 0;
-}
-
-.logo h2 {
-    color: #fff;
-    margin-bottom: 20px;
-    font-size: 1.5rem;
-}
-
-.divider {
-    height: 1px;
-    background: #333;
-    border: none;
-    margin: 15px 0;
-}
-
-/* The "Shared Groups" Label - Now Lighter & Visible */
-.section-label {
-    font-size: 0.75rem;
-    color: #aaa;           /* Lighter Grey */
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 10px;
-    padding-left: 5px;
-}
-
-/* 3. MIDDLE ZONE (Scrollable) */
-.nav-list {
-    flex-grow: 1;          /* Fills space */
-    overflow-y: auto;      /* Scrolls */
-    padding: 0 20px;
-    margin: 0;
-}
-
-/* List Items */
-.nav-static, .nav-list { list-style: none; padding: 0; margin: 0; }
-
-.nav-static li, .nav-list li {
-    padding: 10px 15px;
-    cursor: pointer;
-    border-radius: 5px;
-    color: #888;
-    margin-bottom: 5px;
-    transition: all 0.2s;
-    font-size: 0.9rem;
-}
-
-.nav-static li:hover, .nav-list li:hover {
-    background: #2c2c2c;
-    color: #fff;
-}
-
-.nav-static li.active, .nav-list li.active {
-    background: #007bff;
-    color: white;
-}
-
-/* 4. BOTTOM ZONE (Sticky & Polished) */
-.sidebar-bottom {
-    padding: 10px;
-    background: #181818;
-    border-top: 1px solid #333;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;             /* Space between items */
-}
-
-/* Inputs - Now Lighter & Full Width */
-.sidebar-bottom input {
-    width: 100%;
-    height: 38px;          /* Fixed Height */
-    padding: 0 10px;
-    background: #2a2a2a;   /* Lighter Background */
-    border: 1px solid #555;
-    color: #fff;
-    border-radius: 4px;
-    font-size: 0.9rem;
-    box-sizing: border-box;
-}
-
-.sidebar-bottom input:focus {
-    outline: none;
-    border-color: #007bff;
-}
-
-/* Buttons - Consistent Height */
-.sidebar-bottom button {
-    height: 38px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-    color: white;
-    font-size: 0.9rem;
-}
-
-/* --- FIX: Force Even Spacing --- */
-.sidebar-bottom input, 
-.sidebar-bottom button {
-    margin: 0 !important; /* Remove any hidden default margins */
-    display: block;       /* Ensure they stack perfectly */
-}
-
-/* Optional: Add a tiny bit of breathing room inside the container */
-.sidebar-bottom {
-    padding-top: 15px;
-    padding-bottom: 15px;
-}
-
-#create-group-btn { background: #28a745; width: 100%; }
-#create-group-btn:hover { background: #218838; }
-
-.logout-btn { background: #dc3545; width: 100%;margin-top: 20px !important; }
-.logout-btn:hover { background: #c82333; }
-
-/* Join Zone Alignment */
-.join-zone {
-    display: flex;
-    gap: 8px;
-    width: 100%;
-    margin-top: 20px !important; /* The visual separator */
-    padding-top: 20px; /* Optional: Adds internal breathing room */
-    border-top: 1px solid #333; /* Optional: A thin line to separate sections */
-}
-
-.join-zone input {
-    flex-grow: 1;
-}
-
-#join-group-btn {
-    background: #007bff;
-    padding: 0 15px;
-    white-space: nowrap;
-}
-#join-group-btn:hover { background: #0056b3; }
-
-/* CONTENT AREA */
-.content-area {
-    padding: 30px;
-    overflow-y: auto; /* Scroll if content is long */
-}
-
-.content-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #333;
-    padding-bottom: 10px;
-}
-
-.code-badge {
-    background: #333;
-    padding: 5px 10px;
-    border-radius: 4px;
-    font-family: monospace;
-    color: #0f0;
-}
-
-/* MEMBER LIST STYLES */
-.members-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px; /* Space between names */
-    margin-top: 8px;
-}
-
-.member-tag {
-    background-color: #333;
-    color: #ccc;
-    font-size: 0.75rem; /* Small text */
-    padding: 2px 8px;
-    border-radius: 12px; /* Rounded pill shape */
-    border: 1px solid #444;
-}
-
-/* Hide it when needed */
-.members-container.hidden {
-    display: none;
-}
-
-/* DANGER BUTTON STYLES */
-.danger-btn {
-    display: inline-block;
-    width: auto; /* Prevent full width */
-    padding: 6px 12px;
-    margin-left: 10px;
-    border: none;
-    border-radius: 4px;
-    font-size: 0.85rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.2s;
-    
-    /* Default is "Leave" style (Orange/Yellow) */
-    background-color: #f0ad4e; 
-    color: #222; 
-}
-
-.danger-btn:hover {
-    background-color: #ec971f;
-}
-
-/* ADMIN STYLE (Red) */
-/* We will add this class via JavaScript if the user is Admin */
-.danger-btn.admin-mode {
-    background-color: #d9534f;
-    color: white;
-}
-
-.danger-btn.admin-mode:hover {
-    background-color: #c9302c;
-}
-
-/* Helper to hide it */
-.hidden {
     display: none !important;
 }
 
-/* --- NOTION STYLE SPLIT VIEW --- */
-/* Update this to allow scrolling if Photos are below */
-.vault-container {
-    height: calc(100vh - 80px); /* Fill screen */
-    overflow-y: auto;           /* Enable scrolling for the WHOLE container */
-    padding-bottom: 50px;       /* Extra space at bottom */
+/* 3. GAME CARDS (Login, Quiz, Captcha) */
+.login-box,
+#quiz-intro,
+#quiz-game,
+.captcha-box {
+    background: #ffffff;
+    color: #4a4a4a;
+    padding: 2.5rem;
+    border-radius: 20px;      /* Soft rounded corners */
+    border: none;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    text-align: center;
+    width: 90%;
+    max-width: 400px;         /* Phone/Tablet optimized */
+    margin: 0 auto;
+    position: relative;
+    box-sizing: border-box;
 }
 
-/* Important: The Split View should NOT scroll itself anymore, 
-   let the main container handle it if photos are below */
-/* --- NOTION STYLE SPLIT VIEW (FIXED) --- */
+/* Headings */
+h1, h2 {
+    color: #2d3436;
+    font-weight: 800;
+    margin-bottom: 1rem;
+    margin-top: 0;
+}
+
+/* 4. GAME INPUTS (Soft & Rounded) */
+input {
+    width: 100%;
+    padding: 15px;
+    margin: 10px 0;
+    background: #f0f2f5;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    color: #333;
+    font-size: 1rem;
+    font-family: 'Nunito', sans-serif;
+    box-sizing: border-box;
+    transition: all 0.2s;
+}
+
+input:focus {
+    outline: none;
+    background: #fff;
+    border-color: #667eea;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+/* 5. GAME BUTTONS (Pill Shaped) */
+button {
+    width: 100%;
+    padding: 15px;
+    background: #6c5ce7;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 15px;
+    box-shadow: 0 4px 10px rgba(108, 92, 231, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+button:hover {
+    background: #5b4cc4;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(108, 92, 231, 0.4);
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+/* 6. GAME EXTRAS (Captcha, Loader) */
+.loader-container {
+    text-align: center;
+    color: #fff; /* White text on the purple background */
+}
+.spinner {
+    border: 4px solid rgba(255,255,255,0.3);
+    border-top: 4px solid #fff;
+    border-radius: 50%;
+    width: 40px; height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 20px auto;
+}
+
+/* Captcha Specifics */
+.captcha-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-radius: 4px; /* Captcha looks better square-ish */
+    width: 300px;
+}
+.captcha-row { display: flex; align-items: center; gap: 12px; }
+#robot-check { width: 24px; height: 24px; margin: 0; cursor: pointer; }
+
+/* Quiz Grid */
+.options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 25px;
+}
+.opt-btn {
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    color: #555;
+    border-radius: 15px;
+    padding: 20px 10px;
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-top: 0;
+    box-shadow: none;
+}
+.opt-btn:hover { border-color: #6c5ce7; background: #f0f0ff; color: #6c5ce7; }
+
+/* Animation Keyframes */
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes blinker { 50% { opacity: 0; } }
+.blink { animation: blinker 1.5s linear infinite; }
+
+
+/* ==========================================================================
+   🔐 PHASE 2: THE VAULT (Private "Hacker" Layer)
+   ========================================================================== */
+
+/* This ID overrides EVERYTHING above it to force Dark Mode */
+#vault-screen {
+    font-family: 'Courier New', Courier, monospace; /* Reset Font */
+    background: #121212;  /* Reset Background */
+    color: #e0e0e0;       /* Reset Text */
+    
+    position: fixed;      /* Take over the whole window */
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;        /* Sit on top of the game layer */
+    overflow-y: hidden;   /* Main container handles scroll */
+    margin: 0; padding: 0;
+    display: none;        /* Hidden until login */
+}
+
+/* Force Vault Reset for active state */
+#vault-screen.active {
+    display: block !important;
+}
+
+/* --- VAULT RESET (Kill Game Styles) --- */
+#vault-screen input, 
+#vault-screen textarea, 
+#vault-screen button {
+    font-family: 'Courier New', Courier, monospace;
+    border-radius: 4px;   /* Back to square corners */
+    box-shadow: none;     /* No shadows */
+    margin: 0;
+}
+
+#vault-screen button {
+    text-transform: none;
+    font-weight: normal;
+}
+
+
+/* =========================================
+   VAULT LAYOUT (Desktop Grid)
+   ========================================= */
+.dashboard-container {
+    display: grid;
+    grid-template-columns: 250px 1fr; /* Fixed Sidebar, Fluid Content */
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+/* --- 1. SIDEBAR --- */
+.sidebar {
+    width: 250px;
+    height: 100vh;
+    background: #1e1e1e;
+    border-right: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    z-index: 100;
+}
+
+.sidebar-top { padding: 20px; flex-shrink: 0; }
+.logo h2 { color: #fff; margin-bottom: 20px; font-size: 1.5rem; letter-spacing: -1px; }
+.section-label { font-size: 0.75rem; color: #666; font-weight: bold; text-transform: uppercase; margin-top: 15px; margin-bottom: 10px; }
+.divider { height: 1px; background: #333; border: none; margin: 15px 0; }
+
+/* Sidebar Lists */
+.nav-list, .nav-static {
+    list-style: none; padding: 0; margin: 0;
+    flex-grow: 1; overflow-y: auto; padding: 0 15px;
+}
+.nav-list li, .nav-static li {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    color: #888;
+    margin-bottom: 4px;
+    font-size: 0.9rem;
+    transition: background 0.2s;
+}
+.nav-list li:hover, .nav-static li:hover { background: #2c2c2c; color: #fff; }
+.nav-list li.active, .nav-static li.active { background: #007bff; color: white; }
+
+/* --- UPDATED SIDEBAR BOTTOM (Spacious & Clean) --- */
+.sidebar-bottom {
+    padding: 20px 15px; /* More breathing room */
+    background: #181818;
+    border-top: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Clearly separate the groups */
+}
+
+/* Cleaner Inputs */
+.sidebar-bottom input {
+    background: #252525; /* Slightly lighter than bg */
+    border: 1px solid #444; 
+    color: #ccc; 
+    padding: 10px; 
+    font-size: 0.85rem;
+    border-radius: 4px;
+    transition: border-color 0.2s;
+}
+
+.sidebar-bottom input:focus {
+    border-color: #007bff;
+    outline: none;
+    background: #2a2a2a;
+}
+
+/* Buttons inside Sidebar */
+.sidebar-bottom button {
+    padding: 10px; 
+    font-size: 0.85rem; 
+    color: white; 
+    border: none; 
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+#create-group-btn { background: #28a745; }
+.logout-btn { background: #dc3545; margin-top: 10px !important; }
+
+.join-zone { display: flex; gap: 5px; margin-top: 10px !important; }
+#join-group-btn { background: #007bff; width: auto; }
+
+
+/* --- 2. MAIN CONTENT AREA --- */
+.content-area {
+    padding: 30px 40px;
+    overflow-y: auto; /* This handles the scrolling for the page */
+    background: #121212;
+    position: relative;
+}
+
+/* Header */
+.content-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 15px;
+}
+#current-view-title { color: #fff; margin: 0; font-size: 1.8rem; }
+.code-badge { background: #333; padding: 5px 10px; border-radius: 4px; color: #0f0; font-family: monospace; }
+.danger-btn { padding: 6px 12px; border-radius: 4px; font-size: 0.85rem; font-weight: bold; cursor: pointer; border: none; }
+.danger-btn { background: #f0ad4e; color: #222; }
+.danger-btn.admin-mode { background: #d9534f; color: white; }
+
+
+/* =========================================
+   VAULT COMPONENTS
+   ========================================= */
+
+/* --- A. NOTION SPLIT VIEW --- */
 .vault-split-view {
     display: flex;
-    flex-direction: row;
     width: 100%;
-    min-height: 600px; /* Force a tall workspace */
-    background-color: #1e1e1e; /* Match editor bg */
+    min-height: 600px;
+    background: #1e1e1e;
     border: 1px solid #333;
     border-radius: 8px;
-    overflow: hidden; /* Keep corners rounded */
-    margin-bottom: 30px; /* Space before photos */
+    overflow: hidden;
+    margin-bottom: 40px;
 }
 
-/* LEFT: Page List */
-/* --- NOTION SIDEBAR (Page List) --- */
+/* Left: Page List */
 .page-sidebar {
     width: 250px;
     min-width: 250px;
-    background: #111;
+    background: #181818;
     border-right: 1px solid #333;
     display: flex;
     flex-direction: column;
     padding: 15px;
 }
 
-/* The List Container */
+/* Page List Items */
 .page-list {
-    list-style: none;
-    padding: 0;
-    margin-top: 20px;
+    list-style: none; padding: 0 !important; margin: 0 !important;
     overflow-y: auto;
-    flex-grow: 1;
-    /* Custom Scrollbar for the list */
-    scrollbar-width: thin;
-    scrollbar-color: #444 #111;
 }
-
-/* Individual Page Item (The "Card") */
 .page-item {
-    padding: 12px 15px;
-    margin-bottom: 8px;
-    border-radius: 6px;
-    background: #1e1e1e; /* Slightly lighter than bg */
-    border: 1px solid #333;
-    color: #ccc;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-size: 0.9rem;
-    
-    /* Text Overflow Handling */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    display: block; width: 100%;
+    padding: 12px 10px; margin-bottom: 5px;
+    background: transparent;
+    border-radius: 4px;
+    color: #888; text-align: left;
+    cursor: pointer; transition: all 0.2s;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.page-item:hover { background: #252525; color: #fff; }
+.page-item.active-page { background: #2c2c2c; color: #fff; font-weight: bold; border-left: 3px solid #007bff; }
+#create-page-btn { background: transparent; border: 1px dashed #444; color: #888; margin-bottom: 15px; }
+#create-page-btn:hover { border-color: #666; color: #fff; }
 
-/* Hover Effect */
-.page-item:hover {
-    background: #2a2a2a;
-    border-color: #555;
-    color: #fff;
-    transform: translateX(3px); /* Subtle slide effect */
-}
-
-/* Active State (The page currently open) */
-.page-item.active-page {
-    background: #007bff; /* Blue Highlight */
-    color: white;
-    border-color: #0056b3;
-    font-weight: bold;
-}
-
-/* The "+ New Page" Button */
-#create-page-btn {
-    width: 100%;
-    padding: 10px;
-    background: #28a745; /* Green */
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-    text-transform: uppercase;
-    font-size: 0.8rem;
-    letter-spacing: 1px;
-    transition: background 0.3s;
-}
-
-#create-page-btn:hover {
-    background: #218838;
-}
-
-/* RIGHT: Editor Area */
+/* Right: Editor */
 .editor-container {
-    flex-grow: 1; /* Take remaining width */
-    display: flex;
-    flex-direction: column;
+    flex-grow: 1;
+    display: flex; flex-direction: column;
     background: #1e1e1e;
     position: relative;
+    padding: 0;
 }
-
-/* The "Select a page" placeholder */
-.editor-placeholder {
-    color: #555;
+/* =========================================
+   Step 2: THE MINIMALIST TOOLBAR (Polished)
+   ========================================= */
+.editor-header {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    font-style: italic;
+    align-items: center; /* Vertically center everything */
+    justify-content: space-between; 
+    border-bottom: 1px solid #333;
+    
+    /* FIX: Add padding so buttons don't touch the edge */
+    padding: 15px 20px; 
+    margin-bottom: 15px;
+    background: #1e1e1e; /* Ensure it matches background */
 }
 
-/* Inputs inside Editor */
+/* The Title Input */
 #page-title-input {
-    width: 100%;
     background: transparent;
     border: none;
     color: #fff;
-    font-size: 1.5rem;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.2rem;
     font-weight: bold;
-    padding: 5px;
-}
-
-#page-content-input {
-    width: 100%;
-    flex-grow: 1; /* Fill height */
-    background: transparent;
-    border: none;
-    color: #ccc;
-    font-size: 1rem;
-    padding: 20px;
-    resize: none;
-    line-height: 1.6;
-    font-family: monospace;
+    flex-grow: 1; /* Take up available space */
+    margin-right: 20px; /* Don't overlap buttons */
 }
 #page-title-input:focus { outline: none; }
 
-#save-page-btn {
-    background: #007bff;
-    color: white;
-    border: none;
-    padding: 5px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.85rem;
+/* The Tool Container */
+.editor-tools {
+    display: flex;
+    align-items: center; /* Perfect vertical alignment */
+    gap: 10px;           /* Space between items */
+    flex-shrink: 0;      /* Don't squash buttons */
 }
 
-#page-content-input {
+/* The "Indistractable" Buttons */
+.text-btn {
     background: transparent;
     border: none;
-    color: #ccc;
-    font-size: 1rem;
-    flex-grow: 1;
-    padding: 20px;
-    resize: none;
-    line-height: 1.6;
-}
-
-/* --- ALBUM CONTAINER --- */
-
-/* PHOTO GRID */
-#photo-grid {
-    display: block !important; /* Stop acting like a grid! */
-    width: 100%;
-    padding: 20px 0;
-}
-
-/* --- NEW PHOTO ITEM STYLES --- */
-.photo-item {
-    position: relative;
-    width: 150px;
-    height: 150px;
-    border-radius: 4px;
-    overflow: hidden;
-    border: 1px solid #333;
-    background: #000;
-}
-
-.photo-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover; /* Ensures square crop */
-    transition: transform 0.3s;
-    cursor: zoom-in;
-}
-
-.photo-item:hover img {
-    transform: scale(1.1); /* Zoom effect on hover */
-}
-
-.delete-photo-btn {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    background: rgba(255, 0, 0, 0.8);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 25px;
-    height: 25px;
+    color: #666; /* Dark Grey */
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
     cursor: pointer;
-    display: none; /* Hidden until hover */
-    font-weight: bold;
-    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 5px;
+    transition: color 0.2s;
 }
 
-.photo-item:hover .delete-photo-btn {
-    display: block; /* Show red 'X' on hover */
+.text-btn:hover { color: #fff; text-decoration: none; }
+.text-btn.danger:hover { color: #ff4444; }
+
+/* FIX: The Perfect Vertical Line */
+.tool-separator {
+    width: 1px;
+    height: 16px;       /* Fixed height */
+    background-color: #444; /* Dark line color */
+    display: block;
+    margin: 0 5px;
 }
 
+#editor-content-area {
+    flex-grow: 1; display: flex; flex-direction: column;
+}
+#page-content-input {
+    flex-grow: 1; width: 100%; padding: 25px;
+    background: transparent; border: none;
+    color: #d0d0d0; font-family: 'Merriweather', serif; font-size: 1.1rem; line-height: 1.8;
+    resize: none; outline: none; box-sizing: border-box;
+}
+.editor-placeholder { display: flex; align-items: center; justify-content: center; height: 100%; color: #555; font-style: italic; }
 
-/* --- ALBUM CONTAINER (The Grid) --- */
+
+/* --- B. ALBUMS & PHOTOS --- */
+.album-view-controls {
+    display: grid; grid-template-columns: 100px 1fr 150px;
+    align-items: center; gap: 10px; padding-bottom: 15px; border-bottom: 1px solid #333; margin-bottom: 20px;
+}
+.album-view-controls h3 { text-align: center; color: white; margin: 0; }
+
 .album-grid {
-    display: flex;              /* Horizontal flow */
-    flex-wrap: wrap;            /* Wrap to next line if full */
-    gap: 20px;                  /* Space between albums */
-    align-items: flex-start;    /* Prevent stretching vertically */
-    width: 100%;
-    padding-top: 10px;
+    display: flex; flex-wrap: wrap; gap: 20px; width: 100%;
+}
+.album-card {
+    background: #222; border: 1px solid #333; border-radius: 8px;
+    width: 140px; height: 150px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; position: relative;
+}
+.album-card:hover { border-color: #007bff; background: #282828; }
+.album-folder-icon { font-size: 3rem; margin-bottom: 5px; }
+.album-title { font-size: 0.9rem; color: #fff; width: 90%; text-align: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+/* Photo Grid */
+.photo-wrapper {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px; width: 100%;
+}
+.photo-item {
+    position: relative; height: 150px; border-radius: 4px; overflow: hidden; background: #000;
+}
+.photo-item img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; cursor: zoom-in; }
+.photo-item:hover img { transform: scale(1.05); }
+
+/* Buttons */
+.btn-blue { background: #007bff; color: white; }
+.btn-green { background: #28a745; color: white; }
+.btn-gray { background: #444; color: white; }
+.album-delete-btn, .delete-photo-btn {
+    position: absolute; top: 5px; right: 5px; background: rgba(220, 53, 69, 0.9);
+    color: white; border: none; border-radius: 50%; width: 24px; height: 24px;
+    cursor: pointer; display: none; align-items: center; justify-content: center; font-size: 14px;
+}
+.album-card:hover .album-delete-btn, .photo-item:hover .delete-photo-btn { display: flex; }
+
+/* Lightbox */
+#lightbox {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.95); z-index: 10000;
+    display: flex; justify-content: center; align-items: center;
+}
+#lightbox.hidden { display: none; }
+#lightbox-img { max-width: 90%; max-height: 90%; border: 2px solid #333; }
+.lightbox-controls { position: absolute; bottom: 30px; display: flex; gap: 20px; }
+.lb-btn { background: #333; color: white; padding: 10px 20px; text-decoration: none; border: 1px solid #555; }
+.lb-close { position: absolute; top: 20px; right: 30px; font-size: 3rem; color: #fff; cursor: pointer; }
+
+
+/* =========================================
+   📱 MOBILE RESPONSIVENESS (Max Width 768px)
+   ========================================= */
+/* Default: Hide Mobile Elements on Desktop */
+.mobile-menu-btn, .mobile-back-btn, .sidebar-overlay { display: none; }
+
+/* =========================================
+   📱 MOBILE RESPONSIVENESS (The Sticky Header Fix)
+   ========================================= */
+@media (max-width: 768px) {
+    
+    /* 1. RESET LAYOUT */
+    .dashboard-container {
+        display: block; 
+        position: relative;
+    }
+
+    /* 2. CREATE THE STICKY APP BAR */
+    /* We reuse the existing .content-header but pin it to the top */
+    .content-header {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        height: 60px;
+        background: #121212; /* Match body bg */
+        border-bottom: 1px solid #333;
+        z-index: 900; /* Below the menu button, above content */
+        
+        display: flex;
+        align-items: center;
+        justify-content: center; /* Center the Title */
+        padding: 0;
+        margin: 0;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    }
+
+    /* 3. STYLE THE TITLE INSIDE THE BAR */
+    #current-view-title {
+        font-size: 1.1rem !important;
+        margin: 0;
+        color: #fff;
+        text-align: center;
+        /* Ensure it doesn't overlap the button */
+        padding-left: 40px; 
+        padding-right: 40px; 
+    }
+
+    /* 4. HAMBURGER BUTTON (Aligned inside bar) */
+    /* 4. HAMBURGER BUTTON (Forced Position) */
+    #mobile-menu-btn {
+        display: block !important;
+        position: fixed !important; /* Force it to stick to the screen */
+        top: 12px !important;       /* Vertically center in the 60px header */
+        left: 15px !important;      /* Pin to the left */
+        z-index: 2000 !important;   /* Sit on top of the black header */
+        
+        /* Reset any conflicting styles */
+        background: transparent !important;
+        color: white !important;
+        border: none !important;
+        font-size: 1.8rem !important;
+        width: auto !important;
+        height: auto !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* 5. PUSH CONTENT DOWN */
+    .content-area {
+        padding: 20px;
+        padding-top: 80px; /* 60px Header + 20px Gap */
+        height: auto;
+        min-height: 100vh;
+        box-sizing: border-box;
+    }
+
+    /* 6. HIDE DESKTOP ELEMENTS IN HEADER */
+    /* We hide the code/buttons from the header bar on mobile 
+       and move them elsewhere if needed, or just keep it simple */
+    .header-right {
+        display: none; 
+    }
+
+    /* 7. EDITOR & SIDEBAR (Previous Logic) */
+    .sidebar {
+        position: fixed; top: 0; left: 0; bottom: 0;
+        width: 280px;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-in-out;
+        box-shadow: 2px 0 15px rgba(0,0,0,0.8);
+        z-index: 2000;
+    }
+    .sidebar.active { transform: translateX(0); }
+    
+    .sidebar-overlay {
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.8); z-index: 1500; display: none;
+    }
+    .sidebar-overlay.active { display: block; }
+
+    .vault-split-view {
+        flex-direction: column;
+        border: none; background: transparent;
+        min-height: auto;
+        margin-bottom: 30px;
+    }
+
+    .page-sidebar {
+        width: 100%; border-right: none; background: transparent; padding: 0;
+    }
+
+    .editor-container {
+        display: none; 
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: #121212; z-index: 1200;
+        padding-top: 60px; /* Back Button Space */
+    }
+    .vault-split-view.show-editor .editor-container { display: flex; }
+
+    .mobile-back-btn {
+        display: block !important;
+        position: absolute; top: 15px; left: 15px;
+        background: #1e1e1e; color: white; border: 1px solid #333;
+        padding: 8px 15px; border-radius: 4px; font-weight: bold;
+    }
+    
+    /* 8. ALBUM FIXES */
+    .album-view-controls { grid-template-columns: 1fr; gap: 15px; text-align: center; }
 }
 
-/* Individual Album Card */
-.album-card {
-    background: #222;
+/* =========================================
+   Step 3: PHOTOS SECTION INTEGRATION
+   ========================================= */
+
+/* A spacer to push photos away from the text editor */
+.vault-split-view {
+    margin-bottom: 50px; /* Big gap between Notes and Photos */
+}
+
+/* The Photo Section Container */
+#photo-grid {
+    border-top: 1px solid #333; /* Separation line */
+    padding-top: 20px;
+    margin-top: 20px;
+}
+
+/* The New "Section Header" (Matches Editor Header) */
+/* --- UPDATED SECTION HEADER (No Clashing) --- */
+.section-header {
+    display: flex;
+    flex-wrap: wrap;       /* 🚨 FIX: Allow items to wrap if space is tight */
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;             /* Space between Title and Button */
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #333; /* Clean separator line */
+}
+
+.section-title {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #fff;
+    white-space: nowrap;   /* Prevent text from squishing awkwardly */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Ensure the button doesn't stretch weirdly */
+.btn-outline {
+    flex-shrink: 0;        /* Prevent button from shrinking */
+    background: transparent;
     border: 1px solid #444;
+    color: #888;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.btn-outline:hover {
+    border-color: #fff;
+    color: #fff;
+    background: #1e1e1e;
+}
+
+/* =========================================
+   Step 4: GROUP DASHBOARD (Mobile Fix)
+   ========================================= */
+
+/* The Container for Code, Members, & Actions */
+.group-dashboard {
+    background: #1e1e1e;
+    border: 1px solid #333;
     border-radius: 8px;
-    width: 140px;               /* Strict fixed width */
-    height: 150px;              /* Strict fixed height */
+    padding: 15px;
+    margin-bottom: 25px; /* Push content down */
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    position: relative;
-    flex-shrink: 0;             /* Prevent squishing */
+    gap: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
 }
 
-.album-card:hover {
-    background: #2a2a2a;
-    border-color: #007bff;
-    transform: translateY(-3px);
-}
-
-.album-folder-icon { font-size: 3rem; margin-bottom: 5px; }
-.album-title { font-weight: bold; color: #fff; font-size: 0.9rem; text-align: center; width: 90%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-
-/* --- HEADER BAR (Inside Album) --- */
-/* This strictly separates the title/buttons from the photos */
-/* --- FIXED HEADER BAR --- */
-.album-view-controls {
-    display: grid;
-    grid-template-columns: 100px 1fr 150px; /* Left, Center (Fill), Right */
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #333;
-    margin-bottom: 20px;
-}
-
-/* Force the Title to Center */
-.album-view-controls h3 {
-    text-align: center;
-    margin: 0;
-    color: #fff;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Align Buttons correctly */
-.album-view-controls .btn-gray { justify-self: start; }
-.album-view-controls .btn-green { justify-self: end; }
-
-/* --- FIX DELETE BUTTON VISIBILITY --- */
-.album-card {
-    /* Ensure relative positioning so the absolute delete button works */
-    position: relative !important; 
-    overflow: visible !important; /* Allow button to sit on top */
-}
-
-.album-delete-btn {
-    position: absolute;
-    top: -8px;       /* Slightly outside the top */
-    right: -8px;     /* Slightly outside the right */
-    background: #ff4444;
-    color: white;
-    border: 2px solid #222; /* Dark border to separate from card */
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    cursor: pointer;
-    font-weight: bold;
+/* Row 1: Code & Members */
+.group-info-row {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    z-index: 10;     /* Force it on top */
-    font-size: 14px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    border-bottom: 1px solid #333; /* Divider */
+    padding-bottom: 10px;
 }
 
-.album-delete-btn:hover {
-    background: #cc0000;
-    transform: scale(1.1);
-}
-/* --- PHOTO GRID --- */
-.photo-wrapper {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 15px;
-    width: 100%;
-}
-
-/* Styled Buttons */
-.btn-blue { background: #007bff; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; }
-.btn-gray { background: #444; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; }
-.btn-green { background: #28a745; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; }
-
-
-/* PHOTO GRID (Inside Album) */
-.photo-wrapper {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* Auto-responsive grid */
-    gap: 15px;
-}
-
-/* --- PHOTO GRID INSIDE ALBUM --- */
-.photo-item {
-    position: relative;
+.group-code-badge {
+    background: #252525;
+    color: #00e5ff; /* Cyan for "Hacker" feel */
+    padding: 5px 10px;
     border-radius: 4px;
-    overflow: hidden;
-    height: 150px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+    border: 1px dashed #444;
 }
 
-.photo-item img {
+.member-count {
+    font-size: 0.8rem;
+    color: #888;
+    text-transform: uppercase;
+}
+
+/* Row 2: The Action Button */
+.group-action-row {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: 0.3s;
-    cursor: zoom-in;
 }
 
-.photo-item:hover img { transform: scale(1.1); }
-
-.delete-photo-btn {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    background: rgba(255,0,0,0.7);
-    color: white;
+.btn-block {
+    width: 100%;
+    padding: 10px;
     border: none;
-    border-radius: 50%;
-    width: 25px;
-    height: 25px;
+    border-radius: 4px;
+    font-weight: bold;
     cursor: pointer;
-    display: none; /* Hide by default */
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    transition: opacity 0.2s;
 }
 
-.photo-item:hover .delete-photo-btn { display: block; }
-
-/* --- LIGHTBOX (FULL VIEW) --- */
-#lightbox {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.95);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-#lightbox.hidden { display: none; }
-
-#lightbox-img {
-    max-width: 90%;
-    max-height: 85%;
-    box-shadow: 0 0 20px #000;
-}
-
-.lightbox-controls {
-    position: absolute;
-    bottom: 20px;
-    display: flex;
-    gap: 20px;
-}
-
-.lb-btn {
-    background: #333;
-    color: white;
-    border: 1px solid #555;
-    padding: 10px 20px;
-    cursor: pointer;
-    font-size: 1rem;
-    text-decoration: none; /* For the download link */
-}
-
-.lb-btn:hover { background: #007bff; }
-.lb-close {
-    position: absolute;
-    top: 20px;
-    right: 30px;
-    font-size: 2rem;
-    color: #fff;
-    cursor: pointer;
-}
-
-/* In your style.css */
-#quiz-intro {
-    text-align: center;
-    padding: 40px;
-    background: white; /* Clean look */
-    border-radius: 12px;
-    color: #333;
-}
-
-#start-quiz-btn {
-    background-color: #4a90e2; /* Nice generic blue */
-    color: white;
-    padding: 15px 30px;
-    border: none;
-    border-radius: 25px;
-    font-size: 1.2rem;
-    cursor: pointer;
-    margin-top: 20px;
-    transition: transform 0.2s;
-}
-
-#start-quiz-btn:hover {
-    transform: scale(1.05); /* Small pop effect */
-    background-color: #357abd;
-}
-
+.btn-danger { background: #dc3545; color: white; }
+.btn-warning { background: #ffc107; color: #222; }
+.btn-danger:hover, .btn-warning:hover { opacity: 0.9; }
