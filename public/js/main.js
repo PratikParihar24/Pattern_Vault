@@ -461,26 +461,160 @@ function renderNotionView(pages, contextType, contextId) {
     };
 }
 
+// --- PRO EDITOR (Toolbar + Markdown + AutoSave + Undo/Redo + Interactive Checkboxes) ---
 function loadPageIntoEditor(page) {
     const editorArea = document.getElementById('editor-content-area');
+    let autoSaveTimer;
+    let isAutoSaveOn = true; // Default: ON
+
+    // HISTORY STACK (For Undo/Redo)
+    // We start with the current content as the first "state"
+    let history = [page.content || ''];
+    let historyIndex = 0;
+
+    // 0. CONFIGURE MARKDOWN (Fixes Spacing)
+    if (typeof marked !== 'undefined') {
+        marked.setOptions({
+            breaks: true, // 🚨 CRITICAL: Treats "Enter" as a <br> tag
+            gfm: true     // GitHub Flavored Markdown
+        });
+    }
+
+    // 1. INJECT HTML 
+    // (Note: I removed the extra empty <div class="editor-header"> you had, which fixes the gap)
     editorArea.innerHTML = `
         <div class="editor-header">
-            <input type="text" id="page-title-input" value="${page.title}" placeholder="Untitled Page">
+            <div class="title-wrapper">
+                <button id="icon-btn" title="Change Icon">📄</button>
+                <input type="text" id="page-title-input" value="${page.title}" placeholder="Untitled Page">
+            </div>
+            
             <div class="editor-tools">
+                <button id="preview-btn" class="text-btn" title="Toggle View">👁️ View</button>
+                <div class="tool-separator"></div>
                 <button id="save-page-btn" class="text-btn">Save</button>
                 <div class="tool-separator"></div>
                 <button id="delete-page-btn" class="text-btn danger">Delete</button>
             </div>
         </div>
-        <textarea id="page-content-input" placeholder="Start typing...">${page.content || ''}</textarea>
+
+        <div id="slash-menu" style="display:none;">
+            <div class="slash-item" data-cmd="header"><span class="slash-icon">H1</span> Big Heading</div>
+            <div class="slash-item" data-cmd="subheader"><span class="slash-icon">H2</span> Medium Heading</div>
+            <div class="slash-item" data-cmd="list"><span class="slash-icon">≡</span> Bullet List</div>
+            <div class="slash-item" data-cmd="todo"><span class="slash-icon">☐</span> To-Do Checkbox</div>
+            <div class="slash-item" data-cmd="code"><span class="slash-icon">{}</span> Code Block</div>
+            <div class="slash-item" data-cmd="callout"><span class="slash-icon">💡</span> Callout Box</div>
+            <div class="slash-item" data-cmd="date"><span class="slash-icon">📅</span> Today's Date</div>
+        </div>
+
+        <div class="markdown-toolbar" id="toolbar">
+            <button class="tool-btn" data-type="undo" title="Undo">↩</button>
+            <button class="tool-btn" data-type="redo" title="Redo">↪</button>
+            <div style="width:1px; background:#444; margin:0 5px;"></div>
+
+            <button class="tool-btn" data-type="bold" title="Bold">B</button>
+            <button class="tool-btn" data-type="italic" title="Italic">I</button>
+            <button class="tool-btn" data-type="header" title="Header">H</button>
+            <button class="tool-btn" data-type="list" title="List">≡</button>
+            <button class="tool-btn" data-type="code" title="Code Block">{}</button>
+            <button class="tool-btn" data-type="link" title="Link">🔗</button>
+
+            <div style="flex-grow: 1;"></div>
+
+           <label class="toggle-switch" title="Toggle Auto-Save">
+                    <input type="checkbox" id="autosave-toggle" class="toggle-checkbox" checked>
+        </div>
+        
+        <div style="position: relative; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden;">
+            <textarea id="page-content-input" placeholder="# Start typing...">${page.content || ''}</textarea>
+            <div id="markdown-preview"></div>
+        </div>
     `;
 
+    // DOM Elements
+    const titleInput = document.getElementById('page-title-input');
+    const contentInput = document.getElementById('page-content-input');
+    const previewDiv = document.getElementById('markdown-preview');
     const saveBtn = document.getElementById('save-page-btn');
-    saveBtn.onclick = async () => {
-        const titleVal = document.getElementById('page-title-input').value;
-        const contentVal = document.getElementById('page-content-input').value;
+    const previewBtn = document.getElementById('preview-btn');
+    const toolbar = document.getElementById('toolbar');
+    const slashMenu = document.getElementById('slash-menu');
+    
+    // New DOM Elements
+    // Update these selectors if IDs were removed or changed
+    // Since we used data-type in the HTML above, we can grab them like this:
+    const undoBtn = toolbar.querySelector('[data-type="undo"]');
+    const redoBtn = toolbar.querySelector('[data-type="redo"]');
+    const autoSaveToggle = document.getElementById('autosave-toggle');
+
+    // --- HISTORY LOGIC (Undo/Redo) ---
+    const saveToHistory = () => {
+        const current = contentInput.value;
+        if (current !== history[historyIndex]) {
+            // If we undo and then type, we remove the "future" states
+            history = history.slice(0, historyIndex + 1);
+            history.push(current);
+            historyIndex++;
+        }
+    };
+
+    undoBtn.onclick = () => {
+        if (historyIndex > 0) {
+            historyIndex--;
+            contentInput.value = history[historyIndex];
+            if(isAutoSaveOn) triggerAutoSave();
+        }
+    };
+
+    redoBtn.onclick = () => {
+        if (historyIndex < history.length - 1) {
+            historyIndex++;
+            contentInput.value = history[historyIndex];
+            if(isAutoSaveOn) triggerAutoSave();
+        }
+    };
+
+    // --- SMART HISTORY TRIGGER ---
+    let historyDebounce;
+
+    // 1. Toolbar Clicks (Immediate Save)
+    // We keep your existing toolbar listener, as buttons should save instantly.
+
+    // 2. Typing (Delayed Save)
+    // This saves "chunks" of work naturally when you pause.
+    contentInput.addEventListener('input', () => {
+        clearTimeout(historyDebounce);
+        historyDebounce = setTimeout(() => {
+            saveToHistory();
+        }, 800); // Waits 0.8 seconds after you stop typing to save a "state"
+    });
+
+    // --- SAVE LOGIC ---
+    // --- SAVE LOGIC ---
+    autoSaveToggle.onchange = (e) => {
+        isAutoSaveOn = e.target.checked;
+        
+        // 1. Visual Feedback (Toast)
+        if (typeof UI !== 'undefined') {
+            const status = isAutoSaveOn ? "ENABLED ⚡" : "DISABLED 🛑";
+            UI.toast(`AutoSave ${status}`, isAutoSaveOn ? "success" : "info");
+        }
+
+        // 2. Button Logic
+        if (!isAutoSaveOn) {
+            saveBtn.innerText = "Save";
+            saveBtn.style.color = "";
+            clearTimeout(autoSaveTimer);
+        }
+    };
+
+    const performSave = async (silent = false) => {
+        const titleVal = titleInput.value;
+        const contentVal = contentInput.value;
         const originalText = saveBtn.innerText;
-        saveBtn.innerText = "Saving...";
+        
+        if(!silent) saveBtn.innerText = "Saving...";
         
         try {
             const res = await fetch(`/api/pages/${page._id}`, {
@@ -488,28 +622,240 @@ function loadPageIntoEditor(page) {
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
                 body: JSON.stringify({ title: titleVal, content: contentVal })
             });
+            
             if (res.ok) {
                 page.title = titleVal;
                 page.content = contentVal;
-
-                saveBtn.innerText = "Saved";
-                saveBtn.style.color = "#00ff00"; 
-
                 const sidebarItem = document.getElementById(`page-link-${page._id}`);
                 if (sidebarItem) sidebarItem.innerText = titleVal || "Untitled Page";
-                setTimeout(() => { 
-                    saveBtn.innerText = originalText; 
-                    saveBtn.style.color = "";
-                }, 1500);
+
+                if(!silent) {
+                    saveBtn.innerText = "Saved";
+                    saveBtn.style.color = "#00ff00"; 
+                    setTimeout(() => { 
+                        saveBtn.innerText = "Save";
+                        saveBtn.style.color = "#888";
+                    }, 1500);
+                }
             }
-        } catch (err) { 
-            saveBtn.innerText = "Error"; 
-            if (typeof UI !== 'undefined') UI.toast("Save Failed", "error");
+        } catch (err) { saveBtn.innerText = "Error"; }
+    };
+
+    const triggerAutoSave = () => {
+        if (!isAutoSaveOn) return; // Respect the toggle
+        saveBtn.innerText = "Typing...";
+        saveBtn.style.color = "#ffff00";
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(() => performSave(false), 2000);
+    };
+
+    titleInput.addEventListener('input', triggerAutoSave);
+    contentInput.addEventListener('input', triggerAutoSave);
+    saveBtn.onclick = () => performSave(false);
+
+    // --- INTERACTIVE CHECKBOXES ---
+    // This allows clicking a checkbox in View Mode to update the text!
+    previewDiv.addEventListener('click', (e) => {
+        if (e.target.type === 'checkbox') {
+            const li = e.target.parentElement; 
+            const rawText = li.textContent.trim(); // Get the text of the item
+            const isChecked = e.target.checked;
+            
+            // Logic: Find "- [ ] Text" or "- [x] Text" in the source code
+            const originalVal = contentInput.value;
+            // Escape special regex characters in the user's text
+            const escapedText = rawText.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+            
+            let newVal;
+            if (isChecked) {
+                // Change [ ] to [x]
+                const regex = new RegExp(`- \\[ \\] ${escapedText}`, '');
+                newVal = originalVal.replace(regex, `- [x] ${rawText}`);
+            } else {
+                // Change [x] to [ ]
+                const regex = new RegExp(`- \\[x\\] ${escapedText}`, '');
+                newVal = originalVal.replace(regex, `- [ ] ${rawText}`);
+            }
+
+            if (newVal !== originalVal) {
+                contentInput.value = newVal;
+                saveToHistory(); // Record this change
+                if(isAutoSaveOn) triggerAutoSave();
+            }
+        }
+    });
+
+    // --- TOOLBAR INSERT LOGIC ---
+    const insertSyntax = (before, after = "") => {
+        const start = contentInput.selectionStart;
+        const end = contentInput.selectionEnd;
+        const text = contentInput.value;
+        const selection = text.substring(start, end);
+        const newText = text.substring(0, start) + before + selection + after + text.substring(end);
+        contentInput.value = newText;
+        contentInput.focus();
+        contentInput.selectionStart = start + before.length;
+        contentInput.selectionEnd = end + before.length;
+        saveToHistory(); // Save toolbar actions
+        triggerAutoSave();
+    };
+
+    toolbar.addEventListener('click', (e) => {
+        // Handle Button Clicks
+        if (e.target.tagName !== 'BUTTON') return;
+        const type = e.target.dataset.type;
+
+        // 🚨 NEW: Handle History Buttons inside Toolbar
+        if (type === 'undo') {
+            undoBtn.click(); // Trigger the existing logic
+            return;
+        }
+        if (type === 'redo') {
+            redoBtn.click(); // Trigger the existing logic
+            return;
+        }
+
+        switch (type) {
+            case 'bold':   insertSyntax('**', '**'); break;
+            case 'italic': insertSyntax('*', '*'); break;
+            case 'header': insertSyntax('## '); break;
+            case 'list':   insertSyntax('- '); break;
+            case 'code':   insertSyntax('```\n', '\n```'); break;
+            case 'link':   insertSyntax('[', '](url)'); break;
+        }
+    });
+
+    // --- TOGGLE PREVIEW ---
+    let isPreviewMode = false;
+    previewBtn.onclick = () => {
+        isPreviewMode = !isPreviewMode;
+        if (isPreviewMode) {
+            // Switch to VIEW
+            const htmlContent = marked.parse(contentInput.value); 
+            previewDiv.innerHTML = htmlContent;
+            
+            contentInput.style.display = 'none';
+            if(toolbar) toolbar.style.display = 'none';
+            if(slashMenu) slashMenu.style.display = 'none';
+            previewDiv.style.display = 'block';
+            
+            previewBtn.innerText = "✏️ Edit";
+            previewBtn.classList.add('active');
+        } else {
+            // Switch to EDIT
+            contentInput.style.display = 'block';
+            if(toolbar) toolbar.style.display = 'flex';
+            previewDiv.style.display = 'none';
+            
+            previewBtn.innerText = "👁️ View";
+            previewBtn.classList.remove('active');
+            contentInput.focus();
         }
     };
 
+    // --- SLASH MENU LOGIC ---
+    const executeSlash = (cmd) => {
+        const text = contentInput.value;
+        const end = contentInput.selectionEnd;
+        const before = text.substring(0, end - 1); 
+        const after = text.substring(end);
+        
+        let insert = "";
+        switch(cmd) {
+            case 'header': insert = "# "; break;
+            case 'subheader': insert = "## "; break;
+            case 'list': insert = "\n- "; break; 
+            case 'todo': insert = "\n- [ ] "; break;
+            case 'code': insert = "\n```\n\n```\n"; break; 
+            case 'callout': insert = "\n> 💡 "; break;
+            case 'date': insert = `**${new Date().toLocaleDateString()}** `; break;
+        }
+
+        contentInput.value = before + insert + after;
+        const newPos = before.length + insert.length;
+        contentInput.selectionStart = newPos;
+        contentInput.selectionEnd = newPos;
+        contentInput.focus();
+        slashMenu.style.display = 'none';
+        saveToHistory();
+        triggerAutoSave();
+    };
+
+    contentInput.addEventListener('keyup', (e) => {
+        if (e.key === '/') slashMenu.style.display = 'block';
+        else if (e.key === 'Escape') slashMenu.style.display = 'none';
+        else slashMenu.style.display = 'none';
+    });
+    
+    slashMenu.addEventListener('click', (e) => {
+        const item = e.target.closest('.slash-item');
+        if (!item) return;
+        executeSlash(item.dataset.cmd);
+    });
+
+    // --- SMART LIST LOGIC ---
+    contentInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const start = contentInput.selectionStart;
+            const value = contentInput.value;
+            const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+            const currentLine = value.substring(lineStart, start);
+            const isList = /^\s*-\s(.*)/.exec(currentLine); 
+            const isTodo = /^\s*-\s\[[ x]\]\s(.*)/.exec(currentLine); 
+
+            // Escape Empty List
+            if ((isList && !isList[1]) || (isTodo && !isTodo[1])) {
+                e.preventDefault();
+                const newValue = value.substring(0, lineStart) + value.substring(start);
+                contentInput.value = newValue;
+                contentInput.selectionStart = contentInput.selectionEnd = lineStart;
+                return;
+            }
+            // Continue List
+            if (isTodo) {
+                e.preventDefault();
+                document.execCommand('insertText', false, "\n- [ ] ");
+                return;
+            }
+            if (isList) {
+                e.preventDefault();
+                document.execCommand('insertText', false, "\n- ");
+                return;
+            }
+        }
+    });
+
+    // --- PAGE ICON LOGIC ---
+    const iconBtn = document.getElementById('icon-btn');
+    const emojiRegex = /^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/;
+    
+    const updateIconBtn = () => {
+        const match = titleInput.value.match(emojiRegex);
+        iconBtn.innerText = match ? match[0] : "📄";
+    };
+    updateIconBtn();
+    titleInput.addEventListener('input', updateIconBtn);
+
+    iconBtn.onclick = async () => {
+        let newIcon = null;
+        if (typeof UI !== 'undefined') {
+            newIcon = await UI.prompt("Type an Emoji", "e.g., 💀, 🚀, 🔐");
+        } else {
+            newIcon = prompt("Type an Emoji:");
+        }
+        if (newIcon) {
+            let text = titleInput.value.replace(emojiRegex, '').trim();
+            titleInput.value = `${newIcon} ${text}`;
+            updateIconBtn();
+            performSave(false);
+        }
+    };
+
+    // --- DELETE LOGIC ---
     document.getElementById('delete-page-btn').onclick = async () => {
-        const confirmed = await UI.confirm("Delete Page?", "This action cannot be undone.");
+        if (typeof UI !== 'undefined') {
+            if(!(await UI.confirm("Delete Page?", "Gone forever."))) return;
+        } else if (!confirm("Delete?")) return;
         try {
             const res = await fetch(`/api/pages/${page._id}`, {
                 method: 'DELETE',
@@ -757,5 +1103,7 @@ if(restartBtn) {
              b.style.background = "";
              b.style.borderColor = "";
         });
+
     });
 }
+

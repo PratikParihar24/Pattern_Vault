@@ -869,3 +869,319 @@ button:active {
     padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold;
 }
 .btn-primary:hover { background: #0056b3; }
+
+/* =========================================
+   STEP 7: MARKDOWN & PREVIEW
+   ========================================= */
+
+/* =========================================
+   STEP 7 & 8: COMPACT MARKDOWN PREVIEW
+   ========================================= */
+
+#markdown-preview {
+    flex-grow: 1;
+    padding: 20px;
+    color: #e0e0e0;
+    font-family: 'Nunito', sans-serif;
+    line-height: 1.5; /* Good readability, not too loose */
+    overflow-y: auto;
+    display: none;
+    
+    /* 🚨 FIX: Stop double-spacing caused by pre-wrap + p tags */
+    /* We only want pre-wrap for code blocks, not the whole text */
+   white-space: pre-wrap; 
+    word-wrap: break-word;
+    line-height: 1.4; /* Slightly tighter lines */
+}
+
+#markdown-preview p {
+    line-height: 1.6;
+    min-height: 1.6em; /* Ensure empty lines have height */
+    margin-top: 0 !important;
+    margin-bottom: 2px !important; /* Almost no space between lines */
+}
+
+/* TIGHTEN HEADINGS */
+#markdown-preview h1, 
+#markdown-preview h2, 
+#markdown-preview h3 {
+    color: #fff;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+    margin-top: 15px !important;
+    margin-bottom: 5px !important;   /* Space below */
+    font-weight: 700;
+}
+
+/* TIGHTEN LISTS */
+#markdown-preview ul, 
+#markdown-preview ol {
+    padding-left: 25px;
+    margin-bottom: 5px !important;
+}
+
+#markdown-preview li {
+    margin-bottom: 4px; /* Space between bullet points */
+}
+
+/* TIGHTEN CHECKBOXES */
+#markdown-preview input[type="checkbox"] {
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+/* CODE BLOCKS */
+#markdown-preview code {
+    background: #2d2d2d;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    color: #ff79c6;
+    font-size: 0.9rem;
+}
+
+#markdown-preview pre {
+    background: #1e1e1e;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    overflow-x: auto;
+    margin-bottom: 15px;
+}
+#markdown-preview pre code {
+    background: transparent;
+    padding: 0;
+    color: #f8f8f2;
+}
+
+/* CALLOUTS (Blockquotes) */
+#markdown-preview blockquote {
+    border-left: 4px solid #6c5ce7;
+    background: rgba(108, 92, 231, 0.1); /* Subtle background */
+    margin: 15px 0;
+    padding: 10px 15px;
+    color: #ccc;
+    border-radius: 0 4px 4px 0;
+}
+#markdown-preview blockquote p {
+    margin: 0; /* Remove extra space inside the box */
+}
+
+/* =========================================
+   STEP 8: ADVANCED EDITOR TOOLBAR
+   ========================================= */
+
+/* TOOLBAR: The new Control Center */
+.markdown-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 15px;
+    background: #252525;
+    border-top: 1px solid #333;
+    overflow-x: auto;
+}
+
+/* Push AutoSave to the far right */
+.toolbar-spacer {
+    margin-left: auto; /* Pushes subsequent items to right */
+}
+
+/* Toggle Switch inside Toolbar */
+.toggle-switch {
+    margin-right: 0; /* Reset margin */
+    padding-left: 10px;
+    border-left: 1px solid #444;
+    height: 20px;
+}
+
+.tool-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: #888;
+    width: 30px;
+    height: 30px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.tool-btn:hover {
+    background: #333;
+    color: #fff;
+    border-color: #444;
+}
+
+/* Specific Icons colors */
+.tool-btn[data-type="code"] { color: #ff79c6; }
+.tool-btn[data-type="link"] { color: #00e5ff; }
+.tool-btn[data-type="header"] { color: #f1fa8c; }
+
+/* =========================================
+   STEP 9: SLASH COMMAND MENU
+   ========================================= */
+#slash-menu {
+    position: absolute;
+    bottom: 60px; /* Sits above the toolbar */
+    left: 10px;
+    width: 250px;
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: none; /* Hidden by default */
+    z-index: 1000;
+    overflow: hidden;
+    animation: slideUp 0.1s ease-out;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(10px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.slash-item {
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.1s;
+}
+
+.slash-item:hover, .slash-item.selected {
+    background: #6c5ce7;
+    color: #fff;
+}
+
+.slash-icon {
+    font-size: 1.1rem;
+    width: 24px;
+    text-align: center;
+}
+
+.slash-desc {
+    font-size: 0.75rem;
+    color: #888;
+    margin-left: auto;
+}
+.slash-item:hover .slash-desc { color: #ddd; }
+
+/* EMOJI BUTTON */
+#icon-btn {
+    background: transparent;
+    border: 1px solid #444;
+    border-radius: 6px;
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 10px;
+    transition: background 0.2s;
+}
+#icon-btn:hover { background: #333; }
+
+/* FIX: REMOVE GAP between Header and Toolbar */
+
+/* --- FIX: REMOVE GAP & NEW UI --- */
+.editor-header {
+    padding-bottom: 0 !important;
+    border-bottom: none !important;
+    margin-bottom: 0 !important;
+}
+.markdown-toolbar {
+    border-top: 1px solid #333;
+    margin-top: 0; 
+}
+
+/* TOGGLE SWITCH */
+.toggle-switch {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: #888;
+    cursor: pointer;
+    margin-right: 15px;
+}
+.toggle-checkbox {
+    accent-color: #00ff00;
+    width: 16px; 
+    height: 16px;
+    cursor: pointer;
+}
+.toggle-checkbox:checked + span {
+    color: #00ff00;
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+}
+
+/* HISTORY BUTTONS */
+.history-btn { font-size: 1.2rem; padding: 0 8px; }
+
+
+/* =========================================
+   STEP 10: MOBILE RESPONSIVENESS (FIXED)
+   ========================================= */
+
+@media (max-width: 600px) {
+    /* 1. Stack the Header Components */
+    .editor-header {
+        flex-direction: column; /* Stack Title Row on top of Tools */
+        align-items: stretch;
+        gap: 10px;
+        padding: 10px;
+    }
+
+    /* 2. Title Row (Icon + Input) */
+    .title-wrapper {
+        display: flex;       /* Keep them side-by-side */
+        align-items: center;
+        width: 100%;
+        gap: 10px;
+    }
+
+    #page-title-input {
+        width: auto;         /* Don't force 100% width */
+        flex-grow: 1;        /* Fill remaining space next to icon */
+        margin-bottom: 0;    /* Remove bottom margin */
+    }
+
+    /* 3. Editor Tools (Buttons below) */
+    .editor-tools {
+        justify-content: space-between; /* Spread buttons */
+        width: 100%;
+    }
+
+    /* 4. Compact Toolbar */
+    .markdown-toolbar {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-right: 10px;
+    }
+
+    /* 5. Smart AutoSave Label */
+    .toggle-switch .status-text {
+        display: none; /* Hide the WORD "AutoSave" */
+    }
+    
+    .toggle-switch .status-icon {
+        display: inline; /* Keep the ICON "⚡" visible */
+        font-size: 1.2rem; /* Make it easy to see */
+        margin-left: 2px;
+    }
+
+    .toggle-switch {
+        margin-left: 10px;
+    }
+}
