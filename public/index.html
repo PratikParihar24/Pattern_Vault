@@ -52,9 +52,15 @@
     <div id="quiz-intro">
         <div style="text-align: center; color: #333;">
             <h1 style="margin-bottom: 10px;">Daily Brain Teaser</h1>
-            <p style="color: #666; margin-bottom: 30px;">
+            <p style="color: #666; margin-bottom: 20px;">
                 Answer 5 questions to verify you are human.
             </p>
+            
+            <div style="margin-bottom: 30px; display: inline-block; background: #fff; padding: 5px 15px; border-radius: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); color: #6c5ce7; font-weight: bold; font-size: 0.9rem;">
+                🏆 High Score: <span id="high-score-display">0</span>
+            </div>
+            <br>
+
             <button id="start-quiz-btn" style="background: #6c5ce7; color: white; border: none; padding: 15px 30px; border-radius: 50px; font-size: 1.1rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);">
                 Start Game
             </button>
@@ -62,7 +68,6 @@
     </div>
 
     <div id="quiz-game" class="hidden">
-        
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; color: #666;">
             <span class="badge" style="background:#e0e7ff; color:#4338ca; padding:4px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">
                 General Knowledge
@@ -78,26 +83,33 @@
 
         <div class="options-grid">
             <button class="opt-btn" data-val="A">
-                <span style="font-weight:bold; color:#6c5ce7; margin-right:10px;">A</span> 
-                <span class="opt-text">...</span>
+                <span style="font-weight:bold; color:#6c5ce7; margin-right:10px;">A</span> <span class="opt-text">...</span>
             </button>
             <button class="opt-btn" data-val="B">
-                <span style="font-weight:bold; color:#6c5ce7; margin-right:10px;">B</span> 
-                <span class="opt-text">...</span>
+                <span style="font-weight:bold; color:#6c5ce7; margin-right:10px;">B</span> <span class="opt-text">...</span>
             </button>
             <button class="opt-btn" data-val="C">
-                <span style="font-weight:bold; color:#6c5ce7; margin-right:10px;">C</span> 
-                <span class="opt-text">...</span>
+                <span style="font-weight:bold; color:#6c5ce7; margin-right:10px;">C</span> <span class="opt-text">...</span>
             </button>
             <button class="opt-btn" data-val="D">
-                <span style="font-weight:bold; color:#6c5ce7; margin-right:10px;">D</span> 
-                <span class="opt-text">...</span>
+                <span style="font-weight:bold; color:#6c5ce7; margin-right:10px;">D</span> <span class="opt-text">...</span>
             </button>
         </div>
 
         <div style="height: 4px; background: #f0f2f5; margin-top: 25px; border-radius: 2px;">
             <div id="progress-fill" style="height: 100%; width: 0%; background: #6c5ce7; transition: width 0.2s;"></div>
         </div>
+    </div>
+
+    <div id="quiz-result" class="hidden" style="text-align: center; color: #333;">
+        <h1 style="color: #2d3436; margin-bottom: 10px;">Nice Try!</h1>
+        <p style="color: #666; margin-bottom: 5px;">You scored</p>
+        
+        <h2 id="final-score" style="color: #2d3436; font-size: 3rem; margin: 0 0 30px 0;">0</h2>
+        
+        <button id="restart-btn" style="background: white; color: #6c5ce7; border: 2px solid #6c5ce7; padding: 12px 30px; border-radius: 50px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: all 0.2s;">
+            ↻ Play Again
+        </button>
     </div>
 
 </div>

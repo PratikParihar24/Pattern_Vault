@@ -7,6 +7,7 @@ let userCredentials = { email: '', password: '' };
 let currentPattern = []; 
 let currentContext = { type: 'personal', id: null }; 
 let fakeScore = 0; // Track the "Game" score
+let highScore = localStorage.getItem('fakeHighScore') || 0; // Load from memory
 
 // DOM Elements
 const loadingScreen = document.getElementById('loading-screen');
@@ -18,6 +19,12 @@ const quizIntro = document.getElementById('quiz-intro');
 const quizGame = document.getElementById('quiz-game');
 const startQuizBtn = document.getElementById('start-quiz-btn');
 const vaultScreen = document.getElementById('vault-screen');
+
+const quizResult = document.getElementById('quiz-result');
+const restartBtn = document.getElementById('restart-btn');
+const highScoreDisplay = document.getElementById('high-score-display');
+// Init High Score UI
+if(highScoreDisplay) highScoreDisplay.innerText = highScore;
 
 // ==========================================
 // 2. AUTHENTICATION FLOW (The Disguise)
@@ -161,9 +168,9 @@ function loadNewQuestion() {
 
 // --- FUNCTION: REAL LOGIN ATTEMPT ---
 async function attemptLogin() {
-    // Optional: Change text to show something is happening
+    // Optional: Visual feedback "Verifying..."
     const qText = document.getElementById('question-text');
-    if(qText) qText.innerText = "Verifying Pattern...";
+    if(qText) qText.innerText = "Verifying...";
 
     try {
         const res = await fetch('/api/auth/login', {
@@ -179,24 +186,25 @@ async function attemptLogin() {
         const data = await res.json();
 
         if (res.ok) {
+            // SUCCESS: Open Vault
             localStorage.setItem('token', data.token);
             
-            // Hide Game
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
 
-            // Show Vault
             vaultScreen.classList.remove('hidden');
             vaultScreen.classList.add('active'); 
-
             loadVaultData();
+
         } else {
-            
-            location.reload();
+            // FAILURE: TRIGGER GAME OVER
+            // Instead of reloading, we show the "Nice Try" screen
+            triggerGameOver();
         }
     } catch (err) {
         console.error(err);
-        alert("Server Error");
+        UI.toast("Server Error", "error");
+        triggerGameOver(); // Fail safe to Game Over
     }
 }
 
@@ -246,11 +254,28 @@ document.addEventListener('DOMContentLoaded', () => {
     const joinGroupBtn = document.getElementById('join-group-btn');
     if(joinGroupBtn) joinGroupBtn.addEventListener('click', handleJoinGroup);
     
+    // --- LOGOUT LOGIC ---
     const logoutBtn = document.getElementById('logout-btn');
-    if(logoutBtn) logoutBtn.addEventListener('click', () => {
-        localStorage.removeItem('token');
-        location.reload();
-    });
+    if(logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            // Optional: Ask for confirmation using our new UI
+            if (typeof UI !== 'undefined') {
+                const confirm = await UI.confirm("Logout?", "You will return to the cover screen.");
+                if (!confirm) return;
+            } else if (!confirm("Logout?")) {
+                return;
+            }
+
+            // 1. Destroy Token
+            localStorage.removeItem('token');
+            
+            // 2. Optional: Destroy other local keys if you have them
+            // localStorage.removeItem('fakeHighScore'); 
+
+            // 3. Reload App
+            location.reload();
+        });
+    }
 });
 
 // --- MAIN DATA LOADER ---
@@ -464,8 +489,12 @@ function loadPageIntoEditor(page) {
                 body: JSON.stringify({ title: titleVal, content: contentVal })
             });
             if (res.ok) {
+                page.title = titleVal;
+                page.content = contentVal;
+
                 saveBtn.innerText = "Saved";
                 saveBtn.style.color = "#00ff00"; 
+
                 const sidebarItem = document.getElementById(`page-link-${page._id}`);
                 if (sidebarItem) sidebarItem.innerText = titleVal || "Untitled Page";
                 setTimeout(() => { 
@@ -473,7 +502,10 @@ function loadPageIntoEditor(page) {
                     saveBtn.style.color = "";
                 }, 1500);
             }
-        } catch (err) { saveBtn.innerText = "Error"; }
+        } catch (err) { 
+            saveBtn.innerText = "Error"; 
+            if (typeof UI !== 'undefined') UI.toast("Save Failed", "error");
+        }
     };
 
     document.getElementById('delete-page-btn').onclick = async () => {
@@ -682,3 +714,48 @@ const yes = await UI.confirm("Delete Group?", "⚠️ WARNING: This wipes all da
     await fetch(`/api/groups/${groupId}`, { method: 'DELETE', headers: { 'x-auth-token': token } });
     location.reload();
 };
+
+// --- GAME OVER LOGIC ---
+function triggerGameOver() {
+    // 1. Update High Score
+    if (fakeScore > highScore) {
+        highScore = fakeScore;
+        localStorage.setItem('fakeHighScore', highScore); // Save it
+    }
+
+    // 2. Update UI
+    document.getElementById('final-score').innerText = fakeScore;
+    if(highScoreDisplay) highScoreDisplay.innerText = highScore;
+
+    // 3. Switch Screens
+    quizGame.classList.add('hidden');
+    quizResult.classList.remove('hidden');
+}
+
+// --- RESTART LISTENER ---
+if(restartBtn) {
+    restartBtn.addEventListener('click', () => {
+        // Reset State
+        fakeScore = 0;
+        currentPattern = [];
+        currentQuestionIndex = 0; // Optional: Reset question index or keep going
+        
+        // Update Score UI
+        const scoreEl = document.getElementById('score-display');
+        if(scoreEl) scoreEl.innerText = "0";
+        
+        // Reset Progress Bar
+        const progress = document.getElementById('progress-fill');
+        if(progress) progress.style.width = "0%";
+        
+        // Switch Screens
+        quizResult.classList.add('hidden');
+        quizIntro.classList.remove('hidden'); // Go back to Start Page
+        
+        // Make sure buttons are reset from Green/Red
+        document.querySelectorAll('.opt-btn').forEach(b => {
+             b.style.background = "";
+             b.style.borderColor = "";
+        });
+    });
+}
