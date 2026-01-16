@@ -47,31 +47,58 @@
 
 
 
-    <div id="quiz-overlay" class=" screen hidden">
+    <div id="quiz-overlay" class="screen hidden">
     
     <div id="quiz-intro">
-        <div style="font-size: 3rem; margin-bottom: 10px;">🧠</div>
-        
-        <h2>Daily Brain Teaser</h2>
-        <p>Answer 5 questions to test your IQ.</p>
-        
-        <button id="start-quiz-btn" class="action-btn">Start Game</button>
-    </div>
-
-    <div id="quiz-game" class="hidden">
-        <div class="progress-bar"><div id="progress-fill"></div></div>
-        
-        <h2 id="question-text">Loading question...</h2>
-        
-        <div class="options-grid">
-            <button class="opt-btn" data-val="A">A</button>
-            <button class="opt-btn" data-val="B">B</button>
-            <button class="opt-btn" data-val="C">C</button>
-            <button class="opt-btn" data-val="D">D</button>
+        <div style="text-align: center; color: #333;">
+            <h1 style="margin-bottom: 10px;">Daily Brain Teaser</h1>
+            <p style="color: #666; margin-bottom: 30px;">
+                Answer 5 questions to verify you are human.
+            </p>
+            <button id="start-quiz-btn" style="background: #6c5ce7; color: white; border: none; padding: 15px 30px; border-radius: 50px; font-size: 1.1rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);">
+                Start Game
+            </button>
         </div>
     </div>
 
-</div>
+    <div id="quiz-game" class="hidden">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; color: #666;">
+            <span class="badge" style="background:#e0e7ff; color:#4338ca; padding:4px 10px; border-radius:12px; font-size:0.8rem; font-weight:bold;">
+                General Knowledge
+            </span>
+            <span style="font-weight: bold; font-size: 0.9rem;">
+                Score: <span id="score-display" style="color:#6c5ce7;">0</span>
+            </span>
+        </div>
+
+        <h2 id="question-text" style="margin-bottom: 30px; font-size: 1.2rem; color: #2d3436; min-height: 50px;">
+            Loading Question...
+        </h2>
+
+        <div class="options-grid">
+            <button class="opt-btn" data-val="A">
+                <span style="font-weight:bold; color:#6c5ce7; margin-right:10px;">A</span> 
+                <span class="opt-text">...</span>
+            </button>
+            <button class="opt-btn" data-val="B">
+                <span style="font-weight:bold; color:#6c5ce7; margin-right:10px;">B</span> 
+                <span class="opt-text">...</span>
+            </button>
+            <button class="opt-btn" data-val="C">
+                <span style="font-weight:bold; color:#6c5ce7; margin-right:10px;">C</span> 
+                <span class="opt-text">...</span>
+            </button>
+            <button class="opt-btn" data-val="D">
+                <span style="font-weight:bold; color:#6c5ce7; margin-right:10px;">D</span> 
+                <span class="opt-text">...</span>
+            </button>
+        </div>
+
+        <div style="height: 4px; background: #f0f2f5; margin-top: 25px; border-radius: 2px;">
+            <div id="progress-fill" style="height: 100%; width: 0%; background: #6c5ce7; transition: width 0.2s;"></div>
+        </div>
+    </div>
 
 </div>
 
@@ -150,7 +177,24 @@
     </div>
 </div>
 
-    <script src="js/quiz-logic.js" defer></script> 
+<div id="toast-container"></div>
+
+    <div id="custom-modal-overlay" class="hidden">
+        <div id="custom-modal">
+            <h3 id="modal-title">Title</h3>
+            <p id="modal-message">Message goes here...</p>
+            
+            <input type="text" id="modal-input" class="hidden" placeholder="Type here...">
+
+            <div class="modal-actions">
+                <button id="modal-cancel-btn" class="btn-ghost">Cancel</button>
+                <button id="modal-confirm-btn" class="btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/quiz-logic.js"></script>
+    <script src="js/ui.js"></script>
     <script src="js/main.js" defer></script>       
 
 </body>

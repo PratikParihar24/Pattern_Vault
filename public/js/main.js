@@ -6,103 +6,164 @@
 let userCredentials = { email: '', password: '' };
 let currentPattern = []; 
 let currentContext = { type: 'personal', id: null }; 
+let fakeScore = 0; // Track the "Game" score
 
 // DOM Elements
 const loadingScreen = document.getElementById('loading-screen');
 const loadingText = document.getElementById('loading-text');
 const captchaScreen = document.getElementById('captcha-screen');
 const robotCheck = document.getElementById('robot-check');
-const loginScreen = document.querySelector('.login-box').parentElement; 
-const quizScreen = document.getElementById('quiz-overlay');
-const vaultScreen = document.getElementById('vault-screen');
 const loginForm = document.getElementById('login-form');
-const questionText = document.getElementById('question-text');
 const quizIntro = document.getElementById('quiz-intro');
 const quizGame = document.getElementById('quiz-game');
 const startQuizBtn = document.getElementById('start-quiz-btn');
+const vaultScreen = document.getElementById('vault-screen');
 
 // ==========================================
 // 2. AUTHENTICATION FLOW (The Disguise)
 // ==========================================
 
 // --- EVENT: LOGIN FORM SUBMIT ---
-loginForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    
-    userCredentials.email = document.getElementById('email').value;
-    userCredentials.password = document.getElementById('password').value;
+if(loginForm) {
+    loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        userCredentials.email = document.getElementById('email').value;
+        userCredentials.password = document.getElementById('password').value;
 
-    // Switch to Loading Screen
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    
-    loadingScreen.classList.remove('hidden');
-    loadingScreen.classList.add('active');
-    
-    loadingText.innerText = "Verifying Credentials...";
-    loadingText.style.color = "#fff";
-
-    // THE ILLUSION
-    setTimeout(() => {
-        loadingText.innerText = "Unusual Traffic Detected.";
-        loadingText.style.color = "#ff4444"; 
+        // Switch to Loading
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         
+        loadingScreen.classList.remove('hidden');
+        loadingScreen.classList.add('active');
+        loadingText.innerText = "Verifying Credentials...";
+        loadingText.style.color = "#fff";
+
+        // THE ILLUSION
         setTimeout(() => {
-            loadingScreen.classList.remove('active');
-            loadingScreen.classList.add('hidden');
-            captchaScreen.classList.remove('hidden');
-            captchaScreen.classList.add('active');
-        }, 1500);
-    }, 2000);
-});
+            loadingText.innerText = "Unusual Traffic Detected.";
+            loadingText.style.color = "#ff4444"; 
+            setTimeout(() => {
+                loadingScreen.classList.remove('active');
+                loadingScreen.classList.add('hidden');
+                captchaScreen.classList.remove('hidden');
+                captchaScreen.classList.add('active');
+            }, 1500);
+        }, 2000);
+    });
+}
 
 // --- EVENT: CAPTCHA CHECKED ---
-robotCheck.addEventListener('change', (e) => {
-    if (e.target.checked) {
-        setTimeout(() => {
-            captchaScreen.classList.remove('active');
-            captchaScreen.classList.add('hidden');
-
-            // Show Quiz Intro
-            quizScreen.classList.remove('hidden');
-            quizScreen.classList.add('active');
-            quizIntro.classList.remove('hidden');
-            quizGame.classList.add('hidden');
-        }, 500);
-    }
-});
+if(robotCheck) {
+    robotCheck.addEventListener('change', (e) => {
+        if (e.target.checked) {
+            setTimeout(() => {
+                captchaScreen.classList.remove('active');
+                captchaScreen.classList.add('hidden');
+                
+                const overlay = document.getElementById('quiz-overlay');
+                if(overlay) {
+                    overlay.classList.remove('hidden');
+                    overlay.classList.add('active');
+                }
+                quizIntro.classList.remove('hidden');
+                quizGame.classList.add('hidden');
+            }, 500);
+        }
+    });
+}
 
 // --- EVENT: START QUIZ ---
-startQuizBtn.addEventListener('click', () => {
-    quizIntro.classList.add('hidden');
-    quizGame.classList.remove('hidden');
-    if (typeof Cipher !== 'undefined') {
-        questionText.innerText = Cipher.getRandomQuestion();
-    }
-});
+if(startQuizBtn) {
+    startQuizBtn.addEventListener('click', () => {
+        quizIntro.classList.add('hidden');
+        quizGame.classList.remove('hidden');
+        
+        // LOAD THE FIRST QUESTION FROM YOUR NEW LOGIC
+        loadNewQuestion();
+    });
+}
 
-// --- EVENT: QUIZ ANSWERS ---
+// --- EVENT: QUIZ ANSWERS (Dual Logic) ---
 document.querySelectorAll('.opt-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-        const val = e.target.getAttribute('data-val');
+        // 1. SECRET PATTERN LOGIC (Auth)
+        // We track WHICH button was clicked (Position A, B, C, D)
+        const targetBtn = e.target.closest('.opt-btn');
+        const val = targetBtn.getAttribute('data-val');
+        
         currentPattern.push(val);
 
+        // Visual Feedback (Hidden Progress Bar)
         const progress = document.getElementById('progress-fill');
         if(progress) progress.style.width = `${currentPattern.length * 20}%`;
 
-        if (currentPattern.length === 5) {
-            attemptLogin();
+        // 2. FAKE GAME LOGIC (Score)
+        // We check if the TEXT inside matches the correct answer
+        const selectedText = targetBtn.querySelector('.opt-text').innerText;
+        const correctText = targetBtn.getAttribute('data-correct-answer');
+
+        if (selectedText === correctText) {
+            fakeScore += 10;
+            targetBtn.style.background = "#d4edda"; // Flash Green
+            targetBtn.style.borderColor = "#28a745";
         } else {
-            if (typeof Cipher !== 'undefined') {
-                questionText.innerText = Cipher.getRandomQuestion();
-            }
+            targetBtn.style.background = "#f8d7da"; // Flash Red
+            targetBtn.style.borderColor = "#dc3545";
+        }
+        
+        // Update Score UI
+        const scoreEl = document.getElementById('score-display');
+        if(scoreEl) scoreEl.innerText = fakeScore;
+
+        // 3. DECISION: OPEN VAULT OR NEXT QUESTION?
+        if (currentPattern.length === 5) {
+            attemptLogin(); // Pattern Complete
+        } else {
+            // Wait 0.5s so user sees Green/Red flash, then load next
+            setTimeout(() => {
+                // Reset styles
+                document.querySelectorAll('.opt-btn').forEach(b => {
+                    b.style.background = "";
+                    b.style.borderColor = "";
+                });
+                loadNewQuestion();
+            }, 500);
         }
     });
 });
 
+// --- HELPER: LOAD NEW QUESTION ---
+function loadNewQuestion() {
+    if (typeof Cipher === 'undefined') {
+        console.error("Cipher logic missing! Check quiz-logic.js");
+        return;
+    }
+
+    // Get random round { text, options, correctAnswer }
+    const round = Cipher.getNewRound();
+    
+    // Set Question Text
+    const qText = document.getElementById('question-text');
+    if(qText) qText.innerText = round.text;
+
+    // Set Options A, B, C, D
+    const buttons = document.querySelectorAll('.opt-btn');
+    buttons.forEach((btn, index) => {
+        const span = btn.querySelector('.opt-text');
+        if(span) {
+            span.innerText = round.options[index];
+        }
+        // Store the correct answer ON the button to check later
+        btn.setAttribute('data-correct-answer', round.correctAnswer);
+    });
+}
+
 // --- FUNCTION: REAL LOGIN ATTEMPT ---
 async function attemptLogin() {
-    questionText.innerText = "Verifying Pattern...";
+    // Optional: Change text to show something is happening
+    const qText = document.getElementById('question-text');
+    if(qText) qText.innerText = "Verifying Pattern...";
 
     try {
         const res = await fetch('/api/auth/login', {
@@ -120,15 +181,17 @@ async function attemptLogin() {
         if (res.ok) {
             localStorage.setItem('token', data.token);
             
+            // Hide Game
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
 
+            // Show Vault
             vaultScreen.classList.remove('hidden');
             vaultScreen.classList.add('active'); 
 
             loadVaultData();
         } else {
-            alert("Game Over! (Wrong Credentials)");
+            
             location.reload();
         }
     } catch (err) {
@@ -141,7 +204,7 @@ async function attemptLogin() {
 // 3. VAULT LOGIC & MOBILE MENU
 // ==========================================
 
-// --- MOBILE MENU LOGIC (The Fix) ---
+// --- MOBILE MENU LOGIC ---
 document.addEventListener('DOMContentLoaded', () => {
     const mobileBtn = document.getElementById('mobile-menu-btn');
     const sidebar = document.querySelector('.sidebar');
@@ -169,7 +232,6 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('.nav-list li, .nav-static li').forEach(el => el.classList.remove('active'));
             personalBtn.classList.add('active');
 
-            // Close Menu on Mobile
             if(window.innerWidth <= 768) {
                 sidebar.classList.remove('active');
                 overlay.classList.remove('active');
@@ -214,7 +276,7 @@ async function loadVaultData() {
         if(membersDiv) membersDiv.classList.add('hidden');
 
         if (currentContext.type === 'personal') {
-            viewTitle.innerText = "My Private Vault";
+            if(viewTitle) viewTitle.innerText = "My Private Vault";
             
             const pageRes = await fetch('/api/pages/personal', { headers: { 'x-auth-token': token } });
             const pages = await pageRes.json();
@@ -226,16 +288,16 @@ async function loadVaultData() {
             }
 
         } else {
-            // ===================================
-            // 👥 GROUP MODE (Updated Dashboard)
-            // ===================================
+            // GROUP MODE
             const groupRes = await fetch(`/api/groups/${currentContext.id}`, { headers: { 'x-auth-token': token } });
             const groupData = await groupRes.json();
 
-            // 1. Set Sticky Title
-            viewTitle.innerText = groupData.name;
-
-            // 2. Prepare Action Button Logic (Admin vs Member)
+            if(viewTitle) viewTitle.innerText = groupData.name;
+            
+            // GROUP DASHBOARD INJECTION
+            const container = document.getElementById('vault-content');
+            
+            // Check Admin Status
             const myId = userData._id;
             const adminId = (groupData.admin && groupData.admin._id) ? groupData.admin._id : groupData.admin;
             const isAdmin = (myId === adminId);
@@ -246,12 +308,6 @@ async function loadVaultData() {
                 ? `deleteGroup('${currentContext.id}')` 
                 : `leaveGroup('${currentContext.id}')`;
 
-            // 3. INJECT THE DASHBOARD (The Fix)
-            // We put this right before the content starts
-            const container = document.getElementById('vault-content');
-            
-            // We temporarily store the layout for the Split View
-            // This allows us to put the Dashboard ABOVE the split view
             const dashboardHTML = `
                 <div class="group-dashboard">
                     <div class="group-info-row">
@@ -266,17 +322,15 @@ async function loadVaultData() {
                 </div>
             `;
 
-            // 4. Render Pages
+            // Render Content
             const pageRes = await fetch(`/api/pages/group/${currentContext.id}`, { headers: { 'x-auth-token': token } });
             const pages = await pageRes.json();
             
-            // Render View + Prepend Dashboard
             renderNotionView(pages, 'group', currentContext.id);
             
-            // 🚨 INJECTION TRICK: Insert Dashboard at the top of container
-            container.insertAdjacentHTML('afterbegin', dashboardHTML);
+            // Inject Dashboard
+            if(container) container.insertAdjacentHTML('afterbegin', dashboardHTML);
 
-            // 5. Load Photos
             if (photoCard) {
                 photoCard.style.display = 'block';
                 loadAlbumView();
@@ -321,7 +375,7 @@ function renderSidebarGroups(groups) {
 }
 
 // ==========================================
-// 4. EDITOR VIEW (Mobile Safe)
+// 4. EDITOR VIEW
 // ==========================================
 function renderNotionView(pages, contextType, contextId) {
     const container = document.getElementById('vault-content');
@@ -343,7 +397,6 @@ function renderNotionView(pages, contextType, contextId) {
         </div>
     `;
 
-    // Mobile Back Button Logic
     const splitView = document.getElementById('split-view-container');
     const backBtn = document.getElementById('mobile-back-btn');
     if (backBtn) {
@@ -369,7 +422,7 @@ function renderNotionView(pages, contextType, contextId) {
     });
 
     document.getElementById('create-page-btn').onclick = async () => {
-        const title = prompt("Enter Page Title:");
+        const title = await UI.prompt("New Page Title", "e.g., Operation Blackout");
         if (!title) return; 
         const url = contextType === 'personal' ? '/api/pages/personal' : `/api/pages/group/${contextId}`;
         try {
@@ -383,67 +436,48 @@ function renderNotionView(pages, contextType, contextId) {
     };
 }
 
-// --- UPDATED EDITOR (Minimalist Toolbar) ---
 function loadPageIntoEditor(page) {
     const editorArea = document.getElementById('editor-content-area');
-    
-    // 1. Inject HTML (Clean Text Toolbar)
-  // 1. Inject HTML (With Clean Separator)
     editorArea.innerHTML = `
         <div class="editor-header">
             <input type="text" id="page-title-input" value="${page.title}" placeholder="Untitled Page">
-            
             <div class="editor-tools">
                 <button id="save-page-btn" class="text-btn">Save</button>
-                
                 <div class="tool-separator"></div>
-                
                 <button id="delete-page-btn" class="text-btn danger">Delete</button>
             </div>
         </div>
-        
         <textarea id="page-content-input" placeholder="Start typing...">${page.content || ''}</textarea>
     `;
 
-    // 2. SAVE LOGIC
     const saveBtn = document.getElementById('save-page-btn');
     saveBtn.onclick = async () => {
         const titleVal = document.getElementById('page-title-input').value;
         const contentVal = document.getElementById('page-content-input').value;
-        
         const originalText = saveBtn.innerText;
         saveBtn.innerText = "Saving...";
         
         try {
             const res = await fetch(`/api/pages/${page._id}`, {
                 method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'x-auth-token': localStorage.getItem('token') 
-                },
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
                 body: JSON.stringify({ title: titleVal, content: contentVal })
             });
-            
             if (res.ok) {
                 saveBtn.innerText = "Saved";
-                saveBtn.style.color = "#00ff00"; // Hacker Green success flash
-                
-                // Update Sidebar Text
+                saveBtn.style.color = "#00ff00"; 
                 const sidebarItem = document.getElementById(`page-link-${page._id}`);
                 if (sidebarItem) sidebarItem.innerText = titleVal || "Untitled Page";
-                
                 setTimeout(() => { 
                     saveBtn.innerText = originalText; 
-                    saveBtn.style.color = ""; // Reset color
+                    saveBtn.style.color = "";
                 }, 1500);
             }
         } catch (err) { saveBtn.innerText = "Error"; }
     };
 
-    // 3. DELETE LOGIC
-    const deleteBtn = document.getElementById('delete-page-btn');
-    deleteBtn.onclick = async () => {
-        if (!confirm("Permanently delete this page?")) return;
+    document.getElementById('delete-page-btn').onclick = async () => {
+        const confirmed = await UI.confirm("Delete Page?", "This action cannot be undone.");
         try {
             const res = await fetch(`/api/pages/${page._id}`, {
                 method: 'DELETE',
@@ -457,19 +491,23 @@ function loadPageIntoEditor(page) {
         } catch (err) { console.error(err); }
     };
 }
+
 // ==========================================
 // 5. ALBUM & GROUP ACTIONS
 // ==========================================
 async function handleCreateGroup() {
     const name = document.getElementById('new-group-name').value;
-    if(!name) return alert("Enter Name");
-    
+if(!name) {
+        UI.toast("Please enter a group name", "error"); // Replaces alert
+        return;
+    }    
     const res = await fetch('/api/groups/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
         body: JSON.stringify({ name })
     });
     if(res.ok) {
+        UI.toast("Group Created Successfully", "success");
         document.getElementById('new-group-name').value = "";
         loadVaultData();
     }
@@ -477,8 +515,10 @@ async function handleCreateGroup() {
 
 async function handleJoinGroup() {
     const code = document.getElementById('join-group-code').value;
-    if(!code) return alert("Enter Code");
-
+if(!code) {
+        UI.toast("Please enter an invite code", "error");
+        return;
+    }
     const res = await fetch('/api/groups/join', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
@@ -486,16 +526,14 @@ async function handleJoinGroup() {
     });
     const data = await res.json();
     if(res.ok) {
+        UI.toast(`Joined ${data.group.name}!`, "success");
         document.getElementById('join-group-code').value = "";
-        alert(`Joined ${data.group.name}!`);
         loadVaultData();
     } else {
-        alert(data.msg);
+        UI.toast(data.msg, "error");
     }
 }
 
-// --- UPDATED ALBUM VIEW (Integrated Header) ---
-// --- UPDATED ALBUM VIEW (Secure Gallery Only) ---
 async function loadAlbumView() {
     const container = document.getElementById('photo-grid');
     if(!container) return; 
@@ -509,7 +547,6 @@ async function loadAlbumView() {
         const res = await fetch(url, { headers: { 'x-auth-token': localStorage.getItem('token') } });
         const albums = await res.json();
 
-        // 1. Inject Header: "Secure Gallery" + Button
         container.innerHTML = `
             <div class="section-header">
                 <div class="section-title">
@@ -519,12 +556,10 @@ async function loadAlbumView() {
                     + New Album
                 </button>
             </div>
-            
             <div class="album-grid" id="albums-wrapper"></div>
         `;
 
         const wrapper = document.getElementById('albums-wrapper');
-
         if (albums.length === 0) {
             wrapper.innerHTML = `<p style="color:#555; font-family:'Courier New'; font-size:0.9rem; margin-top:10px;">[No encrypted albums found]</p>`;
         }
@@ -544,6 +579,7 @@ async function loadAlbumView() {
         });
     } catch (err) { console.error(err); }
 }
+
 function openAlbum(album) {
     const container = document.getElementById('photo-grid');
     const inputId = `upload-${album._id}`;
@@ -577,7 +613,7 @@ function openAlbum(album) {
 // --- GLOBAL HELPERS ---
 window.triggerUpload = function(inputId) { document.getElementById(inputId).click(); };
 window.createNewAlbum = async function() {
-    const name = prompt("Album Name:");
+    const name = await UI.prompt("New Album Name");
     if (!name) return;
     await fetch('/api/albums', {
         method: 'POST',
@@ -603,7 +639,7 @@ window.uploadPhotos = async function(e, albumId) {
 };
 window.deleteAlbum = async function(id, e) {
     e.stopPropagation();
-    if(!confirm("Delete Album?")) return;
+    if(!(await UI.confirm("Delete Album?", "All photos inside will be lost."))) return;
     await fetch(`/api/albums/${id}`, {
         method: 'DELETE',
         headers: { 'x-auth-token': localStorage.getItem('token') }
@@ -611,7 +647,7 @@ window.deleteAlbum = async function(id, e) {
     loadAlbumView();
 };
 window.deletePhoto = async function(albumId, filename) {
-    if(!confirm("Delete Photo?")) return;
+    if(!(await UI.confirm("Delete Photo?", "Are you sure?"))) return;
     const res = await fetch(`/api/albums/${albumId}/photo/${filename}`, {
         method: 'DELETE',
         headers: { 'x-auth-token': localStorage.getItem('token') }
@@ -632,14 +668,16 @@ window.closeLightbox = function() {
 
 // --- GLOBAL GROUP ACTIONS ---
 window.leaveGroup = async function(groupId) {
-    if(!confirm("Are you sure you want to leave this group?")) return;
+const yes = await UI.confirm("Leave Group?", "You will lose access to these files.");
+    if(!yes) return;
     const token = localStorage.getItem('token');
     await fetch(`/api/groups/${groupId}/leave`, { method: 'POST', headers: { 'x-auth-token': token } });
     location.reload();
 };
 
 window.deleteGroup = async function(groupId) {
-    if(!confirm("⚠️ WARNING: This will delete the group and ALL content for everyone. Proceed?")) return;
+const yes = await UI.confirm("Delete Group?", "⚠️ WARNING: This wipes all data for everyone.");
+    if(!yes) return;
     const token = localStorage.getItem('token');
     await fetch(`/api/groups/${groupId}`, { method: 'DELETE', headers: { 'x-auth-token': token } });
     location.reload();
