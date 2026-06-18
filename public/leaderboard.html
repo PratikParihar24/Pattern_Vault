@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Leaderboard — MindMaster</title>
+    <meta name="description" content="See the top MindMaster quiz players from around the world. Where do you rank?">
+    <link rel="stylesheet" href="css/kuizu-theme.css">
+    <style>
+        .page-hero {
+            min-height: 35vh;
+            display: flex; align-items: center;
+            padding: calc(var(--nav-height) + 40px) clamp(20px,5vw,80px) 60px;
+            text-align: center;
+            position: relative; overflow: hidden;
+        }
+        .page-hero::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse 70% 80% at 50% 0%, rgba(245,158,11,0.12), transparent 65%);
+            pointer-events: none;
+        }
+        .page-hero-inner { max-width: var(--max-width); margin: 0 auto; width: 100%; position: relative; z-index: 1; }
+
+        /* User rank banner */
+        .my-rank-banner {
+            background: linear-gradient(135deg, rgba(233,69,96,0.1), rgba(167,139,250,0.08));
+            border: 1px solid rgba(233,69,96,0.25);
+            border-radius: var(--radius-lg);
+            padding: 20px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+        .my-rank-left { display: flex; align-items: center; gap: 16px; }
+        .my-rank-avatar {
+            width: 48px; height: 48px;
+            border-radius: 50%;
+            background: rgba(233,69,96,0.15);
+            border: 2px solid var(--primary);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem;
+        }
+        .my-rank-name { font-weight: 800; color: var(--text-primary); font-size: 1rem; }
+        .my-rank-sub  { font-size: 0.82rem; color: var(--text-muted); margin-top: 2px; }
+        .my-rank-right { display: flex; gap: 24px; align-items: center; }
+        .my-rank-stat { text-align: center; }
+        .my-rank-stat-num { font-family: 'Poppins', sans-serif; font-size: 1.4rem; font-weight: 900; color: var(--primary); line-height: 1; }
+        .my-rank-stat-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+        /* Filter tabs */
+        .lb-filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .lb-filter-btn {
+            padding: 8px 20px;
+            border-radius: var(--radius-pill);
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1.5px solid var(--border-medium);
+            background: transparent;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        .lb-filter-btn:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
+        .lb-filter-btn.active { background: rgba(245,158,11,0.1); border-color: var(--accent-gold); color: var(--accent-gold); }
+
+        /* Rows */
+        .lb-list { display: flex; flex-direction: column; gap: 8px; }
+
+        /* Skeleton */
+        .lb-skeleton {
+            height: 72px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-card-hover) 50%, var(--bg-card) 75%);
+            background-size: 200% 100%;
+            animation: kz-shimmer 1.5s infinite;
+        }
+
+        /* Empty state */
+        .lb-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+        .lb-empty-icon { font-size: 3rem; margin-bottom: 16px; }
+
+        /* Rank medal colors */
+        .medal-gold   { color: #F59E0B; }
+        .medal-silver { color: #A8A8A8; }
+        .medal-bronze { color: #C47722; }
+    </style>
+</head>
+<body class="kuizu-page">
+
+    <!-- NAVBAR -->
+    <nav class="kz-navbar scrolled" id="navbar">
+        <div class="kz-nav-inner">
+            <a href="landing.html" class="kz-logo">
+                <div class="kz-logo-icon">🧠</div>
+                <span class="kz-logo-text">Mind<span>Master</span></span>
+            </a>
+            <ul class="kz-nav-links">
+                <li><a href="landing.html">Home</a></li>
+                <li><a href="how-to-play.html">How to Play</a></li>
+                <li><a href="leaderboard.html" class="active">Leaderboard</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="faq.html">FAQ</a></li>
+            </ul>
+            <div class="kz-nav-actions">
+                <a href="login.html" class="kz-btn kz-btn-ghost kz-btn-sm">Login</a>
+                <a href="register.html" class="kz-btn kz-btn-primary kz-btn-sm">Register</a>
+            </div>
+            <button class="kz-hamburger" id="hamburger"><span></span><span></span><span></span></button>
+        </div>
+    </nav>
+    <div class="kz-mobile-nav" id="mobileNav">
+        <a href="landing.html">🏠 Home</a>
+        <a href="how-to-play.html">🎮 How to Play</a>
+        <a href="leaderboard.html">🏆 Leaderboard</a>
+        <a href="about.html">💡 About</a>
+        <a href="faq.html">❓ FAQ</a>
+        <hr style="border-color:var(--border-subtle); margin:8px 0;">
+        <a href="login.html">Login</a>
+        <a href="register.html" style="background:var(--gradient-primary);color:#fff;text-align:center;border-radius:var(--radius-pill);">Register Free</a>
+    </div>
+
+    <!-- PAGE HERO -->
+    <section class="page-hero">
+        <div class="page-hero-inner">
+            <span class="kz-label kz-animate" style="display:inline-block;margin-bottom:16px;">🏆 Rankings</span>
+            <h1 class="kz-h1 kz-animate kz-animate-delay-1">Global <span class="kz-gradient-text">Leaderboard</span></h1>
+            <p class="kz-body kz-animate kz-animate-delay-2" style="max-width:480px;margin:16px auto 0;">The world's smartest quiz players, ranked by their best scores. Where do you stand?</p>
+        </div>
+    </section>
+
+    <!-- MAIN CONTENT -->
+    <section class="kz-section" style="padding-top:20px;">
+        <div class="kz-container" style="max-width:860px;">
+
+            <!-- My rank banner (logged in users) -->
+            <div class="my-rank-banner" id="myRankBanner" style="display:none;">
+                <div class="my-rank-left">
+                    <div class="my-rank-avatar">👤</div>
+                    <div>
+                        <div class="my-rank-name" id="myDisplayName">You</div>
+                        <div class="my-rank-sub">Your current standing</div>
+                    </div>
+                </div>
+                <div class="my-rank-right">
+                    <div class="my-rank-stat">
+                        <div class="my-rank-stat-num" id="myRankNum">—</div>
+                        <div class="my-rank-stat-label">Your Rank</div>
+                    </div>
+                    <div class="my-rank-stat">
+                        <div class="my-rank-stat-num" id="myHighScore">0</div>
+                        <div class="my-rank-stat-label">Best Score</div>
+                    </div>
+                    <div class="my-rank-stat">
+                        <div class="my-rank-stat-num" id="myGames">0</div>
+                        <div class="my-rank-stat-label">Games</div>
+                    </div>
+                    <a href="app.html" class="kz-btn kz-btn-primary kz-btn-sm">Play Now</a>
+                </div>
+            </div>
+
+            <!-- Not logged in CTA -->
+            <div id="loginCta" style="display:none; text-align:center; margin-bottom:28px;">
+                <p class="kz-body" style="margin-bottom:14px;">Sign in to see your rank and submit scores.</p>
+                <div style="display:flex;gap:10px;justify-content:center;">
+                    <a href="login.html" class="kz-btn kz-btn-ghost kz-btn-sm">Login</a>
+                    <a href="register.html" class="kz-btn kz-btn-primary kz-btn-sm">Register Free</a>
+                </div>
+            </div>
+
+            <!-- PODIUM (Top 3) -->
+            <div id="podiumSection" style="margin-bottom:40px;">
+                <div class="kz-podium" id="podium">
+                    <!-- Injected by JS -->
+                    <div class="lb-skeleton" style="width:100px; height:180px; border-radius:var(--radius-lg);"></div>
+                    <div class="lb-skeleton" style="width:100px; height:200px; border-radius:var(--radius-lg);"></div>
+                    <div class="lb-skeleton" style="width:100px; height:160px; border-radius:var(--radius-lg);"></div>
+                </div>
+            </div>
+
+            <!-- FILTER -->
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
+                <h3 class="kz-h3" style="margin:0;">Full Rankings</h3>
+                <div class="lb-filters">
+                    <button class="lb-filter-btn active" onclick="setFilter(this,'all')">🌍 All Time</button>
+                    <button class="lb-filter-btn" onclick="setFilter(this,'top10')">🔥 Top 10</button>
+                </div>
+            </div>
+
+            <!-- LIST -->
+            <div class="lb-list" id="lbList">
+                <!-- Skeletons -->
+                <div class="lb-skeleton"></div>
+                <div class="lb-skeleton"></div>
+                <div class="lb-skeleton"></div>
+                <div class="lb-skeleton"></div>
+                <div class="lb-skeleton"></div>
+            </div>
+
+            <!-- Join CTA at bottom -->
+            <div style="text-align:center; margin-top:40px; padding:32px; background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-lg);">
+                <p style="color:var(--text-secondary); font-size:0.95rem; margin-bottom:16px;">Think you can make the top 10? Prove it.</p>
+                <a href="register.html" class="kz-btn kz-btn-primary">🎮 Start Playing</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="kz-footer">
+        <div class="kz-footer-inner">
+            <div class="kz-footer-bottom" style="padding-top:0;border-top:none;justify-content:center;gap:24px;">
+                <a href="landing.html" style="color:var(--text-muted);text-decoration:none;font-size:0.9rem;">Home</a>
+                <a href="how-to-play.html" style="color:var(--text-muted);text-decoration:none;font-size:0.9rem;">How to Play</a>
+                <a href="about.html" style="color:var(--text-muted);text-decoration:none;font-size:0.9rem;">About</a>
+                <a href="faq.html" style="color:var(--text-muted);text-decoration:none;font-size:0.9rem;">FAQ</a>
+                <span style="color:var(--text-muted);font-size:0.9rem;">© 2026 MindMaster</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/landing.js"></script>
+    <script src="js/leaderboard-page.js"></script>
+</body>
+</html>

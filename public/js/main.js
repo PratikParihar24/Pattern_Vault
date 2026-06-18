@@ -6,59 +6,93 @@
 let userCredentials = { email: '', password: '' };
 let currentPattern = []; 
 let currentContext = { type: 'personal', id: null }; 
-let fakeScore = 0; // Track the "Game" score
-let highScore = localStorage.getItem('fakeHighScore') || 0; // Load from memory
+let fakeScore = 0;
+let correctCount = 0; // track correct answers
+let questionIndex = 0; // track which question we're on (0-4)
+let highScore = parseInt(localStorage.getItem('fakeHighScore') || '0');
 
 // DOM Elements
-const loadingScreen = document.getElementById('loading-screen');
-const loadingText = document.getElementById('loading-text');
-const captchaScreen = document.getElementById('captcha-screen');
-const robotCheck = document.getElementById('robot-check');
-const loginForm = document.getElementById('login-form');
-const quizIntro = document.getElementById('quiz-intro');
-const quizGame = document.getElementById('quiz-game');
-const startQuizBtn = document.getElementById('start-quiz-btn');
-const vaultScreen = document.getElementById('vault-screen');
-
-const quizResult = document.getElementById('quiz-result');
-const restartBtn = document.getElementById('restart-btn');
+const loadingScreen    = document.getElementById('loading-screen');
+const loadingText      = document.getElementById('loading-text');
+const captchaScreen    = document.getElementById('captcha-screen');
+const robotCheck       = document.getElementById('robot-check');
+const loginForm        = document.getElementById('login-form'); // null on app.html
+const quizIntro        = document.getElementById('quiz-intro');
+const quizGame         = document.getElementById('quiz-game');
+const startQuizBtn     = document.getElementById('start-quiz-btn');
+const vaultScreen      = document.getElementById('vault-screen');
+const quizResult       = document.getElementById('quiz-result');
+const restartBtn       = document.getElementById('restart-btn');
 const highScoreDisplay = document.getElementById('high-score-display');
-// Init High Score UI
-if(highScoreDisplay) highScoreDisplay.innerText = highScore;
+
+// Pick up credentials from login.html via sessionStorage
+(function loadPendingCredentials() {
+    const pending = {
+        email:    sessionStorage.getItem('_pendingEmail'),
+        password: sessionStorage.getItem('_pendingPassword')
+    };
+    if (pending.email && pending.password) {
+        userCredentials.email    = pending.email;
+        userCredentials.password = pending.password;
+        // Clear them so they aren't reused on refresh
+        sessionStorage.removeItem('_pendingEmail');
+        sessionStorage.removeItem('_pendingPassword');
+        // If a valid token already exists → go straight to vault
+        const token = localStorage.getItem('token');
+        if (token) {
+            showVaultDirectly();
+            return;
+        }
+        // Otherwise trigger the loading→captcha→quiz flow
+        setTimeout(() => startLoginFlow(), 500);
+    } else {
+        // No pending credentials: check if already logged in
+        const token = localStorage.getItem('token');
+        if (token) {
+            showVaultDirectly();
+        } else {
+            // Not logged in, not coming from login page → redirect back to login
+            // Give a short grace period in case it's a direct navigation for testing
+            setTimeout(() => {
+                if (!localStorage.getItem('token')) {
+                    window.location.href = 'login.html';
+                }
+            }, 300);
+        }
+    }
+})();
+
+function showVaultDirectly() {
+    document.querySelectorAll('.screen').forEach(s => { s.classList.add('hidden'); s.classList.remove('active'); });
+    vaultScreen.classList.remove('hidden');
+    vaultScreen.classList.add('active');
+    loadVaultData();
+}
+
+function startLoginFlow() {
+    document.querySelectorAll('.screen').forEach(s => { s.classList.add('hidden'); s.classList.remove('active'); });
+    loadingScreen.classList.remove('hidden');
+    loadingScreen.classList.add('active');
+    if (loadingText) { loadingText.innerText = 'Verifying Credentials...'; }
+
+    setTimeout(() => {
+        if (loadingText) { loadingText.innerText = 'Unusual Traffic Detected.'; loadingText.style.color = '#E94560'; }
+        setTimeout(() => {
+            loadingScreen.classList.remove('active'); loadingScreen.classList.add('hidden');
+            captchaScreen.classList.remove('hidden'); captchaScreen.classList.add('active');
+        }, 1500);
+    }, 2000);
+}
+
+// Init high score UI
+if (highScoreDisplay) highScoreDisplay.innerText = highScore;
 
 // ==========================================
 // 2. AUTHENTICATION FLOW (The Disguise)
 // ==========================================
-
-// --- EVENT: LOGIN FORM SUBMIT ---
-if(loginForm) {
-    loginForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        userCredentials.email = document.getElementById('email').value;
-        userCredentials.password = document.getElementById('password').value;
-
-        // Switch to Loading
-        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        
-        loadingScreen.classList.remove('hidden');
-        loadingScreen.classList.add('active');
-        loadingText.innerText = "Verifying Credentials...";
-        loadingText.style.color = "#fff";
-
-        // THE ILLUSION
-        setTimeout(() => {
-            loadingText.innerText = "Unusual Traffic Detected.";
-            loadingText.style.color = "#ff4444"; 
-            setTimeout(() => {
-                loadingScreen.classList.remove('active');
-                loadingScreen.classList.add('hidden');
-                captchaScreen.classList.remove('hidden');
-                captchaScreen.classList.add('active');
-            }, 1500);
-        }, 2000);
-    });
-}
+// Note: Login form is now on login.html.
+// Credentials arrive via sessionStorage and are loaded above.
+// The loginForm block is kept for backward compat but does nothing on app.html.
 
 // --- EVENT: CAPTCHA CHECKED ---
 if(robotCheck) {
@@ -81,12 +115,22 @@ if(robotCheck) {
 }
 
 // --- EVENT: START QUIZ ---
-if(startQuizBtn) {
+if (startQuizBtn) {
     startQuizBtn.addEventListener('click', () => {
+        // Reset state for a fresh game
+        questionIndex = 0;
+        fakeScore = 0;
+        correctCount = 0;
+        currentPattern = [];
+        const scoreEl = document.getElementById('score-display');
+        if (scoreEl) scoreEl.innerText = '0';
+        // Reset all dots
+        for (let i = 0; i < 5; i++) {
+            const d = document.getElementById(`dot-${i}`);
+            if (d) { d.className = 'kz-dot'; if (i === 0) d.classList.add('current'); }
+        }
         quizIntro.classList.add('hidden');
         quizGame.classList.remove('hidden');
-        
-        // LOAD THE FIRST QUESTION FROM YOUR NEW LOGIC
         loadNewQuestion();
     });
 }
@@ -94,48 +138,58 @@ if(startQuizBtn) {
 // --- EVENT: QUIZ ANSWERS (Dual Logic) ---
 document.querySelectorAll('.opt-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-        // 1. SECRET PATTERN LOGIC (Auth)
-        // We track WHICH button was clicked (Position A, B, C, D)
+        // Prevent double-click
+        if (btn.disabled) return;
+        document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
+
         const targetBtn = e.target.closest('.opt-btn');
         const val = targetBtn.getAttribute('data-val');
-        
         currentPattern.push(val);
 
-        // Visual Feedback (Hidden Progress Bar)
-        const progress = document.getElementById('progress-fill');
-        if(progress) progress.style.width = `${currentPattern.length * 20}%`;
-
-        // 2. FAKE GAME LOGIC (Score)
-        // We check if the TEXT inside matches the correct answer
+        // 2. GAME LOGIC: check if correct
         const selectedText = targetBtn.querySelector('.opt-text').innerText;
-        const correctText = targetBtn.getAttribute('data-correct-answer');
+        const correctText  = targetBtn.getAttribute('data-correct-answer');
+        const isCorrect    = (selectedText === correctText);
 
-        if (selectedText === correctText) {
+        if (isCorrect) {
             fakeScore += 10;
-            targetBtn.style.background = "#d4edda"; // Flash Green
-            targetBtn.style.borderColor = "#28a745";
+            correctCount++;
+            targetBtn.classList.add('correct');
         } else {
-            targetBtn.style.background = "#f8d7da"; // Flash Red
-            targetBtn.style.borderColor = "#dc3545";
+            targetBtn.classList.add('wrong');
+            // Also highlight the correct one
+            document.querySelectorAll('.opt-btn').forEach(b => {
+                if (b.querySelector('.opt-text').innerText === correctText) {
+                    b.classList.add('correct');
+                }
+            });
         }
-        
-        // Update Score UI
-        const scoreEl = document.getElementById('score-display');
-        if(scoreEl) scoreEl.innerText = fakeScore;
 
-        // 3. DECISION: OPEN VAULT OR NEXT QUESTION?
+        // Update score
+        const scoreEl = document.getElementById('score-display');
+        if (scoreEl) scoreEl.innerText = fakeScore;
+
+        // Update progress dot for current question
+        const dot = document.getElementById(`dot-${questionIndex}`);
+        if (dot) { dot.classList.remove('current'); dot.classList.add('answered'); }
+
+        questionIndex++;
+
+        // 3. DECISION
         if (currentPattern.length === 5) {
-            attemptLogin(); // Pattern Complete
+            setTimeout(() => attemptLogin(), 700);
         } else {
-            // Wait 0.5s so user sees Green/Red flash, then load next
+            // Advance to next dot
+            const nextDot = document.getElementById(`dot-${questionIndex}`);
+            if (nextDot) nextDot.classList.add('current');
+
             setTimeout(() => {
-                // Reset styles
                 document.querySelectorAll('.opt-btn').forEach(b => {
-                    b.style.background = "";
-                    b.style.borderColor = "";
+                    b.classList.remove('correct', 'wrong');
+                    b.disabled = false;
                 });
                 loadNewQuestion();
-            }, 500);
+            }, 700);
         }
     });
 });
@@ -143,26 +197,27 @@ document.querySelectorAll('.opt-btn').forEach(btn => {
 // --- HELPER: LOAD NEW QUESTION ---
 function loadNewQuestion() {
     if (typeof Cipher === 'undefined') {
-        console.error("Cipher logic missing! Check quiz-logic.js");
+        console.error('Cipher logic missing! Check quiz-logic.js');
         return;
     }
 
-    // Get random round { text, options, correctAnswer }
     const round = Cipher.getNewRound();
     
-    // Set Question Text
+    // Update question text
     const qText = document.getElementById('question-text');
-    if(qText) qText.innerText = round.text;
+    if (qText) qText.innerText = round.text;
+
+    // Update question counter badge
+    const counter = document.getElementById('question-counter');
+    if (counter) counter.innerText = `Question ${questionIndex + 1} / 5`;
 
     // Set Options A, B, C, D
-    const buttons = document.querySelectorAll('.opt-btn');
-    buttons.forEach((btn, index) => {
+    document.querySelectorAll('.opt-btn').forEach((btn, index) => {
         const span = btn.querySelector('.opt-text');
-        if(span) {
-            span.innerText = round.options[index];
-        }
-        // Store the correct answer ON the button to check later
+        if (span) span.innerText = round.options[index];
         btn.setAttribute('data-correct-answer', round.correctAnswer);
+        btn.disabled = false;
+        btn.classList.remove('correct', 'wrong');
     });
 }
 
@@ -1062,48 +1117,110 @@ const yes = await UI.confirm("Delete Group?", "⚠️ WARNING: This wipes all da
 };
 
 // --- GAME OVER LOGIC ---
-function triggerGameOver() {
-    // 1. Update High Score
+async function triggerGameOver() {
+    // 1. Update High Score (localStorage)
+    let isNewBest = false;
     if (fakeScore > highScore) {
         highScore = fakeScore;
-        localStorage.setItem('fakeHighScore', highScore); // Save it
+        localStorage.setItem('fakeHighScore', highScore);
+        isNewBest = true;
     }
 
-    // 2. Update UI
-    document.getElementById('final-score').innerText = fakeScore;
-    if(highScoreDisplay) highScoreDisplay.innerText = highScore;
+    // 2. Update Kuizu result card UI
+    const finalScoreEl = document.getElementById('final-score');
+    if (finalScoreEl) finalScoreEl.innerText = fakeScore;
+    if (highScoreDisplay) highScoreDisplay.innerText = highScore;
 
-    // 3. Switch Screens
-    quizGame.classList.add('hidden');
-    quizResult.classList.remove('hidden');
+    // Correct count
+    const correctEl = document.getElementById('correct-count');
+    if (correctEl) correctEl.innerText = `${correctCount}/5`;
+
+    // Personal best
+    const pbEl = document.getElementById('personal-best');
+    if (pbEl) pbEl.innerText = highScore;
+
+    // Dynamic title
+    const titleEl = document.getElementById('result-title');
+    const subEl   = document.getElementById('result-subtitle');
+    if (titleEl) {
+        if (fakeScore === 50) {
+            titleEl.innerText = 'Perfect Score! 🎉';
+            if (subEl) subEl.innerText = 'You got every single one right. Impressive!';
+        } else if (fakeScore >= 30) {
+            titleEl.innerText = 'Great Job! 🎯';
+            if (subEl) subEl.innerText = 'Solid performance — keep it up to hit 50!';
+        } else if (fakeScore >= 10) {
+            titleEl.innerText = 'Nice Try! 🧠';
+            if (subEl) subEl.innerText = 'You can do better. Play again and improve!';
+        } else {
+            titleEl.innerText = 'Better Luck Next Time 😅';
+            if (subEl) subEl.innerText = 'Every master was once a beginner. Try again!';
+        }
+    }
+
+    // 3. Switch screens
+    if (quizGame) quizGame.classList.add('hidden');
+    if (quizResult) quizResult.classList.remove('hidden');
+
+    // 4. Submit score to leaderboard API
+    const token = localStorage.getItem('token');
+    if (token) {
+        try {
+            const res = await fetch('/api/leaderboard/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+                body: JSON.stringify({ score: fakeScore })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                // Show rank reveal
+                const rankReveal = document.getElementById('rank-reveal');
+                const rankText   = document.getElementById('rank-text');
+                if (rankReveal && rankText) {
+                    rankText.innerText = `🏆 You are Rank #${data.rank} globally!`;
+                    rankReveal.style.display = 'block';
+                }
+                if (data.isNewHighScore) {
+                    if (titleEl) titleEl.innerText = '🏆 New High Score!';
+                }
+            }
+        } catch (err) {
+            console.warn('Could not submit score:', err);
+        }
+    }
 }
 
 // --- RESTART LISTENER ---
-if(restartBtn) {
+if (restartBtn) {
     restartBtn.addEventListener('click', () => {
-        // Reset State
-        fakeScore = 0;
+        // Reset all state
+        fakeScore     = 0;
+        correctCount  = 0;
         currentPattern = [];
-        currentQuestionIndex = 0; // Optional: Reset question index or keep going
-        
-        // Update Score UI
+        questionIndex  = 0;
+
+        // Reset score UI
         const scoreEl = document.getElementById('score-display');
-        if(scoreEl) scoreEl.innerText = "0";
-        
-        // Reset Progress Bar
-        const progress = document.getElementById('progress-fill');
-        if(progress) progress.style.width = "0%";
-        
-        // Switch Screens
-        quizResult.classList.add('hidden');
-        quizIntro.classList.remove('hidden'); // Go back to Start Page
-        
-        // Make sure buttons are reset from Green/Red
+        if (scoreEl) scoreEl.innerText = '0';
+
+        // Reset progress dots
+        for (let i = 0; i < 5; i++) {
+            const d = document.getElementById(`dot-${i}`);
+            if (d) { d.className = 'kz-dot'; if (i === 0) d.classList.add('current'); }
+        }
+
+        // Reset option buttons
         document.querySelectorAll('.opt-btn').forEach(b => {
-             b.style.background = "";
-             b.style.borderColor = "";
+            b.classList.remove('correct', 'wrong');
+            b.disabled = false;
         });
 
+        // Hide rank reveal
+        const rankReveal = document.getElementById('rank-reveal');
+        if (rankReveal) rankReveal.style.display = 'none';
+
+        // Switch screens back to intro
+        if (quizResult) quizResult.classList.add('hidden');
+        if (quizIntro)  quizIntro.classList.remove('hidden');
     });
 }
-

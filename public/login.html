@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register — MindMaster</title>
-    <meta name="description" content="Create your free MindMaster account. Pick a display name, set a password, and start competing on the global leaderboard.">
+    <title>Login — MindMaster</title>
+    <meta name="description" content="Login to MindMaster and pick up where you left off. Access your account and the global leaderboard.">
     <link rel="stylesheet" href="css/kuizu-theme.css">
     <style>
         body.kuizu-page {
@@ -25,8 +25,8 @@
             content: '';
             position: absolute; inset: 0;
             background:
-                radial-gradient(ellipse 60% 60% at 70% 40%, rgba(233,69,96,0.08), transparent 60%),
-                radial-gradient(ellipse 50% 50% at 30% 60%, rgba(96,165,250,0.06), transparent 60%);
+                radial-gradient(ellipse 60% 60% at 30% 40%, rgba(233,69,96,0.08), transparent 60%),
+                radial-gradient(ellipse 50% 50% at 70% 60%, rgba(167,139,250,0.07), transparent 60%);
             pointer-events: none;
         }
         .auth-card {
@@ -35,7 +35,7 @@
             border-radius: var(--radius-xl);
             padding: 48px 40px;
             width: 100%;
-            max-width: 480px;
+            max-width: 440px;
             position: relative;
             z-index: 1;
             box-shadow: var(--shadow-lg);
@@ -45,7 +45,7 @@
             content: '';
             position: absolute; top: 0; left: 0; right: 0;
             height: 3px;
-            background: linear-gradient(90deg, var(--accent-green), var(--primary));
+            background: var(--gradient-primary);
             border-radius: var(--radius-xl) var(--radius-xl) 0 0;
         }
         .auth-logo {
@@ -68,27 +68,26 @@
             color: var(--text-primary);
             margin-bottom: 6px;
         }
-        .auth-logo p { color: var(--text-muted); font-size: 0.88rem; }
-
-        .display-name-hint {
-            margin-top: 6px;
-            font-size: 0.8rem;
+        .auth-logo p {
             color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            font-size: 0.88rem;
         }
-        .name-preview {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            background: rgba(245,158,11,0.1);
-            border: 1px solid rgba(245,158,11,0.25);
-            color: var(--accent-gold);
-            padding: 2px 10px;
-            border-radius: var(--radius-pill);
-            font-size: 0.78rem;
-            font-weight: 700;
+        .auth-divider {
+            position: relative;
+            text-align: center;
+            margin: 24px 0;
+        }
+        .auth-divider::before {
+            content: '';
+            position: absolute; top: 50%; left: 0; right: 0;
+            height: 1px; background: var(--border-subtle);
+        }
+        .auth-divider span {
+            position: relative;
+            background: var(--bg-card);
+            padding: 0 12px;
+            color: var(--text-muted);
+            font-size: 0.82rem;
         }
         .auth-submit {
             width: 100%;
@@ -126,25 +125,6 @@
         }
         .auth-msg.error   { background: rgba(233,69,96,0.1); border: 1px solid rgba(233,69,96,0.3); color: var(--primary); }
         .auth-msg.success { background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3); color: var(--accent-green); }
-
-        .perks {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 28px;
-            padding: 16px;
-            background: rgba(255,255,255,0.02);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-subtle);
-        }
-        .perk-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.88rem;
-            color: var(--text-secondary);
-        }
-        .perk-item .pi { font-size: 1rem; }
     </style>
 </head>
 <body class="kuizu-page">
@@ -164,7 +144,7 @@
                 <li><a href="faq.html">FAQ</a></li>
             </ul>
             <div class="kz-nav-actions">
-                <a href="login.html" class="kz-btn kz-btn-ghost kz-btn-sm">Login</a>
+                <a href="register.html" class="kz-btn kz-btn-primary kz-btn-sm">Register Free</a>
             </div>
             <button class="kz-hamburger" id="hamburger"><span></span><span></span><span></span></button>
         </div>
@@ -176,70 +156,78 @@
         <a href="about.html">💡 About</a>
         <a href="faq.html">❓ FAQ</a>
         <hr style="border-color:var(--border-subtle); margin:8px 0;">
-        <a href="login.html">Login</a>
+        <a href="register.html" style="background:var(--gradient-primary);color:#fff;text-align:center;border-radius:var(--radius-pill);">Register Free</a>
     </div>
 
     <!-- AUTH CARD -->
     <main class="auth-wrapper">
         <div class="auth-card">
             <div class="auth-logo">
-                <div class="kz-logo-icon">🎮</div>
-                <h2>Join MindMaster</h2>
-                <p>Create your account and start competing today</p>
+                <div class="kz-logo-icon">🧠</div>
+                <h2>Welcome Back</h2>
+                <p>Login to access your account and the global leaderboard</p>
             </div>
 
-            <div class="perks">
-                <div class="perk-item"><span class="pi">🏆</span> Compete on the global leaderboard</div>
-                <div class="perk-item"><span class="pi">📈</span> Track your personal best scores</div>
-                <div class="perk-item"><span class="pi">🔐</span> Secure JWT-authenticated account</div>
-                <div class="perk-item"><span class="pi">♾️</span> Unlimited quiz replays, always free</div>
-            </div>
-
-            <form id="register-form">
+            <form id="login-form">
                 <div class="kz-form-group">
-                    <label class="kz-label-text" for="displayName">Display Name <span style="color:var(--primary)">*</span></label>
-                    <input class="kz-input" type="text" id="displayName" name="displayName"
-                           placeholder="e.g. BrainBlaster99" required
-                           minlength="2" maxlength="30" autocomplete="nickname">
-                    <div class="display-name-hint">
-                        🏆 Shows on leaderboard as:
-                        <span class="name-preview" id="namePreview">BrainBlaster99</span>
-                    </div>
+                    <label class="kz-label-text" for="email">Email Address</label>
+                    <input class="kz-input" type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email">
                 </div>
 
                 <div class="kz-form-group">
-                    <label class="kz-label-text" for="reg-email">Email Address <span style="color:var(--primary)">*</span></label>
-                    <input class="kz-input" type="email" id="reg-email" name="email"
-                           placeholder="your@email.com" required autocomplete="email">
+                    <label class="kz-label-text" for="password">Password</label>
+                    <input class="kz-input" type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
                 </div>
 
-                <div class="kz-form-group">
-                    <label class="kz-label-text" for="reg-password">Password <span style="color:var(--primary)">*</span></label>
-                    <input class="kz-input" type="password" id="reg-password" name="password"
-                           placeholder="Min 6 characters" required minlength="6" autocomplete="new-password">
-                </div>
-
-                <button type="submit" class="auth-submit" id="reg-btn">
-                    🚀 Create Free Account
+                <button type="submit" class="auth-submit" id="login-btn">
+                    🎮 Login & Play
                 </button>
             </form>
 
-            <div class="auth-msg" id="reg-message"></div>
+            <div class="auth-msg" id="auth-msg"></div>
 
-            <div class="auth-footer" style="margin-top:20px;">
-                Already a player? <a href="login.html">Login here →</a>
+            <div class="auth-divider"><span>or</span></div>
+
+            <div class="auth-footer">
+                New player? <a href="register.html">Create a free account →</a>
             </div>
         </div>
     </main>
 
     <script src="js/landing.js"></script>
-    <script src="js/register.js"></script>
     <script>
-        // Live name preview
-        const nameInput = document.getElementById('displayName');
-        const preview   = document.getElementById('namePreview');
-        nameInput.addEventListener('input', () => {
-            preview.textContent = nameInput.value.trim() || 'BrainBlaster99';
+        // If already logged in → skip to app
+        if (localStorage.getItem('token')) {
+            window.location.href = 'app.html';
+        }
+
+        const form   = document.getElementById('login-form');
+        const btn    = document.getElementById('login-btn');
+        const msgBox = document.getElementById('auth-msg');
+
+        function showMsg(text, type = 'error') {
+            msgBox.textContent = text;
+            msgBox.className = `auth-msg ${type}`;
+            msgBox.style.display = 'block';
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email    = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+
+            btn.disabled = true;
+            btn.textContent = 'Logging in...';
+            msgBox.style.display = 'none';
+
+            // Store credentials for the quiz step
+            sessionStorage.setItem('_pendingEmail', email);
+            sessionStorage.setItem('_pendingPassword', password);
+
+            // Redirect to app where the quiz + actual login happens
+            // We pass credentials via sessionStorage so the quiz can use them
+            window.location.href = 'app.html?mode=login';
         });
     </script>
 </body>

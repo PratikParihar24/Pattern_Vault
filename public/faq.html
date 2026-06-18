@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FAQ — MindMaster</title>
+    <meta name="description" content="Frequently asked questions about MindMaster — gameplay, accounts, scoring, and technical details.">
+    <link rel="stylesheet" href="css/kuizu-theme.css">
+    <style>
+        .page-hero {
+            min-height: 40vh;
+            display: flex; align-items: center;
+            padding: calc(var(--nav-height) + 60px) clamp(20px,5vw,80px) 80px;
+            text-align: center;
+            position: relative; overflow: hidden;
+        }
+        .page-hero::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(96,165,250,0.1), transparent 70%);
+            pointer-events: none;
+        }
+        .page-hero-inner { max-width: var(--max-width); margin: 0 auto; width: 100%; position: relative; z-index: 1; }
+
+        .faq-category-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 32px;
+        }
+        .faq-tab {
+            padding: 8px 20px;
+            border-radius: var(--radius-pill);
+            font-size: 0.88rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1.5px solid var(--border-medium);
+            background: transparent;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        .faq-tab:hover { border-color: var(--primary); color: var(--primary); }
+        .faq-tab.active { background: var(--gradient-primary); border-color: transparent; color: #fff; box-shadow: 0 4px 12px var(--primary-glow); }
+
+        .faq-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 40px; }
+        .faq-group-title {
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            padding-left: 4px;
+        }
+
+        .search-box {
+            position: relative;
+            max-width: 500px;
+            margin: 0 auto 48px;
+        }
+        .search-icon {
+            position: absolute;
+            left: 16px; top: 50%;
+            transform: translateY(-50%);
+            font-size: 1rem;
+            pointer-events: none;
+        }
+        .search-input {
+            width: 100%;
+            padding: 14px 18px 14px 44px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-medium);
+            border-radius: var(--radius-pill);
+            color: var(--text-primary);
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .search-input::placeholder { color: var(--text-muted); }
+        .search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(233,69,96,0.1); }
+    </style>
+</head>
+<body class="kuizu-page">
+
+    <!-- NAVBAR -->
+    <nav class="kz-navbar scrolled" id="navbar">
+        <div class="kz-nav-inner">
+            <a href="landing.html" class="kz-logo">
+                <div class="kz-logo-icon">🧠</div>
+                <span class="kz-logo-text">Mind<span>Master</span></span>
+            </a>
+            <ul class="kz-nav-links">
+                <li><a href="landing.html">Home</a></li>
+                <li><a href="how-to-play.html">How to Play</a></li>
+                <li><a href="leaderboard.html">Leaderboard</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="faq.html" class="active">FAQ</a></li>
+            </ul>
+            <div class="kz-nav-actions">
+                <a href="login.html" class="kz-btn kz-btn-ghost kz-btn-sm">Login</a>
+                <a href="register.html" class="kz-btn kz-btn-primary kz-btn-sm">Register</a>
+            </div>
+            <button class="kz-hamburger" id="hamburger"><span></span><span></span><span></span></button>
+        </div>
+    </nav>
+    <div class="kz-mobile-nav" id="mobileNav">
+        <a href="landing.html">🏠 Home</a>
+        <a href="how-to-play.html">🎮 How to Play</a>
+        <a href="leaderboard.html">🏆 Leaderboard</a>
+        <a href="about.html">💡 About</a>
+        <a href="faq.html">❓ FAQ</a>
+        <hr style="border-color:var(--border-subtle); margin:8px 0;">
+        <a href="login.html">Login</a>
+        <a href="register.html" style="background:var(--gradient-primary);color:#fff;text-align:center;border-radius:var(--radius-pill);">Register Free</a>
+    </div>
+
+    <!-- PAGE HERO -->
+    <section class="page-hero">
+        <div class="page-hero-inner">
+            <span class="kz-label kz-animate" style="display:inline-block;margin-bottom:16px;">Got Questions?</span>
+            <h1 class="kz-h1 kz-animate kz-animate-delay-1">Frequently Asked <span class="kz-gradient-text">Questions</span></h1>
+            <p class="kz-body kz-animate kz-animate-delay-2" style="max-width:480px;margin:16px auto 0;">Everything you've ever wanted to know about MindMaster, answered.</p>
+        </div>
+    </section>
+
+    <!-- FAQ MAIN -->
+    <section class="kz-section" style="padding-top:20px;">
+        <div class="kz-container" style="max-width:760px;">
+
+            <!-- Search -->
+            <div class="search-box kz-animate">
+                <span class="search-icon">🔍</span>
+                <input type="text" class="search-input" id="faq-search" placeholder="Search questions...">
+            </div>
+
+            <!-- GENERAL -->
+            <div class="faq-group" data-category="general">
+                <div class="faq-group-title">🎮 General</div>
+
+                <div class="kz-accordion-item kz-animate" data-text="what is mindmaster quiz game">
+                    <button class="kz-accordion-trigger">
+                        What is MindMaster?
+                        <div class="kz-accordion-icon">+</div>
+                    </button>
+                    <div class="kz-accordion-body">
+                        <div class="kz-accordion-body-inner">
+                            MindMaster is a competitive trivia quiz game built as a full-stack web application. It features a global leaderboard, 30+ questions across multiple categories, and a sleek Kuizu-inspired interface. Sign up, play 5-question rounds, and compete with players worldwide.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kz-accordion-item kz-animate kz-animate-delay-1" data-text="is mindmaster free to play cost">
+                    <button class="kz-accordion-trigger">
+                        Is MindMaster free to play?
+                        <div class="kz-accordion-icon">+</div>
+                    </button>
+                    <div class="kz-accordion-body">
+                        <div class="kz-accordion-body-inner">
+                            Yes, completely free. Create an account with your email and you have unlimited access to all games, the global leaderboard, and all features. No premium tiers, no ads, no paywalls.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kz-accordion-item kz-animate kz-animate-delay-2" data-text="do i need to download anything app">
+                    <button class="kz-accordion-trigger">
+                        Do I need to download anything?
+                        <div class="kz-accordion-icon">+</div>
+                    </button>
+                    <div class="kz-accordion-body">
+                        <div class="kz-accordion-body-inner">
+                            No downloads needed. MindMaster is a web-based application that runs entirely in your browser. It works on any modern browser on desktop, tablet, or mobile.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GAMEPLAY -->
+            <div class="faq-group" data-category="gameplay">
+                <div class="faq-group-title">🕹️ Gameplay</div>
+
+                <div class="kz-accordion-item kz-animate" data-text="how many questions per round game">
+                    <button class="kz-accordion-trigger">
+                        How many questions are in a game?
+                        <div class="kz-accordion-icon">+</div>
+                    </button>
+                    <div class="kz-accordion-body">
+                        <div class="kz-accordion-body-inner">
+                            Each game round consists of exactly 5 questions. Questions are randomly selected and shuffled from a pool of 30+ questions, so no two rounds are the same. All four answer options are also shuffled randomly.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kz-accordion-item kz-animate kz-animate-delay-1" data-text="how is scoring calculated points">
+                    <button class="kz-accordion-trigger">
+                        How is my score calculated?
+                        <div class="kz-accordion-icon">+</div>
+                    </button>
+                    <div class="kz-accordion-body">
+                        <div class="kz-accordion-body-inner">
+                            You earn <strong>10 points</strong> for each correct answer. With 5 questions per round, the maximum score per game is <strong>50 points</strong>. Wrong answers score 0 (no penalty). Your <strong>personal best</strong> score is what appears on the leaderboard.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kz-accordion-item kz-animate kz-animate-delay-2" data-text="timer how long to answer question">
+                    <button class="kz-accordion-trigger">
+                        Is there a timer for each question?
+                        <div class="kz-accordion-icon">+</div>
+                    </button>
+                    <div class="kz-accordion-body">
+                        <div class="kz-accordion-body-inner">
+                            The current version does not enforce a strict time limit per question. Take your time to think and answer correctly — accuracy is what matters for your score and leaderboard position.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kz-accordion-item kz-animate kz-animate-delay-3" data-text="can i play again replay multiple times">
+                    <button class="kz-accordion-trigger">
+                        Can I play multiple times?
+                        <div class="kz-accordion-icon">+</div>
+                    </button>
+                    <div class="kz-accordion-body">
+                        <div class="kz-accordion-body-inner">
+                            Absolutely! You can play as many rounds as you like. After the game over screen, click "Play Again" to start a fresh round with newly shuffled questions. Each game is a new opportunity to beat your personal best.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACCOUNT -->
+            <div class="faq-group" data-category="account">
+                <div class="faq-group-title">👤 Account</div>
+
+                <div class="kz-accordion-item kz-animate" data-text="change display name username">
+                    <button class="kz-accordion-trigger">
+                        Can I change my display name?
+                        <div class="kz-accordion-icon">+</div>
+                    </button>
+                    <div class="kz-accordion-body">
+                        <div class="kz-accordion-body-inner">
+                            At this time, display names are set during registration and cannot be changed. Choose carefully — your display name is your identity on the global leaderboard! Account profile settings are on the roadmap for a future update.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kz-accordion-item kz-animate kz-animate-delay-1" data-text="forgot password reset">
+                    <button class="kz-accordion-trigger">
+                        What if I forgot my password?
+                        <div class="kz-accordion-icon">+</div>
+                    </button>
+                    <div class="kz-accordion-body">
+                        <div class="kz-accordion-body-inner">
+                            Password reset via email is planned for a future release. Currently, if you forget your password, you would need to create a new account. We recommend using a password manager to keep track of your credentials.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kz-accordion-item kz-animate kz-animate-delay-2" data-text="delete account data privacy">
+                    <button class="kz-accordion-trigger">
+                        Can I delete my account?
+                        <div class="kz-accordion-icon">+</div>
+                    </button>
+                    <div class="kz-accordion-body">
+                        <div class="kz-accordion-body-inner">
+                            Account deletion is on the roadmap. Your data is stored securely in MongoDB and is never sold or shared. For urgent data removal requests, contact the admin.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TECHNICAL -->
+            <div class="faq-group" data-category="technical">
+                <div class="faq-group-title">⚙️ Technical</div>
+
+                <div class="kz-accordion-item kz-animate" data-text="how is data stored secure safe">
+                    <button class="kz-accordion-trigger">
+                        How is my data stored?
+                        <div class="kz-accordion-icon">+</div>
+                    </button>
+                    <div class="kz-accordion-body">
+                        <div class="kz-accordion-body-inner">
+                            Your password is never stored in plain text — it's hashed using <strong>Bcrypt</strong> with a salt factor of 10. Sessions are managed via <strong>JWT tokens</strong> stored in your browser's localStorage. All API routes handling sensitive data require a valid token.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kz-accordion-item kz-animate kz-animate-delay-1" data-text="what browsers are supported compatibility">
+                    <button class="kz-accordion-trigger">
+                        Which browsers are supported?
+                        <div class="kz-accordion-icon">+</div>
+                    </button>
+                    <div class="kz-accordion-body">
+                        <div class="kz-accordion-body-inner">
+                            MindMaster works on all modern browsers: Chrome, Firefox, Edge, Safari, and mobile browsers. We recommend Chrome or Edge for the best experience. Internet Explorer is not supported.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kz-accordion-item kz-animate kz-animate-delay-2" data-text="api technology stack built with">
+                    <button class="kz-accordion-trigger">
+                        What technology powers MindMaster?
+                        <div class="kz-accordion-icon">+</div>
+                    </button>
+                    <div class="kz-accordion-body">
+                        <div class="kz-accordion-body-inner">
+                            <strong>Backend:</strong> Node.js + Express.js REST API<br>
+                            <strong>Database:</strong> MongoDB with Mongoose ODM (hosted on Atlas)<br>
+                            <strong>Authentication:</strong> JWT (JSON Web Tokens) + Bcrypt<br>
+                            <strong>Frontend:</strong> HTML5, CSS3 (vanilla), Vanilla JavaScript (ES6+)<br>
+                            <strong>File Storage:</strong> Multer for file uploads<br>
+                            <strong>Markdown:</strong> Marked.js for the vault editor
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="kz-section" style="text-align:center; padding-top:0;">
+        <div class="kz-container">
+            <div style="background:var(--gradient-card); border:1px solid var(--border-medium); border-radius:var(--radius-xl); padding:60px 40px;">
+                <h2 class="kz-h2" style="margin-bottom:16px;">Still have <span class="kz-gradient-text">questions?</span></h2>
+                <p class="kz-body" style="max-width:400px; margin:0 auto 32px;">Check out the How to Play guide or just dive in — the game explains itself!</p>
+                <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+                    <a href="how-to-play.html" class="kz-btn kz-btn-ghost kz-btn-lg">📖 How to Play</a>
+                    <a href="register.html" class="kz-btn kz-btn-primary kz-btn-lg">🎮 Start Playing</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="kz-footer">
+        <div class="kz-footer-inner">
+            <div class="kz-footer-bottom" style="padding-top:0;border-top:none;justify-content:center;gap:24px;">
+                <a href="landing.html" style="color:var(--text-muted);text-decoration:none;font-size:0.9rem;">Home</a>
+                <a href="leaderboard.html" style="color:var(--text-muted);text-decoration:none;font-size:0.9rem;">Leaderboard</a>
+                <a href="about.html" style="color:var(--text-muted);text-decoration:none;font-size:0.9rem;">About</a>
+                <a href="how-to-play.html" style="color:var(--text-muted);text-decoration:none;font-size:0.9rem;">How to Play</a>
+                <span style="color:var(--text-muted);font-size:0.9rem;">© 2026 MindMaster</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/landing.js"></script>
+    <script>
+        // FAQ Accordion
+        document.querySelectorAll('.kz-accordion-item').forEach(item => {
+            item.querySelector('.kz-accordion-trigger').addEventListener('click', () => {
+                const isOpen = item.classList.contains('open');
+                // Close all
+                document.querySelectorAll('.kz-accordion-item.open').forEach(i => i.classList.remove('open'));
+                // Open clicked
+                if (!isOpen) item.classList.add('open');
+            });
+        });
+
+        // Search
+        document.getElementById('faq-search').addEventListener('input', function() {
+            const q = this.value.toLowerCase();
+            document.querySelectorAll('.kz-accordion-item').forEach(item => {
+                const text = item.dataset.text || item.innerText.toLowerCase();
+                item.style.display = text.includes(q) ? 'block' : 'none';
+            });
+            // Show/hide group titles if all items hidden
+            document.querySelectorAll('.faq-group').forEach(group => {
+                const visible = [...group.querySelectorAll('.kz-accordion-item')].some(i => i.style.display !== 'none');
+                group.style.display = visible ? 'block' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>

@@ -28,20 +28,26 @@ const getPatternFromEmail = (email) => {
 router.post('/register', async (req, res) => {
     try {
         // 1. Destructure the data sent from frontend
-        const { email, password } = req.body;
+        const { email, password, displayName } = req.body;
 
-        // 2. Check if user already exists
+        // 2. Validate displayName
+        if (!displayName || displayName.trim().length < 2) {
+            return res.status(400).json({ msg: "Display name must be at least 2 characters" });
+        }
+
+        // 3. Check if user already exists
         const userExists = await User.findOne({ email });
         if (userExists) return res.status(400).json({ msg: "User already exists" });
 
-        // 3. Hash the password (The Meat Grinder)
+        // 4. Hash the password (The Meat Grinder)
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // 4. Create and Save the User
+        // 5. Create and Save the User
         const newUser = new User({
             email,
-            password: hashedPassword
+            password: hashedPassword,
+            displayName: displayName.trim()
         });
 
         await newUser.save();

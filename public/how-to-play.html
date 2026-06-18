@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Play — MindMaster</title>
+    <meta name="description" content="Learn how MindMaster works — from signing up to climbing the global leaderboard. Master the rules in minutes.">
+    <link rel="stylesheet" href="css/kuizu-theme.css">
+    <style>
+        .page-hero {
+            min-height: 40vh;
+            display: flex;
+            align-items: center;
+            padding: calc(var(--nav-height) + 60px) clamp(20px,5vw,80px) 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .page-hero::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(233,69,96,0.12), transparent 70%);
+            pointer-events: none;
+        }
+        .page-hero-inner { max-width: var(--max-width); margin: 0 auto; width: 100%; position: relative; z-index: 1; }
+
+        /* Scoring table */
+        .score-table { width: 100%; border-collapse: collapse; }
+        .score-table th, .score-table td {
+            padding: 14px 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-subtle);
+            font-size: 0.92rem;
+        }
+        .score-table th {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .score-table td { color: var(--text-secondary); }
+        .score-table td:first-child { color: var(--text-primary); font-weight: 700; }
+        .score-table tr:last-child td { border-bottom: none; }
+
+        .tip-card {
+            background: rgba(233,69,96,0.06);
+            border: 1px solid rgba(233,69,96,0.2);
+            border-radius: var(--radius-md);
+            padding: 20px 24px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        .tip-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .tip-card h4 { font-size: 0.95rem; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; }
+        .tip-card p  { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.6; }
+
+        .rules-list { display: flex; flex-direction: column; gap: 12px; }
+        .rule-item {
+            display: flex; gap: 16px; align-items: flex-start;
+            padding: 16px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+        }
+        .rule-bullet {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            background: rgba(233,69,96,0.1);
+            border: 1px solid rgba(233,69,96,0.3);
+            color: var(--primary);
+            font-size: 0.75rem;
+            font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; margin-top: 2px;
+        }
+        .rule-item p { font-size: 0.92rem; color: var(--text-secondary); line-height: 1.6; margin: 0; }
+        .rule-item strong { color: var(--text-primary); }
+    </style>
+</head>
+<body class="kuizu-page">
+
+    <!-- NAVBAR -->
+    <nav class="kz-navbar scrolled" id="navbar">
+        <div class="kz-nav-inner">
+            <a href="landing.html" class="kz-logo">
+                <div class="kz-logo-icon">🧠</div>
+                <span class="kz-logo-text">Mind<span>Master</span></span>
+            </a>
+            <ul class="kz-nav-links">
+                <li><a href="landing.html">Home</a></li>
+                <li><a href="how-to-play.html" class="active">How to Play</a></li>
+                <li><a href="leaderboard.html">Leaderboard</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="faq.html">FAQ</a></li>
+            </ul>
+            <div class="kz-nav-actions">
+                <a href="login.html" class="kz-btn kz-btn-ghost kz-btn-sm">Login</a>
+                <a href="register.html" class="kz-btn kz-btn-primary kz-btn-sm">Register</a>
+            </div>
+            <button class="kz-hamburger" id="hamburger"><span></span><span></span><span></span></button>
+        </div>
+    </nav>
+    <div class="kz-mobile-nav" id="mobileNav">
+        <a href="landing.html">🏠 Home</a>
+        <a href="how-to-play.html">🎮 How to Play</a>
+        <a href="leaderboard.html">🏆 Leaderboard</a>
+        <a href="about.html">💡 About</a>
+        <a href="faq.html">❓ FAQ</a>
+        <hr style="border-color:var(--border-subtle); margin:8px 0;">
+        <a href="login.html">Login</a>
+        <a href="register.html" style="background:var(--gradient-primary);color:#fff;text-align:center;border-radius:var(--radius-pill);">Register Free</a>
+    </div>
+
+    <!-- PAGE HERO -->
+    <section class="page-hero">
+        <div class="page-hero-inner">
+            <span class="kz-label kz-animate" style="display:inline-block;margin-bottom:16px;">Game Guide</span>
+            <h1 class="kz-h1 kz-animate kz-animate-delay-1">How to <span class="kz-gradient-text">Play</span></h1>
+            <p class="kz-body kz-animate kz-animate-delay-2" style="max-width:520px;margin:16px auto 0;">Everything you need to know to start playing, scoring, and climbing the global leaderboard.</p>
+        </div>
+    </section>
+
+    <!-- STEPS SECTION -->
+    <section class="kz-section">
+        <div class="kz-container">
+            <div class="kz-section-header">
+                <span class="kz-label">Step by Step</span>
+                <h2 class="kz-h2">Your path to <span class="kz-gradient-text">victory</span></h2>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:24px; max-width:700px; margin:0 auto;">
+                <div class="kz-step kz-animate">
+                    <div class="kz-step-num">1</div>
+                    <div class="kz-step-content">
+                        <h4>Create Your Account</h4>
+                        <p>Head to the Register page and enter your email, a secure password, and your display name. Your display name is what shows up on the global leaderboard — choose something memorable!</p>
+                    </div>
+                </div>
+                <div class="kz-step kz-animate kz-animate-delay-1">
+                    <div class="kz-step-num">2</div>
+                    <div class="kz-step-content">
+                        <h4>Login & Enter the Game</h4>
+                        <p>After logging in, you'll be presented with the quiz game. Click "Start Game" to begin your round of 5 questions from our shuffled question bank.</p>
+                    </div>
+                </div>
+                <div class="kz-step kz-animate kz-animate-delay-2">
+                    <div class="kz-step-num">3</div>
+                    <div class="kz-step-content">
+                        <h4>Answer the Questions</h4>
+                        <p>Each round has 5 questions with 4 options each (A, B, C, D). Select the answer you think is correct. You get instant visual feedback — green for correct, red for wrong.</p>
+                    </div>
+                </div>
+                <div class="kz-step kz-animate kz-animate-delay-3">
+                    <div class="kz-step-num">4</div>
+                    <div class="kz-step-content">
+                        <h4>Score & Submit</h4>
+                        <p>Each correct answer earns you 10 points. After 5 questions, your score is calculated and automatically submitted to the global leaderboard if it's your personal best.</p>
+                    </div>
+                </div>
+                <div class="kz-step kz-animate kz-animate-delay-4">
+                    <div class="kz-step-num">5</div>
+                    <div class="kz-step-content">
+                        <h4>Replay & Rise</h4>
+                        <p>Click "Play Again" to start a new round with freshly shuffled questions. Keep playing to beat your high score and climb the global leaderboard rankings.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SCORING SYSTEM -->
+    <section class="kz-section" style="background:var(--bg-dark); border-top:1px solid var(--border-subtle); border-bottom:1px solid var(--border-subtle);">
+        <div class="kz-container">
+            <div class="kz-section-header">
+                <span class="kz-label">Scoring System</span>
+                <h2 class="kz-h2">How your <span class="kz-gradient-text">score</span> is calculated</h2>
+            </div>
+
+            <div class="kz-grid-2" style="align-items:start;">
+                <div class="kz-card">
+                    <h3 class="kz-h3" style="margin-bottom:20px;">Point System</h3>
+                    <table class="score-table">
+                        <thead>
+                            <tr>
+                                <th>Action</th>
+                                <th>Points</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>✅ Correct Answer</td>
+                                <td><span class="kz-badge kz-badge-green">+10 pts</span></td>
+                                <td>Per question</td>
+                            </tr>
+                            <tr>
+                                <td>❌ Wrong Answer</td>
+                                <td><span class="kz-badge" style="background:rgba(233,69,96,0.1);color:var(--primary);">0 pts</span></td>
+                                <td>No penalty</td>
+                            </tr>
+                            <tr>
+                                <td>🎯 Perfect Round</td>
+                                <td><span class="kz-badge kz-badge-gold">50 pts</span></td>
+                                <td>5/5 correct</td>
+                            </tr>
+                            <tr>
+                                <td>📈 New High Score</td>
+                                <td><span class="kz-badge kz-badge-blue">Saved!</span></td>
+                                <td>Updates leaderboard</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:16px;">
+                    <h3 class="kz-h3">Tips for Top Scores</h3>
+                    <div class="tip-card">
+                        <div class="tip-icon">🎯</div>
+                        <div>
+                            <h4>Focus on Categories You Know</h4>
+                            <p>Questions span multiple domains. Lean into your strengths — tech, science, geography. Each has equal weight.</p>
+                        </div>
+                    </div>
+                    <div class="tip-card">
+                        <div class="tip-icon">🔄</div>
+                        <div>
+                            <h4>Replay Often</h4>
+                            <p>Questions are shuffled each round. The more you play, the more questions you'll see — and remember for next time.</p>
+                        </div>
+                    </div>
+                    <div class="tip-card">
+                        <div class="tip-icon">⚡</div>
+                        <div>
+                            <h4>Speed Isn't Everything</h4>
+                            <p>There's no timer penalty. Take your time to answer correctly. Accuracy is what pushes your score up.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- RULES -->
+    <section class="kz-section">
+        <div class="kz-container" style="max-width:800px;">
+            <div class="kz-section-header">
+                <span class="kz-label">The Rules</span>
+                <h2 class="kz-h2">Fair play <span class="kz-gradient-text">guidelines</span></h2>
+            </div>
+
+            <div class="rules-list">
+                <div class="rule-item kz-animate">
+                    <div class="rule-bullet">1</div>
+                    <p><strong>One account per person.</strong> Creating multiple accounts to farm the leaderboard is against the spirit of fair competition.</p>
+                </div>
+                <div class="rule-item kz-animate kz-animate-delay-1">
+                    <div class="rule-bullet">2</div>
+                    <p><strong>Each round is 5 questions.</strong> You must answer all 5 before your score is submitted. Closing the tab mid-game forfeits that round.</p>
+                </div>
+                <div class="rule-item kz-animate kz-animate-delay-2">
+                    <div class="rule-bullet">3</div>
+                    <p><strong>Scores are cumulative highs.</strong> Only your best single-round score is shown on the leaderboard — not your total across all games.</p>
+                </div>
+                <div class="rule-item kz-animate kz-animate-delay-3">
+                    <div class="rule-bullet">4</div>
+                    <p><strong>Display names must be appropriate.</strong> Offensive or impersonating display names will be removed without notice.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="kz-section" style="text-align:center; padding-top:0;">
+        <div class="kz-container">
+            <div style="background:var(--gradient-card); border:1px solid var(--border-medium); border-radius:var(--radius-xl); padding:60px 40px;">
+                <h2 class="kz-h2" style="margin-bottom:16px;">Ready to put your brain to the <span class="kz-gradient-text">test?</span></h2>
+                <p class="kz-body" style="max-width:400px; margin:0 auto 32px;">You now know everything. The only thing left is to play.</p>
+                <a href="register.html" class="kz-btn kz-btn-primary kz-btn-lg">🎮 Start Playing Now</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="kz-footer">
+        <div class="kz-footer-inner">
+            <div class="kz-footer-bottom" style="padding-top:0; border-top:none; justify-content:center; gap:24px;">
+                <a href="landing.html" style="color:var(--text-muted); text-decoration:none; font-size:0.9rem;">Home</a>
+                <a href="leaderboard.html" style="color:var(--text-muted); text-decoration:none; font-size:0.9rem;">Leaderboard</a>
+                <a href="about.html" style="color:var(--text-muted); text-decoration:none; font-size:0.9rem;">About</a>
+                <a href="faq.html" style="color:var(--text-muted); text-decoration:none; font-size:0.9rem;">FAQ</a>
+                <span style="color:var(--text-muted); font-size:0.9rem;">© 2026 MindMaster</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/landing.js"></script>
+</body>
+</html>
