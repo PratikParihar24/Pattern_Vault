@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — MindMaster</title>
-    <meta name="description" content="Login to MindMaster and pick up where you left off. Access your account and the global leaderboard.">
+    <meta name="description"
+        content="Login to MindMaster and pick up where you left off. Access your account and the global leaderboard.">
     <link rel="stylesheet" href="css/kuizu-theme.css">
     <style>
         body.kuizu-page {
@@ -12,6 +14,7 @@
             display: flex;
             flex-direction: column;
         }
+
         .auth-wrapper {
             flex: 1;
             display: flex;
@@ -21,14 +24,17 @@
             position: relative;
             overflow: hidden;
         }
+
         .auth-wrapper::before {
             content: '';
-            position: absolute; inset: 0;
+            position: absolute;
+            inset: 0;
             background:
-                radial-gradient(ellipse 60% 60% at 30% 40%, rgba(233,69,96,0.08), transparent 60%),
-                radial-gradient(ellipse 50% 50% at 70% 60%, rgba(167,139,250,0.07), transparent 60%);
+                radial-gradient(ellipse 60% 60% at 30% 40%, rgba(233, 69, 96, 0.08), transparent 60%),
+                radial-gradient(ellipse 50% 50% at 70% 60%, rgba(167, 139, 250, 0.07), transparent 60%);
             pointer-events: none;
         }
+
         .auth-card {
             background: var(--bg-card);
             border: 1px solid var(--border-medium);
@@ -41,13 +47,18 @@
             box-shadow: var(--shadow-lg);
             animation: kz-scale-in 0.4s var(--ease-bounce);
         }
+
         .auth-card::before {
             content: '';
-            position: absolute; top: 0; left: 0; right: 0;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
             height: 3px;
             background: var(--gradient-primary);
             border-radius: var(--radius-xl) var(--radius-xl) 0 0;
         }
+
         .auth-logo {
             display: flex;
             flex-direction: column;
@@ -55,12 +66,15 @@
             margin-bottom: 32px;
             text-align: center;
         }
+
         .auth-logo .kz-logo-icon {
-            width: 56px; height: 56px;
+            width: 56px;
+            height: 56px;
             font-size: 1.6rem;
             margin-bottom: 12px;
             box-shadow: 0 8px 24px var(--primary-glow);
         }
+
         .auth-logo h2 {
             font-family: 'Poppins', sans-serif;
             font-size: 1.5rem;
@@ -68,20 +82,28 @@
             color: var(--text-primary);
             margin-bottom: 6px;
         }
+
         .auth-logo p {
             color: var(--text-muted);
             font-size: 0.88rem;
         }
+
         .auth-divider {
             position: relative;
             text-align: center;
             margin: 24px 0;
         }
+
         .auth-divider::before {
             content: '';
-            position: absolute; top: 50%; left: 0; right: 0;
-            height: 1px; background: var(--border-subtle);
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--border-subtle);
         }
+
         .auth-divider span {
             position: relative;
             background: var(--bg-card);
@@ -89,6 +111,7 @@
             color: var(--text-muted);
             font-size: 0.82rem;
         }
+
         .auth-submit {
             width: 100%;
             padding: 15px;
@@ -104,17 +127,39 @@
             box-shadow: 0 4px 16px var(--primary-glow);
             margin-top: 8px;
         }
-        .auth-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(233,69,96,0.4); }
-        .auth-submit:active { transform: scale(0.98); }
-        .auth-submit:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .auth-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(233, 69, 96, 0.4);
+        }
+
+        .auth-submit:active {
+            transform: scale(0.98);
+        }
+
+        .auth-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .auth-footer {
             text-align: center;
             margin-top: 24px;
             color: var(--text-muted);
             font-size: 0.9rem;
         }
-        .auth-footer a { color: var(--primary); font-weight: 700; text-decoration: none; }
-        .auth-footer a:hover { text-decoration: underline; }
+
+        .auth-footer a {
+            color: var(--primary);
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+
         .auth-msg {
             margin-top: 16px;
             padding: 12px 16px;
@@ -123,10 +168,21 @@
             font-weight: 600;
             display: none;
         }
-        .auth-msg.error   { background: rgba(233,69,96,0.1); border: 1px solid rgba(233,69,96,0.3); color: var(--primary); }
-        .auth-msg.success { background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3); color: var(--accent-green); }
+
+        .auth-msg.error {
+            background: rgba(233, 69, 96, 0.1);
+            border: 1px solid rgba(233, 69, 96, 0.3);
+            color: var(--primary);
+        }
+
+        .auth-msg.success {
+            background: rgba(74, 222, 128, 0.1);
+            border: 1px solid rgba(74, 222, 128, 0.3);
+            color: var(--accent-green);
+        }
     </style>
 </head>
+
 <body class="kuizu-page">
 
     <!-- NAVBAR -->
@@ -156,7 +212,9 @@
         <a href="about.html">💡 About</a>
         <a href="faq.html">❓ FAQ</a>
         <hr style="border-color:var(--border-subtle); margin:8px 0;">
-        <a href="register.html" style="background:var(--gradient-primary);color:#fff;text-align:center;border-radius:var(--radius-pill);">Register Free</a>
+        <a href="register.html"
+            style="background:var(--gradient-primary);color:#fff;text-align:center;border-radius:var(--radius-pill);">Register
+            Free</a>
     </div>
 
     <!-- AUTH CARD -->
@@ -171,12 +229,14 @@
             <form id="login-form">
                 <div class="kz-form-group">
                     <label class="kz-label-text" for="email">Email Address</label>
-                    <input class="kz-input" type="email" id="email" name="email" placeholder="your@email.com" required autocomplete="email">
+                    <input class="kz-input" type="email" id="email" name="email" placeholder="your@email.com" required
+                        autocomplete="email">
                 </div>
 
                 <div class="kz-form-group">
                     <label class="kz-label-text" for="password">Password</label>
-                    <input class="kz-input" type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+                    <input class="kz-input" type="password" id="password" name="password" placeholder="••••••••"
+                        required autocomplete="current-password">
                 </div>
 
                 <button type="submit" class="auth-submit" id="login-btn">
@@ -196,13 +256,16 @@
 
     <script src="js/landing.js"></script>
     <script>
-        // If already logged in → skip to app
+        // If user navigates to login page while already logged in, redirect them back to home
         if (localStorage.getItem('token')) {
-            window.location.href = 'app.html';
+            window.location.replace('landing.html');
+        } else {
+            // Only clear pattern state if actually not logged in
+            sessionStorage.removeItem('patternFailed');
         }
 
-        const form   = document.getElementById('login-form');
-        const btn    = document.getElementById('login-btn');
+        const form = document.getElementById('login-form');
+        const btn = document.getElementById('login-btn');
         const msgBox = document.getElementById('auth-msg');
 
         function showMsg(text, type = 'error') {
@@ -211,24 +274,53 @@
             msgBox.style.display = 'block';
         }
 
+        // Handle browser back button caching (bfcache)
+        window.addEventListener('pageshow', (e) => {
+            if (e.persisted) {
+                btn.disabled = false;
+                btn.textContent = '🎮 Login & Play';
+                msgBox.style.display = 'none';
+            }
+        });
+
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const email    = document.getElementById('email').value.trim();
+            const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
 
             btn.disabled = true;
             btn.textContent = 'Logging in...';
             msgBox.style.display = 'none';
 
-            // Store credentials for the quiz step
-            sessionStorage.setItem('_pendingEmail', email);
-            sessionStorage.setItem('_pendingPassword', password);
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
 
-            // Redirect to app where the quiz + actual login happens
-            // We pass credentials via sessionStorage so the quiz can use them
-            window.location.href = 'app.html?mode=login';
+                const data = await res.json();
+
+                if (res.ok) {
+                    // Login successful → store token → go to quiz/vault
+                    localStorage.setItem('token', data.token);
+                    showMsg('Login successful! Loading...', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'app.html';
+                    }, 500);
+                } else {
+                    showMsg(data.msg || 'Login failed', 'error');
+                    btn.disabled = false;
+                    btn.textContent = '🎮 Login & Play';
+                }
+            } catch (err) {
+                showMsg('Server error. Please try again.', 'error');
+                btn.disabled = false;
+                btn.textContent = '🎮 Login & Play';
+            }
         });
     </script>
 </body>
+
 </html>

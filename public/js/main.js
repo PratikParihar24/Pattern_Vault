@@ -3,20 +3,20 @@
 // ==========================================
 // 1. STATE & VARIABLES
 // ==========================================
-let userCredentials = { email: '', password: '' };
 let currentPattern = []; 
 let currentContext = { type: 'personal', id: null }; 
 let fakeScore = 0;
-let correctCount = 0; // track correct answers
-let questionIndex = 0; // track which question we're on (0-4)
+let correctCount = 0;
+let questionIndex = 0;
 let highScore = parseInt(localStorage.getItem('fakeHighScore') || '0');
+// Track if user already failed the pattern check (persists across page reloads via sessionStorage)
+let patternFailed = sessionStorage.getItem('patternFailed') === 'true';
 
 // DOM Elements
 const loadingScreen    = document.getElementById('loading-screen');
 const loadingText      = document.getElementById('loading-text');
 const captchaScreen    = document.getElementById('captcha-screen');
 const robotCheck       = document.getElementById('robot-check');
-const loginForm        = document.getElementById('login-form'); // null on app.html
 const quizIntro        = document.getElementById('quiz-intro');
 const quizGame         = document.getElementById('quiz-game');
 const startQuizBtn     = document.getElementById('start-quiz-btn');
@@ -25,43 +25,37 @@ const quizResult       = document.getElementById('quiz-result');
 const restartBtn       = document.getElementById('restart-btn');
 const highScoreDisplay = document.getElementById('high-score-display');
 
-// Pick up credentials from login.html via sessionStorage
-(function loadPendingCredentials() {
-    const pending = {
-        email:    sessionStorage.getItem('_pendingEmail'),
-        password: sessionStorage.getItem('_pendingPassword')
-    };
-    if (pending.email && pending.password) {
-        userCredentials.email    = pending.email;
-        userCredentials.password = pending.password;
-        // Clear them so they aren't reused on refresh
-        sessionStorage.removeItem('_pendingEmail');
-        sessionStorage.removeItem('_pendingPassword');
-        // If a valid token already exists → go straight to vault
-        const token = localStorage.getItem('token');
-        if (token) {
-            showVaultDirectly();
-            return;
-        }
-        // Otherwise trigger the loading→captcha→quiz flow
-        setTimeout(() => startLoginFlow(), 500);
-    } else {
-        // No pending credentials: check if already logged in
-        const token = localStorage.getItem('token');
-        if (token) {
-            showVaultDirectly();
-        } else {
-            // Not logged in, not coming from login page → redirect back to login
-            // Give a short grace period in case it's a direct navigation for testing
-            setTimeout(() => {
-                if (!localStorage.getItem('token')) {
-                    window.location.href = 'login.html';
-                }
-            }, 300);
-        }
+// ==========================================
+// 2. INITIALIZATION — Verify token on load
+// ==========================================
+(function initApp() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        // No token → go to login
+        window.location.href = 'login.html';
+        return;
     }
+    
+    // Verify token is valid with the server
+    fetch('/api/auth', { headers: { 'x-auth-token': token } })
+        .then(res => {
+            if (res.ok) {
+                // Token is valid → start the quiz flow
+                // (user must always pass through quiz to reach vault)
+                setTimeout(() => startQuizFlow(), 500);
+            } else {
+                // Token expired/invalid → redirect to login
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+            }
+        })
+        .catch(() => {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        });
 })();
 
+// Show vault directly (used after successful pattern verification)
 function showVaultDirectly() {
     document.querySelectorAll('.screen').forEach(s => { s.classList.add('hidden'); s.classList.remove('active'); });
     vaultScreen.classList.remove('hidden');
@@ -69,8 +63,26 @@ function showVaultDirectly() {
     loadVaultData();
 }
 
-function startLoginFlow() {
+// Track if user has seen the captcha this session
+let hasSeenCaptcha = sessionStorage.getItem('hasSeenCaptcha') === 'true';
+
+// Start the quiz flow: Loading → Captcha → Quiz
+function startQuizFlow() {
     document.querySelectorAll('.screen').forEach(s => { s.classList.add('hidden'); s.classList.remove('active'); });
+    
+    if (hasSeenCaptcha) {
+        // Skip the traffic delay on subsequent attempts
+        const overlay = document.getElementById('quiz-overlay');
+        if(overlay) {
+            overlay.classList.remove('hidden');
+            overlay.classList.add('active');
+        }
+        quizIntro.classList.remove('hidden');
+        quizGame.classList.add('hidden');
+        return;
+    }
+
+    // First time this session: show traffic delay
     loadingScreen.classList.remove('hidden');
     loadingScreen.classList.add('active');
     if (loadingText) { loadingText.innerText = 'Verifying Credentials...'; }
@@ -80,6 +92,7 @@ function startLoginFlow() {
         setTimeout(() => {
             loadingScreen.classList.remove('active'); loadingScreen.classList.add('hidden');
             captchaScreen.classList.remove('hidden'); captchaScreen.classList.add('active');
+            sessionStorage.setItem('hasSeenCaptcha', 'true');
         }, 1500);
     }, 2000);
 }
@@ -88,11 +101,8 @@ function startLoginFlow() {
 if (highScoreDisplay) highScoreDisplay.innerText = highScore;
 
 // ==========================================
-// 2. AUTHENTICATION FLOW (The Disguise)
+// 3. QUIZ FLOW
 // ==========================================
-// Note: Login form is now on login.html.
-// Credentials arrive via sessionStorage and are loaded above.
-// The loginForm block is kept for backward compat but does nothing on app.html.
 
 // --- EVENT: CAPTCHA CHECKED ---
 if(robotCheck) {
@@ -117,14 +127,12 @@ if(robotCheck) {
 // --- EVENT: START QUIZ ---
 if (startQuizBtn) {
     startQuizBtn.addEventListener('click', () => {
-        // Reset state for a fresh game
         questionIndex = 0;
         fakeScore = 0;
         correctCount = 0;
         currentPattern = [];
         const scoreEl = document.getElementById('score-display');
         if (scoreEl) scoreEl.innerText = '0';
-        // Reset all dots
         for (let i = 0; i < 5; i++) {
             const d = document.getElementById(`dot-${i}`);
             if (d) { d.className = 'kz-dot'; if (i === 0) d.classList.add('current'); }
@@ -135,10 +143,9 @@ if (startQuizBtn) {
     });
 }
 
-// --- EVENT: QUIZ ANSWERS (Dual Logic) ---
+// --- EVENT: QUIZ ANSWERS ---
 document.querySelectorAll('.opt-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-        // Prevent double-click
         if (btn.disabled) return;
         document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
 
@@ -146,7 +153,7 @@ document.querySelectorAll('.opt-btn').forEach(btn => {
         const val = targetBtn.getAttribute('data-val');
         currentPattern.push(val);
 
-        // 2. GAME LOGIC: check if correct
+        // GAME LOGIC: check if correct answer
         const selectedText = targetBtn.querySelector('.opt-text').innerText;
         const correctText  = targetBtn.getAttribute('data-correct-answer');
         const isCorrect    = (selectedText === correctText);
@@ -157,7 +164,6 @@ document.querySelectorAll('.opt-btn').forEach(btn => {
             targetBtn.classList.add('correct');
         } else {
             targetBtn.classList.add('wrong');
-            // Also highlight the correct one
             document.querySelectorAll('.opt-btn').forEach(b => {
                 if (b.querySelector('.opt-text').innerText === correctText) {
                     b.classList.add('correct');
@@ -165,19 +171,19 @@ document.querySelectorAll('.opt-btn').forEach(btn => {
             });
         }
 
-        // Update score
+        // Update score display
         const scoreEl = document.getElementById('score-display');
         if (scoreEl) scoreEl.innerText = fakeScore;
 
-        // Update progress dot for current question
+        // Update progress dot
         const dot = document.getElementById(`dot-${questionIndex}`);
         if (dot) { dot.classList.remove('current'); dot.classList.add('answered'); }
 
         questionIndex++;
 
-        // 3. DECISION
+        // After 5 questions → verify pattern
         if (currentPattern.length === 5) {
-            setTimeout(() => attemptLogin(), 700);
+            setTimeout(() => verifyPatternAndDecide(), 700);
         } else {
             // Advance to next dot
             const nextDot = document.getElementById(`dot-${questionIndex}`);
@@ -203,15 +209,12 @@ function loadNewQuestion() {
 
     const round = Cipher.getNewRound();
     
-    // Update question text
     const qText = document.getElementById('question-text');
     if (qText) qText.innerText = round.text;
 
-    // Update question counter badge
     const counter = document.getElementById('question-counter');
     if (counter) counter.innerText = `Question ${questionIndex + 1} / 5`;
 
-    // Set Options A, B, C, D
     document.querySelectorAll('.opt-btn').forEach((btn, index) => {
         const span = btn.querySelector('.opt-text');
         if (span) span.innerText = round.options[index];
@@ -221,29 +224,38 @@ function loadNewQuestion() {
     });
 }
 
-// --- FUNCTION: REAL LOGIN ATTEMPT ---
-async function attemptLogin() {
-    // Optional: Visual feedback "Verifying..."
+// ==========================================
+// 4. PATTERN VERIFICATION — The Core Logic
+// ==========================================
+async function verifyPatternAndDecide() {
     const qText = document.getElementById('question-text');
-    if(qText) qText.innerText = "Verifying...";
+
+    // If the user already failed the pattern in this session → they're trapped
+    // They can play the quiz for fun/leaderboard but vault never opens
+    if (patternFailed) {
+        if(qText) qText.innerText = "Calculating Score...";
+        setTimeout(() => triggerGameOver(), 500);
+        return;
+    }
+
+    // First attempt this session → actually verify the pattern with backend
+    if(qText) qText.innerText = "Analyzing Pattern...";
 
     try {
-        const res = await fetch('/api/auth/login', {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/auth/verify-pattern', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                email: userCredentials.email,
-                password: userCredentials.password,
-                pattern: currentPattern
-            })
+            headers: { 
+                'Content-Type': 'application/json',
+                'x-auth-token': token
+            },
+            body: JSON.stringify({ pattern: currentPattern })
         });
 
         const data = await res.json();
 
-        if (res.ok) {
-            // SUCCESS: Open Vault
-            localStorage.setItem('token', data.token);
-            
+        if (res.ok && data.unlocked === true) {
+            // ✅ PATTERN CORRECT → Open the Vault!
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
 
@@ -252,14 +264,15 @@ async function attemptLogin() {
             loadVaultData();
 
         } else {
-            // FAILURE: TRIGGER GAME OVER
-            // Instead of reloading, we show the "Nice Try" screen
+            // ❌ PATTERN WRONG → User is now trapped in the simulation
+            patternFailed = true;
+            sessionStorage.setItem('patternFailed', 'true');
             triggerGameOver();
         }
     } catch (err) {
-        console.error(err);
+        console.error('Pattern verification error:', err);
         UI.toast("Server Error", "error");
-        triggerGameOver(); // Fail safe to Game Over
+        triggerGameOver();
     }
 }
 
@@ -291,27 +304,27 @@ document.addEventListener('DOMContentLoaded', () => {
         personalBtn.addEventListener('click', () => {
             currentContext = { type: 'personal', id: null };
             loadVaultData();
-            
+
             document.querySelectorAll('.nav-list li, .nav-static li').forEach(el => el.classList.remove('active'));
             personalBtn.classList.add('active');
 
-            if(window.innerWidth <= 768) {
+            if (window.innerWidth <= 768) {
                 sidebar.classList.remove('active');
                 overlay.classList.remove('active');
             }
         });
     }
-    
+
     // Setup Other Buttons
     const createGroupBtn = document.getElementById('create-group-btn');
-    if(createGroupBtn) createGroupBtn.addEventListener('click', handleCreateGroup);
-    
+    if (createGroupBtn) createGroupBtn.addEventListener('click', handleCreateGroup);
+
     const joinGroupBtn = document.getElementById('join-group-btn');
-    if(joinGroupBtn) joinGroupBtn.addEventListener('click', handleJoinGroup);
-    
+    if (joinGroupBtn) joinGroupBtn.addEventListener('click', handleJoinGroup);
+
     // --- LOGOUT LOGIC ---
     const logoutBtn = document.getElementById('logout-btn');
-    if(logoutBtn) {
+    if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
             // Optional: Ask for confirmation using our new UI
             if (typeof UI !== 'undefined') {
@@ -321,14 +334,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // 1. Destroy Token
+            // 1. Destroy Token & Reset Pattern Lock
             localStorage.removeItem('token');
-            
+            sessionStorage.removeItem('patternFailed');
+
             // 2. Optional: Destroy other local keys if you have them
             // localStorage.removeItem('fakeHighScore'); 
 
-            // 3. Reload App
-            location.reload();
+            // 3. Redirect to login
+            window.location.href = 'login.html';
         });
     }
 });
@@ -341,7 +355,7 @@ async function loadVaultData() {
     try {
         const res = await fetch('/api/auth', { headers: { 'x-auth-token': token } });
         const userData = await res.json();
-        
+
         renderSidebarGroups(userData.groups || []);
 
         const photoCard = document.querySelector('#photo-grid');
@@ -351,13 +365,13 @@ async function loadVaultData() {
         const membersDiv = document.getElementById('members-display');
 
         // Reset UI visibility
-        if(codeBadge) codeBadge.classList.add('hidden');
-        if(dangerBtn) dangerBtn.classList.add('hidden');
-        if(membersDiv) membersDiv.classList.add('hidden');
+        if (codeBadge) codeBadge.classList.add('hidden');
+        if (dangerBtn) dangerBtn.classList.add('hidden');
+        if (membersDiv) membersDiv.classList.add('hidden');
 
         if (currentContext.type === 'personal') {
-            if(viewTitle) viewTitle.innerText = "My Private Vault";
-            
+            if (viewTitle) viewTitle.innerText = "My Private Vault";
+
             const pageRes = await fetch('/api/pages/personal', { headers: { 'x-auth-token': token } });
             const pages = await pageRes.json();
             renderNotionView(pages, 'personal', null);
@@ -372,20 +386,20 @@ async function loadVaultData() {
             const groupRes = await fetch(`/api/groups/${currentContext.id}`, { headers: { 'x-auth-token': token } });
             const groupData = await groupRes.json();
 
-            if(viewTitle) viewTitle.innerText = groupData.name;
-            
+            if (viewTitle) viewTitle.innerText = groupData.name;
+
             // GROUP DASHBOARD INJECTION
             const container = document.getElementById('vault-content');
-            
+
             // Check Admin Status
             const myId = userData._id;
             const adminId = (groupData.admin && groupData.admin._id) ? groupData.admin._id : groupData.admin;
             const isAdmin = (myId === adminId);
-            
+
             const btnText = isAdmin ? "Delete Group" : "Leave Group";
             const btnClass = isAdmin ? "btn-danger" : "btn-warning";
-            const btnAction = isAdmin 
-                ? `deleteGroup('${currentContext.id}')` 
+            const btnAction = isAdmin
+                ? `deleteGroup('${currentContext.id}')`
                 : `leaveGroup('${currentContext.id}')`;
 
             const dashboardHTML = `
@@ -405,11 +419,11 @@ async function loadVaultData() {
             // Render Content
             const pageRes = await fetch(`/api/pages/group/${currentContext.id}`, { headers: { 'x-auth-token': token } });
             const pages = await pageRes.json();
-            
+
             renderNotionView(pages, 'group', currentContext.id);
-            
+
             // Inject Dashboard
-            if(container) container.insertAdjacentHTML('afterbegin', dashboardHTML);
+            if (container) container.insertAdjacentHTML('afterbegin', dashboardHTML);
 
             if (photoCard) {
                 photoCard.style.display = 'block';
@@ -430,7 +444,7 @@ function renderSidebarGroups(groups) {
     groups.forEach(group => {
         const li = document.createElement('li');
         li.innerText = group.name;
-        
+
         if (currentContext.type === 'group' && currentContext.id === group._id) {
             li.classList.add('active');
         }
@@ -438,16 +452,16 @@ function renderSidebarGroups(groups) {
         li.addEventListener('click', () => {
             currentContext = { type: 'group', id: group._id };
             loadVaultData();
-            
+
             document.querySelectorAll('.nav-list li, .nav-static li').forEach(el => el.classList.remove('active'));
             li.classList.add('active');
 
             // Close Mobile Menu
             const sidebar = document.querySelector('.sidebar');
             const overlay = document.getElementById('sidebar-overlay');
-            if(window.innerWidth <= 768 && sidebar) {
+            if (window.innerWidth <= 768 && sidebar) {
                 sidebar.classList.remove('active');
-                if(overlay) overlay.classList.remove('active');
+                if (overlay) overlay.classList.remove('active');
             }
         });
         list.appendChild(li);
@@ -495,7 +509,7 @@ function renderNotionView(pages, contextType, contextId) {
         li.onclick = () => {
             document.querySelectorAll('.page-item').forEach(el => el.classList.remove('active-page'));
             li.classList.add('active-page');
-            loadPageIntoEditor(page); 
+            loadPageIntoEditor(page);
             splitView.classList.add('show-editor');
         };
         list.appendChild(li);
@@ -503,7 +517,7 @@ function renderNotionView(pages, contextType, contextId) {
 
     document.getElementById('create-page-btn').onclick = async () => {
         const title = await UI.prompt("New Page Title", "e.g., Operation Blackout");
-        if (!title) return; 
+        if (!title) return;
         const url = contextType === 'personal' ? '/api/pages/personal' : `/api/pages/group/${contextId}`;
         try {
             await fetch(url, {
@@ -511,7 +525,7 @@ function renderNotionView(pages, contextType, contextId) {
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
                 body: JSON.stringify({ title })
             });
-            loadVaultData(); 
+            loadVaultData();
         } catch (err) { console.error(err); }
     };
 }
@@ -595,7 +609,7 @@ function loadPageIntoEditor(page) {
     const previewBtn = document.getElementById('preview-btn');
     const toolbar = document.getElementById('toolbar');
     const slashMenu = document.getElementById('slash-menu');
-    
+
     // New DOM Elements
     // Update these selectors if IDs were removed or changed
     // Since we used data-type in the HTML above, we can grab them like this:
@@ -618,7 +632,7 @@ function loadPageIntoEditor(page) {
         if (historyIndex > 0) {
             historyIndex--;
             contentInput.value = history[historyIndex];
-            if(isAutoSaveOn) triggerAutoSave();
+            if (isAutoSaveOn) triggerAutoSave();
         }
     };
 
@@ -626,7 +640,7 @@ function loadPageIntoEditor(page) {
         if (historyIndex < history.length - 1) {
             historyIndex++;
             contentInput.value = history[historyIndex];
-            if(isAutoSaveOn) triggerAutoSave();
+            if (isAutoSaveOn) triggerAutoSave();
         }
     };
 
@@ -649,7 +663,7 @@ function loadPageIntoEditor(page) {
     // --- SAVE LOGIC ---
     autoSaveToggle.onchange = (e) => {
         isAutoSaveOn = e.target.checked;
-        
+
         // 1. Visual Feedback (Toast)
         if (typeof UI !== 'undefined') {
             const status = isAutoSaveOn ? "ENABLED ⚡" : "DISABLED 🛑";
@@ -668,26 +682,26 @@ function loadPageIntoEditor(page) {
         const titleVal = titleInput.value;
         const contentVal = contentInput.value;
         const originalText = saveBtn.innerText;
-        
-        if(!silent) saveBtn.innerText = "Saving...";
-        
+
+        if (!silent) saveBtn.innerText = "Saving...";
+
         try {
             const res = await fetch(`/api/pages/${page._id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
                 body: JSON.stringify({ title: titleVal, content: contentVal })
             });
-            
+
             if (res.ok) {
                 page.title = titleVal;
                 page.content = contentVal;
                 const sidebarItem = document.getElementById(`page-link-${page._id}`);
                 if (sidebarItem) sidebarItem.innerText = titleVal || "Untitled Page";
 
-                if(!silent) {
+                if (!silent) {
                     saveBtn.innerText = "Saved";
-                    saveBtn.style.color = "#00ff00"; 
-                    setTimeout(() => { 
+                    saveBtn.style.color = "#00ff00";
+                    setTimeout(() => {
                         saveBtn.innerText = "Save";
                         saveBtn.style.color = "#888";
                     }, 1500);
@@ -712,15 +726,15 @@ function loadPageIntoEditor(page) {
     // This allows clicking a checkbox in View Mode to update the text!
     previewDiv.addEventListener('click', (e) => {
         if (e.target.type === 'checkbox') {
-            const li = e.target.parentElement; 
+            const li = e.target.parentElement;
             const rawText = li.textContent.trim(); // Get the text of the item
             const isChecked = e.target.checked;
-            
+
             // Logic: Find "- [ ] Text" or "- [x] Text" in the source code
             const originalVal = contentInput.value;
             // Escape special regex characters in the user's text
             const escapedText = rawText.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-            
+
             let newVal;
             if (isChecked) {
                 // Change [ ] to [x]
@@ -735,7 +749,7 @@ function loadPageIntoEditor(page) {
             if (newVal !== originalVal) {
                 contentInput.value = newVal;
                 saveToHistory(); // Record this change
-                if(isAutoSaveOn) triggerAutoSave();
+                if (isAutoSaveOn) triggerAutoSave();
             }
         }
     });
@@ -771,12 +785,12 @@ function loadPageIntoEditor(page) {
         }
 
         switch (type) {
-            case 'bold':   insertSyntax('**', '**'); break;
+            case 'bold': insertSyntax('**', '**'); break;
             case 'italic': insertSyntax('*', '*'); break;
             case 'header': insertSyntax('## '); break;
-            case 'list':   insertSyntax('- '); break;
-            case 'code':   insertSyntax('```\n', '\n```'); break;
-            case 'link':   insertSyntax('[', '](url)'); break;
+            case 'list': insertSyntax('- '); break;
+            case 'code': insertSyntax('```\n', '\n```'); break;
+            case 'link': insertSyntax('[', '](url)'); break;
         }
     });
 
@@ -786,22 +800,22 @@ function loadPageIntoEditor(page) {
         isPreviewMode = !isPreviewMode;
         if (isPreviewMode) {
             // Switch to VIEW
-            const htmlContent = marked.parse(contentInput.value); 
+            const htmlContent = marked.parse(contentInput.value);
             previewDiv.innerHTML = htmlContent;
-            
+
             contentInput.style.display = 'none';
-            if(toolbar) toolbar.style.display = 'none';
-            if(slashMenu) slashMenu.style.display = 'none';
+            if (toolbar) toolbar.style.display = 'none';
+            if (slashMenu) slashMenu.style.display = 'none';
             previewDiv.style.display = 'block';
-            
+
             previewBtn.innerText = "✏️ Edit";
             previewBtn.classList.add('active');
         } else {
             // Switch to EDIT
             contentInput.style.display = 'block';
-            if(toolbar) toolbar.style.display = 'flex';
+            if (toolbar) toolbar.style.display = 'flex';
             previewDiv.style.display = 'none';
-            
+
             previewBtn.innerText = "👁️ View";
             previewBtn.classList.remove('active');
             contentInput.focus();
@@ -812,16 +826,16 @@ function loadPageIntoEditor(page) {
     const executeSlash = (cmd) => {
         const text = contentInput.value;
         const end = contentInput.selectionEnd;
-        const before = text.substring(0, end - 1); 
+        const before = text.substring(0, end - 1);
         const after = text.substring(end);
-        
+
         let insert = "";
-        switch(cmd) {
+        switch (cmd) {
             case 'header': insert = "# "; break;
             case 'subheader': insert = "## "; break;
-            case 'list': insert = "\n- "; break; 
+            case 'list': insert = "\n- "; break;
             case 'todo': insert = "\n- [ ] "; break;
-            case 'code': insert = "\n```\n\n```\n"; break; 
+            case 'code': insert = "\n```\n\n```\n"; break;
             case 'callout': insert = "\n> 💡 "; break;
             case 'date': insert = `**${new Date().toLocaleDateString()}** `; break;
         }
@@ -841,7 +855,7 @@ function loadPageIntoEditor(page) {
         else if (e.key === 'Escape') slashMenu.style.display = 'none';
         else slashMenu.style.display = 'none';
     });
-    
+
     slashMenu.addEventListener('click', (e) => {
         const item = e.target.closest('.slash-item');
         if (!item) return;
@@ -855,8 +869,8 @@ function loadPageIntoEditor(page) {
             const value = contentInput.value;
             const lineStart = value.lastIndexOf('\n', start - 1) + 1;
             const currentLine = value.substring(lineStart, start);
-            const isList = /^\s*-\s(.*)/.exec(currentLine); 
-            const isTodo = /^\s*-\s\[[ x]\]\s(.*)/.exec(currentLine); 
+            const isList = /^\s*-\s(.*)/.exec(currentLine);
+            const isTodo = /^\s*-\s\[[ x]\]\s(.*)/.exec(currentLine);
 
             // Escape Empty List
             if ((isList && !isList[1]) || (isTodo && !isTodo[1])) {
@@ -883,7 +897,7 @@ function loadPageIntoEditor(page) {
     // --- PAGE ICON LOGIC ---
     const iconBtn = document.getElementById('icon-btn');
     const emojiRegex = /^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/;
-    
+
     const updateIconBtn = () => {
         const match = titleInput.value.match(emojiRegex);
         iconBtn.innerText = match ? match[0] : "📄";
@@ -909,7 +923,7 @@ function loadPageIntoEditor(page) {
     // --- DELETE LOGIC ---
     document.getElementById('delete-page-btn').onclick = async () => {
         if (typeof UI !== 'undefined') {
-            if(!(await UI.confirm("Delete Page?", "Gone forever."))) return;
+            if (!(await UI.confirm("Delete Page?", "Gone forever."))) return;
         } else if (!confirm("Delete?")) return;
         try {
             const res = await fetch(`/api/pages/${page._id}`, {
@@ -918,8 +932,8 @@ function loadPageIntoEditor(page) {
             });
             if (res.ok) {
                 const splitView = document.getElementById('split-view-container');
-                if(splitView) splitView.classList.remove('show-editor');
-                loadVaultData(); 
+                if (splitView) splitView.classList.remove('show-editor');
+                loadVaultData();
             }
         } catch (err) { console.error(err); }
     };
@@ -930,16 +944,16 @@ function loadPageIntoEditor(page) {
 // ==========================================
 async function handleCreateGroup() {
     const name = document.getElementById('new-group-name').value;
-if(!name) {
+    if (!name) {
         UI.toast("Please enter a group name", "error"); // Replaces alert
         return;
-    }    
+    }
     const res = await fetch('/api/groups/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
         body: JSON.stringify({ name })
     });
-    if(res.ok) {
+    if (res.ok) {
         UI.toast("Group Created Successfully", "success");
         document.getElementById('new-group-name').value = "";
         loadVaultData();
@@ -948,7 +962,7 @@ if(!name) {
 
 async function handleJoinGroup() {
     const code = document.getElementById('join-group-code').value;
-if(!code) {
+    if (!code) {
         UI.toast("Please enter an invite code", "error");
         return;
     }
@@ -958,7 +972,7 @@ if(!code) {
         body: JSON.stringify({ inviteCode: code })
     });
     const data = await res.json();
-    if(res.ok) {
+    if (res.ok) {
         UI.toast(`Joined ${data.group.name}!`, "success");
         document.getElementById('join-group-code').value = "";
         loadVaultData();
@@ -969,7 +983,7 @@ if(!code) {
 
 async function loadAlbumView() {
     const container = document.getElementById('photo-grid');
-    if(!container) return; 
+    if (!container) return;
 
     let url = '/api/albums?type=personal';
     if (currentContext.type === 'group') {
@@ -1044,8 +1058,8 @@ function openAlbum(album) {
 }
 
 // --- GLOBAL HELPERS ---
-window.triggerUpload = function(inputId) { document.getElementById(inputId).click(); };
-window.createNewAlbum = async function() {
+window.triggerUpload = function (inputId) { document.getElementById(inputId).click(); };
+window.createNewAlbum = async function () {
     const name = await UI.prompt("New Album Name");
     if (!name) return;
     await fetch('/api/albums', {
@@ -1055,7 +1069,7 @@ window.createNewAlbum = async function() {
     });
     loadAlbumView();
 };
-window.uploadPhotos = async function(e, albumId) {
+window.uploadPhotos = async function (e, albumId) {
     const files = e.target.files;
     if (!files.length) return;
     const formData = new FormData();
@@ -1070,47 +1084,47 @@ window.uploadPhotos = async function(e, albumId) {
         openAlbum(updated);
     }
 };
-window.deleteAlbum = async function(id, e) {
+window.deleteAlbum = async function (id, e) {
     e.stopPropagation();
-    if(!(await UI.confirm("Delete Album?", "All photos inside will be lost."))) return;
+    if (!(await UI.confirm("Delete Album?", "All photos inside will be lost."))) return;
     await fetch(`/api/albums/${id}`, {
         method: 'DELETE',
         headers: { 'x-auth-token': localStorage.getItem('token') }
     });
     loadAlbumView();
 };
-window.deletePhoto = async function(albumId, filename) {
-    if(!(await UI.confirm("Delete Photo?", "Are you sure?"))) return;
+window.deletePhoto = async function (albumId, filename) {
+    if (!(await UI.confirm("Delete Photo?", "Are you sure?"))) return;
     const res = await fetch(`/api/albums/${albumId}/photo/${filename}`, {
         method: 'DELETE',
         headers: { 'x-auth-token': localStorage.getItem('token') }
     });
-    if(res.ok) {
+    if (res.ok) {
         const updated = await res.json();
         openAlbum(updated);
     }
 };
-window.openLightbox = function(src) {
+window.openLightbox = function (src) {
     const box = document.getElementById('lightbox');
     document.getElementById('lightbox-img').src = src;
     box.classList.remove('hidden');
 };
-window.closeLightbox = function() {
+window.closeLightbox = function () {
     document.getElementById('lightbox').classList.add('hidden');
 };
 
 // --- GLOBAL GROUP ACTIONS ---
-window.leaveGroup = async function(groupId) {
-const yes = await UI.confirm("Leave Group?", "You will lose access to these files.");
-    if(!yes) return;
+window.leaveGroup = async function (groupId) {
+    const yes = await UI.confirm("Leave Group?", "You will lose access to these files.");
+    if (!yes) return;
     const token = localStorage.getItem('token');
     await fetch(`/api/groups/${groupId}/leave`, { method: 'POST', headers: { 'x-auth-token': token } });
     location.reload();
 };
 
-window.deleteGroup = async function(groupId) {
-const yes = await UI.confirm("Delete Group?", "⚠️ WARNING: This wipes all data for everyone.");
-    if(!yes) return;
+window.deleteGroup = async function (groupId) {
+    const yes = await UI.confirm("Delete Group?", "⚠️ WARNING: This wipes all data for everyone.");
+    if (!yes) return;
     const token = localStorage.getItem('token');
     await fetch(`/api/groups/${groupId}`, { method: 'DELETE', headers: { 'x-auth-token': token } });
     location.reload();
@@ -1141,7 +1155,7 @@ async function triggerGameOver() {
 
     // Dynamic title
     const titleEl = document.getElementById('result-title');
-    const subEl   = document.getElementById('result-subtitle');
+    const subEl = document.getElementById('result-subtitle');
     if (titleEl) {
         if (fakeScore === 50) {
             titleEl.innerText = 'Perfect Score! 🎉';
@@ -1175,7 +1189,7 @@ async function triggerGameOver() {
                 const data = await res.json();
                 // Show rank reveal
                 const rankReveal = document.getElementById('rank-reveal');
-                const rankText   = document.getElementById('rank-text');
+                const rankText = document.getElementById('rank-text');
                 if (rankReveal && rankText) {
                     rankText.innerText = `🏆 You are Rank #${data.rank} globally!`;
                     rankReveal.style.display = 'block';
@@ -1194,10 +1208,10 @@ async function triggerGameOver() {
 if (restartBtn) {
     restartBtn.addEventListener('click', () => {
         // Reset all state
-        fakeScore     = 0;
-        correctCount  = 0;
+        fakeScore = 0;
+        correctCount = 0;
         currentPattern = [];
-        questionIndex  = 0;
+        questionIndex = 0;
 
         // Reset score UI
         const scoreEl = document.getElementById('score-display');
@@ -1221,6 +1235,6 @@ if (restartBtn) {
 
         // Switch screens back to intro
         if (quizResult) quizResult.classList.add('hidden');
-        if (quizIntro)  quizIntro.classList.remove('hidden');
+        if (quizIntro) quizIntro.classList.remove('hidden');
     });
 }

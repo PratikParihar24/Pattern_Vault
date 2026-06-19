@@ -9,9 +9,17 @@ const User = require('../models/User'); // <--- NEED THIS
 // --- HELPER: The QWERTY Cipher Logic (Backend Side) ---
 // We repeat this logic here to verify the user isn't lying.
 const getPatternFromEmail = (email) => {
-    // 1. Clean email (lowercase, remove non-letters, take first 5)
-    const cleanStr = email.toLowerCase().replace(/[^a-z]/g, '').substring(0, 5);
-    
+    // 1. Clean email (lowercase, remove non-letters)
+    let cleanStr = email.toLowerCase().replace(/[^a-z]/g, '');
+    if (cleanStr.length === 0) cleanStr = 'abcde'; // Fallback if no letters
+
+    // 2. Pad to 5 characters by repeating if necessary
+    while (cleanStr.length < 5) {
+        cleanStr += cleanStr;
+    }
+
+    cleanStr = cleanStr.substring(0, 5);
+
     // 2. The Map (Same as frontend)
     const map = {
         'q': 'A', 'w': 'A', 'e': 'A', 'r': 'A', 't': 'A',
@@ -59,10 +67,10 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// --- ROUTE 2: LOGIN (The Hybrid Check) ---
+// --- ROUTE 2: LOGIN (Email + Password only) ---
 router.post('/login', async (req, res) => {
     try {
-        const { email, password, pattern } = req.body;
+        const { email, password } = req.body;
 
         // 1. Check if user exists
         const user = await User.findOne({ email });
@@ -72,29 +80,15 @@ router.post('/login', async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ msg: "Invalid credentials" });
 
-        // 3. SECURITY CHECK: Verify the QWERTY Pattern
-        // We calculate what the pattern SHOULD be
-        const expectedPattern = getPatternFromEmail(email);
-        
-        // We compare it with what the user clicked
-        // (JSON.stringify is a quick way to compare two arrays)
-        if (JSON.stringify(expectedPattern) !== JSON.stringify(pattern)) {
-            // If they match password but fail pattern -> DENY ACCESS
-            return res.status(403).json({ msg: "Security Pattern Failed" });
-        }
-
-        // 4. Create the Wristband (JWT Token)
-        // We put the User's ID inside the token
+        // 3. Create the JWT Token
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 
-        // 5. Send back the token and user info
+        // 4. Send back the token
         res.json({
             token,
             user: {
                 id: user._id,
-                email: user.email,
-                // We send the pattern back so frontend knows what logic to use (optional)
-                pattern: expectedPattern 
+                email: user.email
             }
         });
 
@@ -103,13 +97,38 @@ router.post('/login', async (req, res) => {
     }
 });
 
+// --- ROUTE 3: VERIFY PATTERN (After Quiz) ---
+// This is called AFTER login, when the user completes the quiz.
+// The pattern (which quiz option positions A/B/C/D were clicked) is checked
+// against the expected QWERTY cipher pattern derived from the user's email.
+router.post('/verify-pattern', authMiddleware, async (req, res) => {
+    try {
+        const { pattern } = req.body;
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(400).json({ msg: "User not found" });
+
+        const expectedPattern = getPatternFromEmail(user.email);
+
+        console.log('Email:', user.email);
+        console.log('Expected pattern:', expectedPattern);
+        console.log('Received pattern:', pattern);
+
+        if (JSON.stringify(expectedPattern) === JSON.stringify(pattern)) {
+            return res.json({ unlocked: true });
+        } else {
+            return res.json({ unlocked: false });
+        }
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// --- ROUTE 4: GET CURRENT USER ---
 router.get('/', authMiddleware, async (req, res) => {
     try {
-        // Find the user by ID (from the token)
-        // .select('-password') means: "Don't send back the password!"
         const user = await User.findById(req.user.id)
             .select('-password')
-            .populate('groups'); // Also fetch their groups
+            .populate('groups');
 
         res.json(user);
     } catch (err) {

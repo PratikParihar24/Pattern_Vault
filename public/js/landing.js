@@ -142,14 +142,19 @@
     // ============================================
     // 5. AUTH STATE CHECK — If logged in, update nav
     // ============================================
+    window.handleLogout = function() {
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('patternFailed');
+        window.location.reload();
+    };
+
     const token = localStorage.getItem('token');
     if (token) {
-        // Replace Login/Register buttons with "Play Now" + "My Rank"
+        // Navbar: Just show "My Profile" to avoid redundant CTAs on the first screen
         const navActions = document.querySelector('.kz-nav-actions');
         if (navActions) {
             navActions.innerHTML = `
-                <a href="leaderboard.html" class="kz-btn kz-btn-ghost kz-btn-sm">🏆 My Rank</a>
-                <a href="app.html" class="kz-btn kz-btn-primary kz-btn-sm">🎮 Play Now</a>
+                <a href="profile.html" class="kz-btn kz-btn-ghost kz-btn-sm">👤 My Profile</a>
             `;
         }
         // Update mobile nav
@@ -157,14 +162,40 @@
         if (mobileNavEl) {
             const lastHr = mobileNavEl.querySelector('hr');
             if (lastHr) {
-                lastHr.nextElementSibling && (lastHr.nextElementSibling.remove());
-                lastHr.nextElementSibling && (lastHr.nextElementSibling.remove());
-                const playLink = document.createElement('a');
-                playLink.href = 'app.html';
-                playLink.style.cssText = 'background:var(--gradient-primary);color:#fff;text-align:center;border-radius:var(--radius-pill);';
-                playLink.textContent = '🎮 Play Now';
-                lastHr.after(playLink);
+                // remove existing login/register links
+                while(lastHr.nextElementSibling) {
+                    lastHr.nextElementSibling.remove();
+                }
+                const profileLink = document.createElement('a');
+                profileLink.href = 'profile.html';
+                profileLink.style.cssText = 'color:var(--text-secondary);text-align:center;margin-bottom:8px;';
+                profileLink.textContent = '👤 My Profile';
+
+                lastHr.after(profileLink);
             }
+        }
+
+        // Hero CTA: "Play Now" (This is the only "Play Now" on the first screen)
+        const heroCta = document.querySelector('.hero-cta');
+        if (heroCta) {
+            heroCta.innerHTML = `
+                <a href="app.html" class="kz-btn kz-btn-primary kz-btn-lg">🎮 Play Now</a>
+                <a href="how-to-play.html" class="kz-btn kz-btn-ghost kz-btn-lg">How it Works</a>
+            `;
+        }
+        
+        // Bottom CTA: "Play Now"
+        const bottomCta = document.querySelector('.cta-actions');
+        if (bottomCta) {
+            bottomCta.innerHTML = `
+                <a href="app.html" class="kz-btn kz-btn-primary kz-btn-lg">🎮 Play Now</a>
+            `;
+        }
+        
+        // Hide "Simple as 1-2-3" steps if logged in (since they've already registered)
+        const stepsSection = document.querySelector('.steps-grid')?.closest('section');
+        if (stepsSection) {
+            stepsSection.style.display = 'none';
         }
     }
 

@@ -37,6 +37,12 @@ if (form) {
                 setTimeout(() => {
                     window.location.href = 'login.html';
                 }, 1500);
+            } else if (data.msg && data.msg.toLowerCase().includes('already exists')) {
+                // User already exists → redirect to login
+                showMsg('Account already exists! Redirecting to login...', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
             } else {
                 throw new Error(data.msg || 'Registration failed');
             }
