@@ -124,6 +124,42 @@ if(robotCheck) {
     });
 }
 
+// --- EVENT: QUIZ SETTINGS MENU ---
+const settingsBtn = document.getElementById('quiz-settings-btn');
+const settingsMenu = document.getElementById('quiz-settings-menu');
+const quizQuitBtn = document.getElementById('quiz-quit-btn');
+const quizSoundToggle = document.getElementById('quiz-sound-toggle');
+let quizSoundEnabled = true;
+
+if (settingsBtn && settingsMenu) {
+    settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        settingsMenu.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!settingsBtn.contains(e.target) && !settingsMenu.contains(e.target)) {
+            settingsMenu.classList.add('hidden');
+        }
+    });
+}
+
+if (quizQuitBtn) {
+    quizQuitBtn.addEventListener('click', () => {
+        // Quit game: hide game screen and show intro screen
+        settingsMenu.classList.add('hidden');
+        quizGame.classList.add('hidden');
+        quizIntro.classList.remove('hidden');
+    });
+}
+
+if (quizSoundToggle) {
+    quizSoundToggle.addEventListener('click', () => {
+        quizSoundEnabled = !quizSoundEnabled;
+        quizSoundToggle.innerText = quizSoundEnabled ? '🔊 Sound: On' : '🔇 Sound: Off';
+    });
+}
+
 // --- EVENT: START QUIZ ---
 if (startQuizBtn) {
     startQuizBtn.addEventListener('click', () => {

@@ -250,23 +250,46 @@ body.kuizu-page {
     transition: transform 0.3s, opacity 0.3s;
 }
 
+/* Mobile Nav Overlay */
+.kz-mobile-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 998;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s var(--ease-smooth);
+}
+
+.kz-mobile-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
 /* Mobile Nav Drawer */
 .kz-mobile-nav {
-    display: none;
     position: fixed;
-    top: var(--nav-height);
-    left: 0; right: 0;
+    top: 0;
+    right: -100%;
+    bottom: 0;
+    width: 280px;
+    max-width: 80vw;
     background: rgba(13, 13, 26, 0.98);
     backdrop-filter: blur(20px);
-    padding: 20px;
+    padding: var(--nav-height) 20px 20px;
     z-index: 999;
-    border-bottom: 1px solid var(--border-subtle);
+    border-left: 1px solid var(--border-subtle);
+    display: flex;
     flex-direction: column;
     gap: 8px;
+    transition: right 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: -10px 0 40px rgba(0,0,0,0.6);
 }
 
 .kz-mobile-nav.open {
-    display: flex;
+    right: 0;
 }
 
 .kz-mobile-nav a {
@@ -282,6 +305,35 @@ body.kuizu-page {
 .kz-mobile-nav a:hover {
     color: var(--text-primary);
     background: var(--bg-card);
+}
+
+/* ==========================================================================
+   MOBILE BACK BUTTON
+   ========================================================================== */
+.kz-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 700;
+    margin-bottom: 20px;
+    transition: color 0.2s;
+    font-family: 'Nunito', sans-serif;
+    align-self: flex-start;
+}
+.kz-back-btn:hover {
+    color: var(--text-primary);
+}
+.kz-back-btn span {
+    font-size: 1.2rem;
+    transition: transform 0.2s;
+}
+.kz-back-btn:hover span {
+    transform: translateX(-4px);
+}
+@media (min-width: 769px) {
+    .kz-back-btn { display: none; } /* Only show on mobile */
 }
 
 /* ==========================================================================

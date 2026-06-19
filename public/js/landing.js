@@ -27,9 +27,22 @@
 
     // Hamburger toggle
     if (hamburger && mobileNav) {
-        hamburger.addEventListener('click', () => {
-            const isOpen = mobileNav.classList.toggle('open');
-            hamburger.setAttribute('aria-expanded', isOpen);
+        // Create background overlay for mobile menu
+        let navOverlay = document.createElement('div');
+        navOverlay.className = 'kz-mobile-overlay';
+        document.body.appendChild(navOverlay);
+
+        function toggleMenu(forceClose = false) {
+            const isOpen = forceClose ? false : !mobileNav.classList.contains('open');
+            if (isOpen) {
+                mobileNav.classList.add('open');
+                navOverlay.classList.add('open');
+                hamburger.setAttribute('aria-expanded', 'true');
+            } else {
+                mobileNav.classList.remove('open');
+                navOverlay.classList.remove('open');
+                hamburger.setAttribute('aria-expanded', 'false');
+            }
 
             // Animate hamburger into X
             const spans = hamburger.querySelectorAll('span');
@@ -42,24 +55,21 @@
                 spans[1].style.opacity = '';
                 spans[2].style.transform = '';
             }
-        });
+        }
 
-        // Close on outside click
+        hamburger.addEventListener('click', () => toggleMenu());
+        navOverlay.addEventListener('click', () => toggleMenu(true));
+
+        // Close on outside click (if they click something else not covered by overlay somehow)
         document.addEventListener('click', (e) => {
-            if (!hamburger.contains(e.target) && !mobileNav.contains(e.target)) {
-                mobileNav.classList.remove('open');
-                hamburger.querySelectorAll('span').forEach(s => {
-                    s.style.transform = '';
-                    s.style.opacity = '';
-                });
+            if (mobileNav.classList.contains('open') && !hamburger.contains(e.target) && !mobileNav.contains(e.target) && !navOverlay.contains(e.target)) {
+                toggleMenu(true);
             }
         });
 
         // Close on link click
         mobileNav.querySelectorAll('a').forEach(a => {
-            a.addEventListener('click', () => {
-                mobileNav.classList.remove('open');
-            });
+            a.addEventListener('click', () => toggleMenu(true));
         });
     }
 

@@ -116,25 +116,35 @@
         /* ====================================================
            QUIZ INTRO SCREEN
            ==================================================== */
-        #quiz-overlay { background: var(--bg-deep) url('') no-repeat; }
+        /* OVERRIDE white containers from style.css */
+        #quiz-intro, #quiz-game, #quiz-result {
+            background: transparent !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            max-width: 100% !important;
+            position: static !important;
+        }
+
+        #quiz-overlay { background: transparent; }
         #quiz-overlay.active {
-            background:
-                radial-gradient(ellipse 80% 60% at 50% -5%, rgba(233,69,96,0.12), transparent 55%),
-                var(--bg-deep);
+            background: rgba(15, 15, 26, 0.95);
         }
 
         .kz-intro-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-medium);
-            border-radius: var(--radius-xl);
+            background: #1e2235;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 24px;
             padding: 48px 36px;
             width: 90%;
-            max-width: 420px;
+            max-width: 460px;
             text-align: center;
-            box-shadow: var(--shadow-lg);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
             animation: kz-scale-in 0.4s var(--ease-bounce);
             position: relative;
             overflow: hidden;
+            margin: 0 auto;
         }
         .kz-intro-card::before {
             content: '';
@@ -195,22 +205,95 @@
            QUIZ GAME SCREEN
            ==================================================== */
         .kz-quiz-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-medium);
-            border-radius: var(--radius-xl);
+            background: #1e2235;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 24px;
             padding: 36px 32px;
             width: 90%;
             max-width: 460px;
-            box-shadow: var(--shadow-lg), 0 0 40px rgba(233,69,96,0.07);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
             animation: kz-scale-in 0.35s var(--ease-bounce);
             position: relative;
             overflow: hidden;
+            margin: 0 auto;
         }
         .kz-quiz-card::before {
             content: '';
             position: absolute; top: 0; left: 0; right: 0;
             height: 3px;
             background: var(--gradient-primary);
+        }
+
+        /* Settings Gear Menu */
+        .kz-quiz-settings {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            z-index: 9999;
+        }
+        .kz-settings-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .kz-settings-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+            transform: rotate(90deg);
+        }
+        .kz-settings-menu {
+            position: absolute;
+            top: 44px;
+            right: 0;
+            background: #2a2f4c;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 170px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            transform-origin: top right;
+            transition: transform 0.2s, opacity 0.2s;
+            opacity: 1;
+            transform: scale(1);
+        }
+        .kz-settings-menu.hidden {
+            display: none;
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        .kz-settings-menu a, .kz-settings-menu button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-align: left;
+            text-decoration: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        .kz-settings-menu a:hover, .kz-settings-menu button:hover {
+            background: rgba(255,255,255,0.05);
+            color: #ffffff;
         }
 
         /* Question header row */
@@ -221,12 +304,11 @@
             margin-bottom: 20px;
         }
         .kz-question-badge {
-            background: rgba(233,69,96,0.1);
-            border: 1px solid rgba(233,69,96,0.2);
+            background: transparent;
+            border: none;
             color: var(--primary);
-            padding: 4px 12px;
-            border-radius: var(--radius-pill);
-            font-size: 0.78rem;
+            padding: 0;
+            font-size: 0.9rem;
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 0.05em;
@@ -257,9 +339,9 @@
         /* Question text */
         #question-text {
             font-family: 'Poppins', sans-serif;
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: var(--text-primary);
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #ffffff;
             line-height: 1.5;
             margin-bottom: 28px;
             min-height: 60px;
@@ -274,9 +356,9 @@
         }
 
         .opt-btn {
-            background: rgba(255,255,255,0.04);
-            border: 1.5px solid var(--border-medium);
-            border-radius: var(--radius-md);
+            background: #2a2f4c;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
             padding: 18px 12px;
             display: flex;
             align-items: center;
@@ -294,34 +376,39 @@
         .opt-letter {
             width: 28px; height: 28px;
             border-radius: 8px;
-            background: rgba(233,69,96,0.1);
+            background: transparent;
             color: var(--primary);
             display: flex; align-items: center; justify-content: center;
-            font-size: 0.78rem;
+            font-size: 0.85rem;
             font-weight: 900;
             flex-shrink: 0;
             transition: background 0.2s;
         }
 
         .opt-btn:hover {
-            border-color: var(--primary);
-            background: rgba(233,69,96,0.06);
-            color: var(--text-primary);
             transform: translateY(-2px);
+            border-color: rgba(255,255,255,0.15) !important;
+            color: #ffffff !important;
+            background: #323859 !important; /* overrides style.css */
         }
-        .opt-btn:hover .opt-letter {
-            background: rgba(233,69,96,0.2);
+        
+        .opt-btn.selected {
+            background: #166534 !important;
+            border: 1px solid #4ade80 !important;
+            color: #4ade80 !important;
+        }
+        .opt-btn.selected .opt-letter {
+            color: #4ade80;
         }
 
         /* Correct / Wrong flash states */
         .opt-btn.correct {
-            border-color: var(--accent-green) !important;
+            border-color: #4ade80 !important;
             background: rgba(74,222,128,0.1) !important;
-            color: var(--accent-green) !important;
+            color: #4ade80 !important;
         }
         .opt-btn.correct .opt-letter {
-            background: rgba(74,222,128,0.2);
-            color: var(--accent-green);
+            color: #4ade80;
         }
         .opt-btn.wrong {
             border-color: var(--primary) !important;
@@ -329,7 +416,6 @@
             color: var(--primary) !important;
         }
         .opt-btn.wrong .opt-letter {
-            background: rgba(233,69,96,0.2);
             color: var(--primary);
         }
 
@@ -342,26 +428,46 @@
         /* ====================================================
            GAME OVER SCREEN
            ==================================================== */
-        #quiz-result { padding: 20px; }
-
         .kz-result-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-medium);
-            border-radius: var(--radius-xl);
-            padding: 48px 36px;
+            background: #1e2235;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 24px;
+            padding: 40px 32px;
             width: 90%;
-            max-width: 420px;
+            max-width: 460px;
             text-align: center;
-            box-shadow: var(--shadow-lg);
-            animation: kz-scale-in 0.5s var(--ease-bounce);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            animation: kz-scale-in 0.4s var(--ease-bounce);
             position: relative;
             overflow: hidden;
+            margin: 0 auto;
         }
         .kz-result-card::before {
             content: '';
             position: absolute; top: 0; left: 0; right: 0;
             height: 3px;
             background: var(--gradient-primary);
+        }
+
+        /* ====================================================
+           MOBILE RESPONSIVENESS
+           ==================================================== */
+        @media (max-width: 480px) {
+            .kz-intro-card, .kz-quiz-card, .kz-result-card {
+                padding: 24px 20px;
+                width: 95%;
+            }
+            #question-text {
+                font-size: 1.1rem;
+                margin-bottom: 20px;
+            }
+            .kz-options-grid {
+                grid-template-columns: 1fr; /* Stack options on mobile */
+                gap: 10px;
+            }
+            .opt-btn {
+                padding: 14px 12px;
+            }
         }
 
         .kz-score-ring {
@@ -507,6 +613,7 @@
 
         <!-- INTRO -->
         <div id="quiz-intro">
+            <a href="javascript:history.back()" class="kz-back-btn" style="position: absolute; top: 24px; left: 24px; display: inline-flex !important; z-index: 9999; color: #fff;"><span>←</span> Back</a>
             <div class="kz-intro-card">
                 <span class="kz-intro-icon">🎮</span>
                 <h1 class="kz-intro-title">Daily Brain Teaser</h1>
@@ -522,7 +629,20 @@
 
         <!-- GAME -->
         <div id="quiz-game" class="hidden">
+            <!-- Settings Gear -->
+            <div class="kz-quiz-settings">
+                <button id="quiz-settings-btn" class="kz-settings-btn">⚙️</button>
+                <div id="quiz-settings-menu" class="kz-settings-menu hidden">
+                    <a href="profile.html">👤 Profile</a>
+                    <a href="leaderboard.html">🏆 Leaderboard</a>
+                    <button id="quiz-sound-toggle">🔊 Sound: On</button>
+                    <button id="quiz-quit-btn">🏠 Quit Game</button>
+                </div>
+            </div>
+            
             <div class="kz-quiz-card">
+
+
                 <!-- Header -->
                 <div class="kz-quiz-header">
                     <span class="kz-question-badge" id="question-counter">Question 1 / 5</span>

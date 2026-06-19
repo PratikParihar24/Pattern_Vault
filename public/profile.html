@@ -156,12 +156,15 @@
     </nav>
 
     <div class="profile-wrapper">
-        <div class="profile-card kz-animate">
-            <div class="profile-avatar">👤</div>
-            <div class="profile-name" id="userName">Loading...</div>
-            <div class="profile-email" id="userEmail">...</div>
+        <div style="width: 100%; max-width: 500px; margin: 0 auto; display: flex; flex-direction: column;">
+            <a href="javascript:history.back()" class="kz-back-btn"><span>←</span> Back</a>
+            
+            <div class="profile-card kz-animate">
+                <div class="profile-avatar">👤</div>
+                <div class="profile-name" id="userName">Loading...</div>
+                <div class="profile-email" id="userEmail">...</div>
 
-            <div class="profile-stats">
+                <div class="profile-stats">
                 <div class="stat-box">
                     <div class="stat-value" id="userHighScore">0</div>
                     <div class="stat-label">High Score</div>
@@ -173,6 +176,7 @@
             </div>
 
             <button class="logout-btn" onclick="handleLogout()">🚪 Logout Securely</button>
+        </div>
         </div>
     </div>
 
