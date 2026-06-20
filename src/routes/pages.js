@@ -11,7 +11,7 @@ const Group = require('../models/Group'); // <--- CRITICAL IMPORT
 // GET All Personal Pages
 router.get('/personal', authMiddleware, async (req, res) => {
     try {
-        const pages = await Page.find({ user: req.user.id, group: null }).sort({ lastEdited: -1 });
+        const pages = await Page.find({ user: req.user.id, group: null }).populate('user', 'username email').sort({ lastEdited: -1 });
         res.json(pages);
     } catch (err) {
         console.error(err);
@@ -53,7 +53,7 @@ router.get('/group/:groupId', authMiddleware, async (req, res) => {
             return res.status(403).json({ msg: 'Access Denied' });
         }
 
-        const pages = await Page.find({ group: groupId }).sort({ lastEdited: -1 });
+        const pages = await Page.find({ group: groupId }).populate('user', 'username email').sort({ lastEdited: -1 });
         res.json(pages);
     } catch (err) {
         console.error(err);

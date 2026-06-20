@@ -9,6 +9,7 @@ let fakeScore = 0;
 let correctCount = 0;
 let questionIndex = 0;
 let highScore = 0;
+let globalUserData = null; // Store user data globally
 // Track if user already failed the pattern check (persists across page reloads via sessionStorage)
 let patternFailed = sessionStorage.getItem('patternFailed') === 'true';
 
@@ -53,6 +54,7 @@ const highScoreDisplay = document.getElementById('high-score-display');
             }
         })
         .then(userData => {
+            globalUserData = userData; // Save for vault use
             highScore = userData.highScore || 0;
             if (highScoreDisplay) highScoreDisplay.innerText = highScore;
 
@@ -500,7 +502,18 @@ async function loadVaultData() {
         if (dangerBtn) dangerBtn.classList.add('hidden');
         if (membersDiv) membersDiv.classList.add('hidden');
 
+        const profileDiv = document.getElementById('vault-user-profile');
+        if (profileDiv && globalUserData) {
+            profileDiv.innerHTML = `
+                <div id="vault-username" style="color: #fff; font-weight: bold; font-size: 1rem;">${globalUserData.username || 'User'}</div>
+                <div id="vault-userrank" style="color: #00e5ff; font-family: monospace; font-size: 0.85rem;">${globalUserData.email || ''}</div>
+            `;
+        }
+
         if (currentContext.type === 'personal') {
+            const existingDash = document.querySelector('.group-dashboard');
+            if (existingDash) existingDash.remove();
+
             if (viewTitle) viewTitle.innerText = "My Private Vault";
 
             const pageRes = await fetch('/api/pages/personal', { credentials: "include" });
@@ -519,19 +532,19 @@ async function loadVaultData() {
 
             if (viewTitle) viewTitle.innerText = groupData.name;
 
-            // GROUP DASHBOARD INJECTION
             const container = document.getElementById('vault-content');
+            
+            // Clear previous dashboard if any
+            const existingDash = document.querySelector('.group-dashboard');
+            if (existingDash) existingDash.remove();
 
-            // Check Admin Status
             const myId = userData._id;
             const adminId = (groupData.admin && groupData.admin._id) ? groupData.admin._id : groupData.admin;
             const isAdmin = (myId === adminId);
 
             const btnText = isAdmin ? "Delete Group" : "Leave Group";
             const btnClass = isAdmin ? "btn-danger" : "btn-warning";
-            const btnAction = isAdmin
-                ? `deleteGroup('${currentContext.id}')`
-                : `leaveGroup('${currentContext.id}')`;
+            const btnAction = isAdmin ? `deleteGroup('${currentContext.id}')` : `leaveGroup('${currentContext.id}')`;
 
             const dashboardHTML = `
                 <div class="group-dashboard">
@@ -547,14 +560,19 @@ async function loadVaultData() {
                 </div>
             `;
 
-            // Render Content
             const pageRes = await fetch(`/api/pages/group/${currentContext.id}`, { credentials: "include" });
             const pages = await pageRes.json();
 
             renderNotionView(pages, 'group', currentContext.id);
 
-            // Inject Dashboard
-            if (container) container.insertAdjacentHTML('afterbegin', dashboardHTML);
+            
+            const tabsContainer = document.getElementById('vault-tabs');
+            if (tabsContainer) {
+                tabsContainer.insertAdjacentHTML('beforebegin', dashboardHTML);
+            } else if (container) {
+                container.insertAdjacentHTML('afterbegin', dashboardHTML);
+            }
+
 
             if (photoCard) {
                 photoCard.style.display = 'block';
@@ -665,33 +683,31 @@ function renderNotionView(pages, contextType, contextId) {
 function loadPageIntoEditor(page) {
     const editorArea = document.getElementById('editor-content-area');
     let autoSaveTimer;
-    let isAutoSaveOn = true; // Default: ON
-    let currentDocumentVersion = page.__v || 0; // OCC: Track the version of this document
-
-    // HISTORY STACK (For Undo/Redo)
-    // We start with the current content as the first "state"
+    let isAutoSaveOn = true; 
+    let currentDocumentVersion = page.__v || 0; 
+    
     let history = [page.content || ''];
     let historyIndex = 0;
 
-    // 0. CONFIGURE MARKDOWN (Fixes Spacing)
-    if (typeof marked !== 'undefined') {
-        marked.setOptions({
-            breaks: true, // 🚨 CRITICAL: Treats "Enter" as a <br> tag
-            gfm: true     // GitHub Flavored Markdown
-        });
-    }
-
-    // 1. INJECT HTML 
-    // (Note: I removed the extra empty <div class="editor-header"> you had, which fixes the gap)
     editorArea.innerHTML = `
         <div class="editor-header">
-            <div class="title-wrapper">
-                <button id="icon-btn" title="Change Icon">📄</button>
+            <div class="page-identity-section">
+                <div class="page-icon-wrapper" id="page-icon-btn" title="Change Icon">📄</div>
                 <input type="text" id="page-title-input" value="${page.title}" placeholder="Untitled Page">
             </div>
             
-            <div class="editor-tools">
-                <button id="preview-btn" class="text-btn" title="Toggle View">👁️ View</button>
+            <div class="editor-tools" style="align-items: center; gap: 10px;">
+                <div style="position: relative; display: inline-block;">
+                    <button id="page-info-btn" class="text-btn" style="border-radius: 50%; padding: 4px 10px; font-style: italic; font-family: serif; color: #888;" title="Page Info">i</button>
+                    <div id="page-info-popup" style="display: none; position: absolute; right: 0; top: 120%; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 15px; min-width: 160px; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.8);">
+                        <div style="color: #888; font-size: 0.8rem; text-align: left; line-height: 1.6;">
+                            <div style="margin-bottom: 8px;">Created by:<br><span style="color: #00e5ff; font-weight: bold; font-size: 0.9rem;">${page.user?.username || 'Unknown'}</span></div>
+                            <div>Edited:<br><span style="color: #fff; font-size: 0.9rem;">${new Date(page.lastEdited || Date.now()).toLocaleDateString()}</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tool-separator"></div>
+                <button id="download-pdf-btn" class="text-btn" style="color: #00e5ff;" title="Download as PDF">PDF</button>
                 <div class="tool-separator"></div>
                 <button id="save-page-btn" class="text-btn">Save</button>
                 <div class="tool-separator"></div>
@@ -703,10 +719,11 @@ function loadPageIntoEditor(page) {
             <div class="slash-item" data-cmd="header"><span class="slash-icon">H1</span> Big Heading</div>
             <div class="slash-item" data-cmd="subheader"><span class="slash-icon">H2</span> Medium Heading</div>
             <div class="slash-item" data-cmd="list"><span class="slash-icon">≡</span> Bullet List</div>
-            <div class="slash-item" data-cmd="todo"><span class="slash-icon">☐</span> To-Do Checkbox</div>
             <div class="slash-item" data-cmd="code"><span class="slash-icon">{}</span> Code Block</div>
             <div class="slash-item" data-cmd="callout"><span class="slash-icon">💡</span> Callout Box</div>
-            <div class="slash-item" data-cmd="date"><span class="slash-icon">📅</span> Today's Date</div>
+            <div class="slash-item" data-cmd="quote"><span class="slash-icon">❞</span> Quote</div>
+            <div class="slash-item" data-cmd="divider"><span class="slash-icon">—</span> Divider</div>
+            <div class="slash-item" data-cmd="highlight"><span class="slash-icon">🖍</span> Highlight</div>
         </div>
 
         <div class="markdown-toolbar" id="toolbar">
@@ -718,38 +735,105 @@ function loadPageIntoEditor(page) {
             <button class="tool-btn" data-type="italic" title="Italic">I</button>
             <button class="tool-btn" data-type="header" title="Header">H</button>
             <button class="tool-btn" data-type="list" title="List">≡</button>
-            <button class="tool-btn" data-type="code" title="Code Block">{}</button>
-            <button class="tool-btn" data-type="link" title="Link">🔗</button>
-
+            
             <div style="flex-grow: 1;"></div>
-
-           <label class="toggle-switch" title="Toggle Auto-Save">
-                    <input type="checkbox" id="autosave-toggle" class="toggle-checkbox" checked>
+            <label class="toggle-switch" title="Toggle Auto-Save">
+                <input type="checkbox" id="autosave-toggle" class="toggle-checkbox" checked>
+                <span class="status-icon">⚡</span>
+            </label>
         </div>
         
-        <div style="position: relative; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden;">
-            <textarea id="page-content-input" placeholder="# Start typing...">${page.content || ''}</textarea>
-            <div id="markdown-preview"></div>
+        <div style="position: relative; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 20px;">
+            <div id="page-editor" class="notion-editor" contenteditable="true" placeholder="Start typing with '/' for commands...">${page.content || ''}</div>
         </div>
     `;
 
-    // DOM Elements
     const titleInput = document.getElementById('page-title-input');
-    const contentInput = document.getElementById('page-content-input');
-    const previewDiv = document.getElementById('markdown-preview');
+    const pageEditor = document.getElementById('page-editor');
     const saveBtn = document.getElementById('save-page-btn');
-    const previewBtn = document.getElementById('preview-btn');
     const toolbar = document.getElementById('toolbar');
     const slashMenu = document.getElementById('slash-menu');
-
-    // New DOM Elements
     const undoBtn = toolbar.querySelector('[data-type="undo"]');
     const redoBtn = toolbar.querySelector('[data-type="redo"]');
     const autoSaveToggle = document.getElementById('autosave-toggle');
+    const pageIconBtn = document.getElementById('page-icon-btn');
+    const downloadPdfBtn = document.getElementById('download-pdf-btn');
+    const pageInfoBtn = document.getElementById('page-info-btn');
+    const pageInfoPopup = document.getElementById('page-info-popup');
 
-    // --- HISTORY LOGIC (Undo/Redo) ---
+    if (pageInfoBtn && pageInfoPopup) {
+        pageInfoBtn.onclick = (e) => {
+            e.stopPropagation();
+            const isVisible = pageInfoPopup.style.display === 'block';
+            pageInfoPopup.style.display = isVisible ? 'none' : 'block';
+        };
+        document.addEventListener('click', (e) => {
+            if (!pageInfoPopup.contains(e.target) && e.target !== pageInfoBtn) {
+                pageInfoPopup.style.display = 'none';
+            }
+        });
+    }
+
+    // --- PDF EXPORT LOGIC ---
+    downloadPdfBtn.onclick = () => {
+        const editorHtml = pageEditor.innerHTML;
+        const title = titleInput.value || 'Untitled';
+        
+        // Use a simple print window to save as PDF
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>${title}</title>
+                    <style>
+                        body { font-family: 'Merriweather', serif; padding: 40px; color: #000; line-height: 1.8; }
+                        h1 { font-family: 'Courier New', Courier, monospace; font-size: 2.2rem; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-top: 1.5em; margin-bottom: 0.5em; }
+                        h2 { font-family: 'Courier New', Courier, monospace; font-size: 1.6rem; margin-top: 1.2em; margin-bottom: 0.5em; }
+                        p, div { margin-bottom: 0.7em; }
+                        pre { background: #f4f4f4; padding: 15px; border-radius: 8px; font-family: monospace; border: 1px solid #ddd; }
+                        blockquote { border-left: 4px solid #6c5ce7; padding-left: 15px; color: #555; background: #f9f9fc; margin: 15px 0; padding-top: 10px; padding-bottom: 10px; }
+                        hr { border: none; border-top: 1px solid #ddd; margin: 30px 0; }
+                        mark { background-color: rgba(0, 229, 255, 0.3); color: #000; padding: 2px 4px; }
+                        ul { padding-left: 25px; margin-bottom: 1em; }
+                        li { margin-bottom: 8px; }
+                    </style>
+                </head>
+                <body>
+                    <h1>${title}</h1>
+                    ${editorHtml}
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        
+        // Wait for styles to load, then print
+        setTimeout(() => {
+            printWindow.print();
+        }, 250);
+    };
+
+    // --- ICON LOGIC ---
+    const icons = ['📄', '🔥', '💡', '🚀', '⭐', '💻', '🔒', '👽', '💀'];
+    let currentIconIndex = 0;
+    pageIconBtn.addEventListener('click', () => {
+        currentIconIndex = (currentIconIndex + 1) % icons.length;
+        pageIconBtn.innerText = icons[currentIconIndex];
+        if (isAutoSaveOn) triggerAutoSave();
+    });
+
+    const updateIconBtn = () => {
+        const match = titleInput.value.match(/^(©|®|[ -㌀]|�[퀀-�]|�[퀀-�]|�[퀀-�])/);
+        if (match) {
+            pageIconBtn.innerText = match[0];
+            titleInput.value = titleInput.value.replace(match[0], '').trim();
+        }
+    };
+    updateIconBtn();
+    titleInput.addEventListener('input', updateIconBtn);
+
+    // --- HISTORY LOGIC ---
     const saveToHistory = () => {
-        const current = contentInput.value;
+        const current = pageEditor.innerHTML;
         if (current !== history[historyIndex]) {
             history = history.slice(0, historyIndex + 1);
             history.push(current);
@@ -760,7 +844,7 @@ function loadPageIntoEditor(page) {
     undoBtn.onclick = () => {
         if (historyIndex > 0) {
             historyIndex--;
-            contentInput.value = history[historyIndex];
+            pageEditor.innerHTML = history[historyIndex];
             if (isAutoSaveOn) triggerAutoSave();
         }
     };
@@ -768,30 +852,20 @@ function loadPageIntoEditor(page) {
     redoBtn.onclick = () => {
         if (historyIndex < history.length - 1) {
             historyIndex++;
-            contentInput.value = history[historyIndex];
+            pageEditor.innerHTML = history[historyIndex];
             if (isAutoSaveOn) triggerAutoSave();
         }
     };
 
-    // --- SMART HISTORY TRIGGER ---
     let historyDebounce;
-
-    contentInput.addEventListener('input', () => {
+    pageEditor.addEventListener('input', () => {
         clearTimeout(historyDebounce);
-        historyDebounce = setTimeout(() => {
-            saveToHistory();
-        }, 800); 
+        historyDebounce = setTimeout(saveToHistory, 800); 
     });
 
     // --- SAVE LOGIC ---
     autoSaveToggle.onchange = (e) => {
         isAutoSaveOn = e.target.checked;
-
-        if (typeof UI !== 'undefined') {
-            const status = isAutoSaveOn ? "ENABLED ⚡" : "DISABLED 🛑";
-            UI.toast(`AutoSave ${status}`, isAutoSaveOn ? "success" : "info");
-        }
-
         if (!isAutoSaveOn) {
             saveBtn.innerText = "Save";
             saveBtn.style.color = "";
@@ -801,7 +875,7 @@ function loadPageIntoEditor(page) {
 
     const performSave = async (silent = false) => {
         const titleVal = titleInput.value;
-        const contentVal = contentInput.value;
+        const contentVal = pageEditor.innerHTML;
 
         if (!silent) saveBtn.innerText = "Saving...";
 
@@ -812,26 +886,23 @@ function loadPageIntoEditor(page) {
                 body: JSON.stringify({ 
                     title: titleVal, 
                     content: contentVal,
-                    version: currentDocumentVersion // Include version for OCC
+                    version: currentDocumentVersion
                 })
             });
 
             if (res.status === 409) {
-                // OCC Conflict! Document was edited by someone else
-                isAutoSaveOn = false; // Stop auto-save to prevent looping/spamming
+                isAutoSaveOn = false; 
                 if (autoSaveToggle) autoSaveToggle.checked = false;
                 clearTimeout(autoSaveTimer);
-
                 saveBtn.innerText = "Sync Conflict";
-                saveBtn.style.color = "#ff4d4d"; // Red warning
-                
-                alert("Conflict: This document was modified by another user. Auto-save has been disabled to prevent overwriting their work. Please reload to see the latest changes.");
+                saveBtn.style.color = "#ff4d4d"; 
+                alert("Conflict: This document was modified by another user. Auto-save has been disabled to prevent overwriting their work.");
                 return;
             }
 
             if (res.ok) {
                 const updatedPage = await res.json();
-                currentDocumentVersion = updatedPage.__v; // Update local version
+                currentDocumentVersion = updatedPage.__v;
 
                 page.title = titleVal;
                 page.content = contentVal;
@@ -859,7 +930,7 @@ function loadPageIntoEditor(page) {
     };
 
     const triggerAutoSave = () => {
-        if (!isAutoSaveOn) return; // Respect the toggle
+        if (!isAutoSaveOn) return; 
         saveBtn.innerText = "Typing...";
         saveBtn.style.color = "#ffff00";
         clearTimeout(autoSaveTimer);
@@ -867,207 +938,120 @@ function loadPageIntoEditor(page) {
     };
 
     titleInput.addEventListener('input', triggerAutoSave);
-    contentInput.addEventListener('input', triggerAutoSave);
+    pageEditor.addEventListener('input', triggerAutoSave);
     saveBtn.onclick = () => performSave(false);
 
-    // --- INTERACTIVE CHECKBOXES ---
-    // This allows clicking a checkbox in View Mode to update the text!
-    previewDiv.addEventListener('click', (e) => {
-        if (e.target.type === 'checkbox') {
-            const li = e.target.parentElement;
-            const rawText = li.textContent.trim(); // Get the text of the item
-            const isChecked = e.target.checked;
-
-            // Logic: Find "- [ ] Text" or "- [x] Text" in the source code
-            const originalVal = contentInput.value;
-            // Escape special regex characters in the user's text
-            const escapedText = rawText.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-
-            let newVal;
-            if (isChecked) {
-                // Change [ ] to [x]
-                const regex = new RegExp(`- \\[ \\] ${escapedText}`, '');
-                newVal = originalVal.replace(regex, `- [x] ${rawText}`);
-            } else {
-                // Change [x] to [ ]
-                const regex = new RegExp(`- \\[x\\] ${escapedText}`, '');
-                newVal = originalVal.replace(regex, `- [ ] ${rawText}`);
-            }
-
-            if (newVal !== originalVal) {
-                contentInput.value = newVal;
-                saveToHistory(); // Record this change
-                if (isAutoSaveOn) triggerAutoSave();
-            }
-        }
-    });
-
-    // --- TOOLBAR INSERT LOGIC ---
-    const insertSyntax = (before, after = "") => {
-        const start = contentInput.selectionStart;
-        const end = contentInput.selectionEnd;
-        const text = contentInput.value;
-        const selection = text.substring(start, end);
-        const newText = text.substring(0, start) + before + selection + after + text.substring(end);
-        contentInput.value = newText;
-        contentInput.focus();
-        contentInput.selectionStart = start + before.length;
-        contentInput.selectionEnd = end + before.length;
-        saveToHistory(); // Save toolbar actions
-        triggerAutoSave();
-    };
-
-    toolbar.addEventListener('click', (e) => {
-        // Handle Button Clicks
+    // --- TOOLBAR LOGIC (WYSIWYG) ---
+    toolbar.addEventListener('mousedown', (e) => {
         if (e.target.tagName !== 'BUTTON') return;
+        e.preventDefault(); // Keep focus on editor
+        
         const type = e.target.dataset.type;
-
-        // 🚨 NEW: Handle History Buttons inside Toolbar
-        if (type === 'undo') {
-            undoBtn.click(); // Trigger the existing logic
-            return;
-        }
-        if (type === 'redo') {
-            redoBtn.click(); // Trigger the existing logic
-            return;
-        }
+        if (type === 'undo') { undoBtn.click(); return; }
+        if (type === 'redo') { redoBtn.click(); return; }
 
         switch (type) {
-            case 'bold': insertSyntax('**', '**'); break;
-            case 'italic': insertSyntax('*', '*'); break;
-            case 'header': insertSyntax('## '); break;
-            case 'list': insertSyntax('- '); break;
-            case 'code': insertSyntax('```\n', '\n```'); break;
-            case 'link': insertSyntax('[', '](url)'); break;
+            case 'bold': document.execCommand('bold', false, null); break;
+            case 'italic': document.execCommand('italic', false, null); break;
+            case 'header': document.execCommand('formatBlock', false, 'H2'); break;
+            case 'list': document.execCommand('insertUnorderedList', false, null); break;
         }
-    });
-
-    // --- TOGGLE PREVIEW ---
-    let isPreviewMode = false;
-    previewBtn.onclick = () => {
-        isPreviewMode = !isPreviewMode;
-        if (isPreviewMode) {
-            // Switch to VIEW
-            const rawHtml = marked.parse(contentInput.value);
-            const sanitizedHtml = DOMPurify.sanitize(rawHtml);
-            previewDiv.innerHTML = sanitizedHtml;
-
-            contentInput.style.display = 'none';
-            if (toolbar) toolbar.style.display = 'none';
-            if (slashMenu) slashMenu.style.display = 'none';
-            previewDiv.style.display = 'block';
-
-            previewBtn.innerText = "✏️ Edit";
-            previewBtn.classList.add('active');
-        } else {
-            // Switch to EDIT
-            contentInput.style.display = 'block';
-            if (toolbar) toolbar.style.display = 'flex';
-            previewDiv.style.display = 'none';
-
-            previewBtn.innerText = "👁️ View";
-            previewBtn.classList.remove('active');
-            contentInput.focus();
-        }
-    };
-
-    // --- SLASH MENU LOGIC ---
-    const executeSlash = (cmd) => {
-        const text = contentInput.value;
-        const end = contentInput.selectionEnd;
-        const before = text.substring(0, end - 1);
-        const after = text.substring(end);
-
-        let insert = "";
-        switch (cmd) {
-            case 'header': insert = "# "; break;
-            case 'subheader': insert = "## "; break;
-            case 'list': insert = "\n- "; break;
-            case 'todo': insert = "\n- [ ] "; break;
-            case 'code': insert = "\n```\n\n```\n"; break;
-            case 'callout': insert = "\n> 💡 "; break;
-            case 'date': insert = `**${new Date().toLocaleDateString()}** `; break;
-        }
-
-        contentInput.value = before + insert + after;
-        const newPos = before.length + insert.length;
-        contentInput.selectionStart = newPos;
-        contentInput.selectionEnd = newPos;
-        contentInput.focus();
-        slashMenu.style.display = 'none';
+        pageEditor.focus();
         saveToHistory();
         triggerAutoSave();
+    });
+
+    // --- SLASH MENU LOGIC ---
+    let slashMenuVisible = false;
+
+    const showSlashMenu = () => {
+        slashMenuVisible = true;
+        
+        // Get precise caret position using Selection API
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            // Position relative to editor Area
+            const editorRect = pageEditor.getBoundingClientRect();
+            
+            slashMenu.style.display = 'flex';
+            slashMenu.style.top = (rect.bottom - editorRect.top + 40) + 'px'; 
+            slashMenu.style.left = (rect.left - editorRect.left + 20) + 'px';
+        }
     };
 
-    contentInput.addEventListener('keyup', (e) => {
-        if (e.key === '/') slashMenu.style.display = 'block';
-        else if (e.key === 'Escape') slashMenu.style.display = 'none';
-        else slashMenu.style.display = 'none';
-    });
+    const hideSlashMenu = () => {
+        slashMenuVisible = false;
+        slashMenu.style.display = 'none';
+    };
 
-    slashMenu.addEventListener('click', (e) => {
-        const item = e.target.closest('.slash-item');
-        if (!item) return;
-        executeSlash(item.dataset.cmd);
-    });
-
-    // --- SMART LIST LOGIC ---
-    contentInput.addEventListener('keydown', (e) => {
+    pageEditor.addEventListener('keydown', (e) => {
+        if (e.key === '/') {
+            setTimeout(showSlashMenu, 10);
+        } else if (slashMenuVisible && (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter' || e.key === 'Backspace')) {
+            hideSlashMenu();
+        }
+        
+        // Block Enter behavior to make sure it creates clean divs/paragraphs
         if (e.key === 'Enter') {
-            const start = contentInput.selectionStart;
-            const value = contentInput.value;
-            const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-            const currentLine = value.substring(lineStart, start);
-            const isList = /^\s*-\s(.*)/.exec(currentLine);
-            const isTodo = /^\s*-\s\[[ x]\]\s(.*)/.exec(currentLine);
-
-            // Escape Empty List
-            if ((isList && !isList[1]) || (isTodo && !isTodo[1])) {
-                e.preventDefault();
-                const newValue = value.substring(0, lineStart) + value.substring(start);
-                contentInput.value = newValue;
-                contentInput.selectionStart = contentInput.selectionEnd = lineStart;
-                return;
-            }
-            // Continue List
-            if (isTodo) {
-                e.preventDefault();
-                document.execCommand('insertText', false, "\n- [ ] ");
-                return;
-            }
-            if (isList) {
-                e.preventDefault();
-                document.execCommand('insertText', false, "\n- ");
-                return;
-            }
+            // Let the browser handle standard contenteditable enters (usually adds <div> or <p>)
+            setTimeout(() => { triggerAutoSave(); saveToHistory(); }, 10);
         }
     });
 
-    // --- PAGE ICON LOGIC ---
-    const iconBtn = document.getElementById('icon-btn');
-    const emojiRegex = /^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/;
+    pageEditor.addEventListener('mousedown', hideSlashMenu);
 
-    const updateIconBtn = () => {
-        const match = titleInput.value.match(emojiRegex);
-        iconBtn.innerText = match ? match[0] : "📄";
-    };
-    updateIconBtn();
-    titleInput.addEventListener('input', updateIconBtn);
+    slashMenu.querySelectorAll('.slash-item').forEach(item => {
+        item.onmousedown = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
 
-    iconBtn.onclick = async () => {
-        let newIcon = null;
-        if (typeof UI !== 'undefined') {
-            newIcon = await UI.prompt("Type an Emoji", "e.g., 💀, 🚀, 🔐");
-        } else {
-            newIcon = prompt("Type an Emoji:");
-        }
-        if (newIcon) {
-            let text = titleInput.value.replace(emojiRegex, '').trim();
-            titleInput.value = `${newIcon} ${text}`;
-            updateIconBtn();
-            performSave(false);
-        }
-    };
+            const cmd = item.getAttribute('data-cmd');
+            
+            // Remove the '/' that triggered it
+            document.execCommand('delete', false, null);
+
+            switch (cmd) {
+                case 'header': document.execCommand('formatBlock', false, 'H1'); break;
+                case 'subheader': document.execCommand('formatBlock', false, 'H2'); break;
+                case 'list': document.execCommand('insertUnorderedList', false, null); break;
+                case 'code': 
+                    const pre = document.createElement('pre');
+                    pre.style.background = '#1e1e1e';
+                    pre.style.padding = '15px';
+                    pre.style.borderRadius = '8px';
+                    pre.innerHTML = '<code>// code here...</code>';
+                    window.getSelection().getRangeAt(0).insertNode(pre);
+                    break;
+                case 'callout': 
+                    const bq = document.createElement('blockquote');
+                    bq.innerHTML = '💡 Callout text...';
+                    window.getSelection().getRangeAt(0).insertNode(bq);
+                    break;
+                case 'quote':
+                    const quote = document.createElement('blockquote');
+                    quote.style.borderLeft = '4px solid #888';
+                    quote.style.background = 'transparent';
+                    quote.innerHTML = '<i>Quote...</i>';
+                    window.getSelection().getRangeAt(0).insertNode(quote);
+                    break;
+                case 'divider':
+                    const hr = document.createElement('hr');
+                    window.getSelection().getRangeAt(0).insertNode(hr);
+                    break;
+                case 'highlight':
+                    const mark = document.createElement('mark');
+                    mark.innerHTML = 'Highlighted Text';
+                    window.getSelection().getRangeAt(0).insertNode(mark);
+                    break;
+            }
+
+            hideSlashMenu();
+            saveToHistory();
+            triggerAutoSave();
+        };
+    });
 
     // --- DELETE LOGIC ---
     document.getElementById('delete-page-btn').onclick = async () => {
@@ -1148,7 +1132,7 @@ async function loadAlbumView() {
                 <div class="section-title">
                     <span>📷 Secure Gallery</span>
                 </div>
-                <button onclick="createNewAlbum()" class="btn-outline">
+                <button onclick="createNewAlbum()" class="btn-outline" style="width: auto; padding: 8px 15px;">
                     + New Album
                 </button>
             </div>
@@ -1181,12 +1165,15 @@ function openAlbum(album) {
     const inputId = `upload-${album._id}`;
 
     container.innerHTML = `
-        <div class="album-view-controls">
-            <button onclick="loadAlbumView()" class="btn-gray">← Back</button>
-            <h3>${album.name}</h3>
-            <div>
-                <button onclick="triggerUpload('${inputId}')" class="btn-green">+ Photos</button>
+        <div class="album-view-controls" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 15px; border-bottom: 1px solid #2a2a2a; padding-bottom: 15px; margin-bottom: 20px;">
+            <button onclick="loadAlbumView()" class="btn-gray" style="width: auto; padding: 8px 15px;">← Back</button>
+            <h3 style="flex-grow: 1; text-align: center; color: white; margin: 0;">${album.name}</h3>
+            <div class="bulk-upload-zone" style="text-align: right;">
+                <button onclick="triggerUpload('${inputId}')" class="btn-green" style="width: auto; padding: 8px 20px; font-weight: bold;">
+                    <span style="font-size: 1.1rem; margin-right: 5px;">📤</span> Bulk Upload Photos
+                </button>
                 <input type="file" id="${inputId}" multiple accept="image/*" style="display:none">
+                <div style="font-size: 0.75rem; color: #888; margin-top: 5px;">You can select multiple files</div>
             </div>
         </div>
         <div class="photo-wrapper" id="photos-wrapper"></div>
@@ -1385,3 +1372,34 @@ if (restartBtn) {
         if (quizIntro) quizIntro.classList.remove('hidden');
     });
 }
+
+// ==========================================
+// 6. VAULT TABS LOGIC
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    const tabs = document.querySelectorAll('.vault-tabs .tab-btn');
+    if (tabs.length > 0) {
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active from all tabs
+                tabs.forEach(t => t.classList.remove('active'));
+                // Add active to clicked tab
+                tab.classList.add('active');
+
+                // Hide all views
+                document.querySelectorAll('.view-panel').forEach(panel => {
+                    panel.style.display = 'none';
+                    panel.classList.remove('active');
+                });
+
+                // Show target view
+                const targetId = tab.getAttribute('data-target');
+                const targetPanel = document.getElementById(targetId);
+                if (targetPanel) {
+                    targetPanel.style.display = 'block';
+                    targetPanel.classList.add('active');
+                }
+            });
+        });
+    }
+});
