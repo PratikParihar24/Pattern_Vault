@@ -14,7 +14,26 @@ const UserSchema = new mongoose.Schema({
         required: true
     },
     
-    // 2. The Personal Vault (Private Data)
+    // 2. Display Name (for leaderboard)
+    displayName: {
+        type: String,
+        required: true,
+        trim: true,
+        maxlength: 30,
+        default: 'Player'
+    },
+
+    // 3. Game Stats (Leaderboard)
+    highScore: {
+        type: Number,
+        default: 0
+    },
+    totalGamesPlayed: {
+        type: Number,
+        default: 0
+    },
+    
+    // 4. The Personal Vault (Private Data)
     personal_notes: {
         type: String,
         default: "" // Starts empty
@@ -24,7 +43,7 @@ const UserSchema = new mongoose.Schema({
         { type: String } 
     ],
 
-    // 3. Social (Groups)
+    // 5. Social (Groups)
     // This is a "Relationship". We are saying this array stores IDs
     // that point to the 'Group' collection.
     groups: [

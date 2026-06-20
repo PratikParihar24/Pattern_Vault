@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindMaster — Play</title>
+    <link rel="stylesheet" href="css/kuizu-theme.css">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    <style>
+        /* ====================================================
+           APP SHELL — Quiz game layer (Kuizu themed)
+           ==================================================== */
+        body {
+            background: var(--bg-deep);
+            margin: 0; padding: 0;
+            font-family: 'Nunito', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Screen system */
+        .screen { display: none; width: 100%; }
+        .screen.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            width: 100%;
+            min-height: 100vh;
+            animation: kz-fade-up 0.4s var(--ease-smooth);
+        }
+        .screen.hidden { display: none !important; }
+
+        /* Background glow for quiz screens */
+        .quiz-bg {
+            background:
+                radial-gradient(ellipse 70% 60% at 50% -10%, rgba(233,69,96,0.12), transparent 60%),
+                var(--bg-deep);
+        }
+
+        /* ====================================================
+           LOADING SCREEN
+           ==================================================== */
+        #loading-screen {
+            background: var(--bg-deep);
+            color: var(--text-primary);
+        }
+        .kz-loader-wrap { text-align: center; }
+        .kz-spinner {
+            width: 52px; height: 52px;
+            border: 3px solid rgba(233,69,96,0.15);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: kz-spin-slow 0.8s linear infinite;
+            margin: 0 auto 24px;
+        }
+        .kz-loader-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        .kz-loader-sub {
+            color: var(--text-muted);
+            font-size: 0.88rem;
+        }
+        .kz-loader-logo {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            display: block;
+            animation: kz-float 3s ease-in-out infinite;
+        }
+
+        /* ====================================================
+           CAPTCHA SCREEN
+           ==================================================== */
+        #captcha-screen { background: var(--bg-deep); }
+        .kz-captcha-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border-medium);
+            border-radius: var(--radius-lg);
+            padding: 24px 28px;
+            width: 320px;
+            box-shadow: var(--shadow-md);
+        }
+        .kz-captcha-row {
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .kz-captcha-left { display: flex; align-items: center; gap: 14px; }
+        .kz-captcha-check {
+            width: 24px; height: 24px;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+        .kz-captcha-label {
+            font-weight: 700;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+        .kz-captcha-logo { text-align: right; }
+        .kz-captcha-logo img { width: 32px; opacity: 0.7; }
+        .kz-captcha-logo small {
+            display: block;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+        .kz-captcha-hint {
+            margin-top: 16px;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            text-align: center;
+        }
+
+        /* ====================================================
+           QUIZ INTRO SCREEN
+           ==================================================== */
+        /* OVERRIDE white containers from style.css */
+        #quiz-intro, #quiz-game, #quiz-result {
+            background: transparent !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            border: none !important;
+            max-width: 100% !important;
+            position: static !important;
+        }
+
+        #quiz-overlay { background: transparent; }
+        #quiz-overlay.active {
+            background: rgba(15, 15, 26, 0.95);
+        }
+
+        .kz-intro-card {
+            background: #1e2235;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 24px;
+            padding: 48px 36px;
+            width: 90%;
+            max-width: 460px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            animation: kz-scale-in 0.4s var(--ease-bounce);
+            position: relative;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+        .kz-intro-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+        }
+        .kz-intro-icon {
+            font-size: 3.5rem;
+            display: block;
+            margin-bottom: 16px;
+            animation: kz-float 3s ease-in-out infinite;
+        }
+        .kz-intro-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+        .kz-intro-sub {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 28px;
+            line-height: 1.6;
+        }
+        .kz-high-score-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(245,158,11,0.1);
+            border: 1px solid rgba(245,158,11,0.25);
+            color: var(--accent-gold);
+            padding: 8px 18px;
+            border-radius: var(--radius-pill);
+            font-weight: 800;
+            font-size: 0.9rem;
+            margin-bottom: 28px;
+        }
+        #start-quiz-btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: var(--radius-pill);
+            background: var(--gradient-primary);
+            color: #fff;
+            border: none;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.25s;
+            box-shadow: 0 6px 20px var(--primary-glow);
+        }
+        #start-quiz-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(233,69,96,0.45); }
+        #start-quiz-btn:active { transform: scale(0.98); }
+
+        /* ====================================================
+           QUIZ GAME SCREEN
+           ==================================================== */
+        .kz-quiz-card {
+            background: #1e2235;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 24px;
+            padding: 36px 32px;
+            width: 90%;
+            max-width: 460px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            animation: kz-scale-in 0.35s var(--ease-bounce);
+            position: relative;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+        .kz-quiz-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+        }
+
+        /* Settings Gear Menu */
+        .kz-quiz-settings {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            z-index: 9999;
+        }
+        .kz-settings-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .kz-settings-btn:hover {
+            background: rgba(255,255,255,0.1);
+            color: var(--text-primary);
+            transform: rotate(90deg);
+        }
+        .kz-settings-menu {
+            position: absolute;
+            top: 44px;
+            right: 0;
+            background: #2a2f4c;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 170px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            transform-origin: top right;
+            transition: transform 0.2s, opacity 0.2s;
+            opacity: 1;
+            transform: scale(1);
+        }
+        .kz-settings-menu.hidden {
+            display: none;
+            opacity: 0;
+            transform: scale(0.9);
+        }
+        .kz-settings-menu a, .kz-settings-menu button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-align: left;
+            text-decoration: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        .kz-settings-menu a:hover, .kz-settings-menu button:hover {
+            background: rgba(255,255,255,0.05);
+            color: #ffffff;
+        }
+
+        /* Question header row */
+        .kz-quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .kz-question-badge {
+            background: transparent;
+            border: none;
+            color: var(--primary);
+            padding: 0;
+            font-size: 0.9rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .kz-score-live {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--accent-gold);
+            font-weight: 800;
+            font-size: 0.95rem;
+        }
+
+        /* Progress dots */
+        .kz-progress-dots {
+            display: flex; gap: 8px; justify-content: center;
+            margin-bottom: 24px;
+        }
+        .kz-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            transition: all 0.3s var(--ease-bounce);
+        }
+        .kz-dot.answered { background: var(--accent-green); }
+        .kz-dot.current  { background: var(--primary); transform: scale(1.4); box-shadow: 0 0 8px rgba(233,69,96,0.6); }
+
+        /* Question text */
+        #question-text {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1.5;
+            margin-bottom: 28px;
+            min-height: 60px;
+        }
+
+        /* Options grid */
+        .kz-options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .opt-btn {
+            background: #2a2f4c;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 18px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s var(--ease-smooth);
+            text-align: left;
+            color: var(--text-secondary);
+            width: 100%;
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.92rem;
+            font-weight: 700;
+        }
+
+        .opt-letter {
+            width: 28px; height: 28px;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--primary);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 900;
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        .opt-btn:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255,255,255,0.15) !important;
+            color: #ffffff !important;
+            background: #323859 !important; /* overrides style.css */
+        }
+        
+        .opt-btn.selected {
+            background: #166534 !important;
+            border: 1px solid #4ade80 !important;
+            color: #4ade80 !important;
+        }
+        .opt-btn.selected .opt-letter {
+            color: #4ade80;
+        }
+
+        /* Correct / Wrong flash states */
+        .opt-btn.correct {
+            border-color: #4ade80 !important;
+            background: rgba(74,222,128,0.1) !important;
+            color: #4ade80 !important;
+        }
+        .opt-btn.correct .opt-letter {
+            color: #4ade80;
+        }
+        .opt-btn.wrong {
+            border-color: var(--primary) !important;
+            background: rgba(233,69,96,0.1) !important;
+            color: var(--primary) !important;
+        }
+        .opt-btn.wrong .opt-letter {
+            color: var(--primary);
+        }
+
+        /* Disabled state after answer */
+        .opt-btn:disabled { cursor: not-allowed; }
+
+        /* Progress bar (hidden but functional for pattern) */
+        #progress-fill { display: none; }
+
+        /* ====================================================
+           GAME OVER SCREEN
+           ==================================================== */
+        .kz-result-card {
+            background: #1e2235;
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 24px;
+            padding: 40px 32px;
+            width: 90%;
+            max-width: 460px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            animation: kz-scale-in 0.4s var(--ease-bounce);
+            position: relative;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+        .kz-result-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+        }
+
+        /* ====================================================
+           MOBILE RESPONSIVENESS
+           ==================================================== */
+        @media (max-width: 480px) {
+            .kz-intro-card, .kz-quiz-card, .kz-result-card {
+                padding: 24px 20px;
+                width: 95%;
+            }
+            #question-text {
+                font-size: 1.1rem;
+                margin-bottom: 20px;
+            }
+            .kz-options-grid {
+                grid-template-columns: 1fr; /* Stack options on mobile */
+                gap: 10px;
+            }
+            .opt-btn {
+                padding: 14px 12px;
+            }
+        }
+
+        .kz-score-ring {
+            width: 130px; height: 130px;
+            border-radius: 50%;
+            border: 4px solid var(--primary);
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            margin: 0 auto 24px;
+            background: radial-gradient(circle, rgba(233,69,96,0.08), transparent);
+            animation: kz-pulse-glow 2s ease-in-out infinite;
+        }
+        .kz-score-ring .score-num {
+            font-family: 'Poppins', sans-serif;
+            font-size: 2.8rem;
+            font-weight: 900;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+        .kz-score-ring .score-lbl {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        .kz-result-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        .kz-result-sub {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+        }
+
+        .kz-result-stats {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+        .kz-result-stat {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 12px 20px;
+            text-align: center;
+        }
+        .kz-result-stat-num { font-family: 'Poppins', sans-serif; font-size: 1.2rem; font-weight: 800; color: var(--text-primary); }
+        .kz-result-stat-lbl { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; }
+
+        .kz-rank-reveal {
+            background: rgba(245,158,11,0.1);
+            border: 1px solid rgba(245,158,11,0.25);
+            border-radius: var(--radius-md);
+            padding: 12px 20px;
+            margin-bottom: 24px;
+            display: none;
+        }
+        .kz-rank-reveal .rank-text { color: var(--accent-gold); font-weight: 800; font-size: 1rem; }
+        .kz-rank-reveal .rank-sub  { color: var(--text-muted); font-size: 0.8rem; margin-top: 4px; }
+
+        #restart-btn {
+            width: 100%;
+            padding: 15px;
+            border-radius: var(--radius-pill);
+            background: var(--gradient-primary);
+            color: #fff;
+            border: none;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.25s;
+            box-shadow: 0 4px 16px var(--primary-glow);
+            margin-bottom: 12px;
+        }
+        #restart-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(233,69,96,0.4); }
+
+        .btn-leaderboard {
+            width: 100%;
+            padding: 13px;
+            border-radius: var(--radius-pill);
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1.5px solid var(--border-medium);
+            font-family: 'Nunito', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: block;
+            text-align: center;
+        }
+        .btn-leaderboard:hover { border-color: var(--accent-gold); color: var(--accent-gold); background: rgba(245,158,11,0.05); }
+
+        /* ====================================================
+           QUIZ CONFIG SELECTOR PILLS
+           ==================================================== */
+        .kz-config-section {
+            margin-bottom: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .kz-config-group {
+            text-align: center;
+        }
+        .kz-config-label {
+            display: block;
+            font-size: 0.68rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+        .kz-pill-group {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 4px;
+            min-width: 260px; /* Force both containers to be the same size */
+        }
+        .kz-pill {
+            flex: 1; /* Stretch evenly */
+            text-align: center;
+            padding: 8px 16px;
+            border-radius: 8px; /* Snug fit inside the 12px container */
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            font-weight: 700;
+            font-family: 'Nunito', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .kz-pill:hover {
+            color: var(--text-primary);
+        }
+        .kz-pill.active {
+            background: var(--primary);
+            color: #fff;
+            box-shadow: 0 2px 8px var(--primary-glow);
+        }
+
+        /* ====================================================
+           VAULT SCREEN — untouched dark theme
+           Overrides are already in style.css
+           ==================================================== */
+        #vault-screen { font-family: 'Courier New', Courier, monospace; }
+    </style>
+</head>
+<body>
+
+    <!-- ===== LOADING SCREEN ===== -->
+    <div id="loading-screen" class="screen active">
+        <div class="kz-loader-wrap">
+            <span class="kz-loader-logo">🧠</span>
+            <div class="kz-spinner"></div>
+            <div class="kz-loader-title" id="loading-text">Verifying Credentials...</div>
+            <div class="kz-loader-sub">Please wait</div>
+        </div>
+    </div>
+
+    <!-- ===== CAPTCHA SCREEN ===== -->
+    <div id="captcha-screen" class="screen hidden">
+        <div class="kz-captcha-wrap">
+            <div class="kz-captcha-row">
+                <div class="kz-captcha-left">
+                    <input type="checkbox" class="kz-captcha-check" id="robot-check">
+                    <label for="robot-check" class="kz-captcha-label">I'm not a robot</label>
+                </div>
+                <div class="kz-captcha-logo">
+                    <img src="https://www.gstatic.com/recaptcha/api2/logo_48.png" alt="reCAPTCHA">
+                    <span style="font-size:0.7rem;color:var(--text-muted);display:block;">reCAPTCHA</span>
+                    <small style="color:var(--text-muted);font-size:0.6rem;">Privacy · Terms</small>
+                </div>
+            </div>
+        </div>
+        <p class="kz-captcha-hint" style="margin-top:16px; color:var(--text-muted); font-size:0.85rem;">Verify to continue to the game</p>
+    </div>
+
+    <!-- ===== QUIZ OVERLAY ===== -->
+    <div id="quiz-overlay" class="screen hidden">
+
+        <!-- INTRO -->
+        <div id="quiz-intro">
+            <a href="javascript:history.back()" class="kz-back-btn" style="position: absolute; top: 24px; left: 24px; display: inline-flex !important; z-index: 9999; color: #fff;"><span>←</span> Back</a>
+            <div class="kz-intro-card">
+                <span class="kz-intro-icon">🎮</span>
+                <h1 class="kz-intro-title">Daily Brain Teaser</h1>
+                <p class="kz-intro-sub">Configure your challenge and prove your intelligence. Every correct answer earns you <strong>10 points</strong>.</p>
+
+                <div class="kz-high-score-pill">
+                    🏆 High Score: <span id="high-score-display">0</span> pts
+                </div>
+
+                <!-- Quiz Config -->
+                <div class="kz-config-section">
+                    <div class="kz-config-group">
+                        <label class="kz-config-label">Questions</label>
+                        <div class="kz-pill-group" id="length-selector">
+                            <button class="kz-pill active" data-value="5">5</button>
+                            <button class="kz-pill" data-value="10">10</button>
+                            <button class="kz-pill" data-value="20">20</button>
+                        </div>
+                    </div>
+                    <div class="kz-config-group">
+                        <label class="kz-config-label">Difficulty</label>
+                        <div class="kz-pill-group" id="difficulty-selector">
+                            <button class="kz-pill active" data-value="easy">Easy</button>
+                            <button class="kz-pill" data-value="medium">Medium</button>
+                            <button class="kz-pill" data-value="hard">Hard</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="start-quiz-btn">🚀 Start Game</button>
+            </div>
+        </div>
+
+        <!-- GAME -->
+        <div id="quiz-game" class="hidden">
+            <!-- Settings Gear -->
+            <div class="kz-quiz-settings">
+                <button id="quiz-settings-btn" class="kz-settings-btn">⚙️</button>
+                <div id="quiz-settings-menu" class="kz-settings-menu hidden">
+                    <a href="profile.html">👤 Profile</a>
+                    <a href="leaderboard.html">🏆 Leaderboard</a>
+                    <button id="quiz-sound-toggle">🔊 Sound: On</button>
+                    <button id="quiz-quit-btn">🏠 Quit Game</button>
+                </div>
+            </div>
+            
+            <div class="kz-quiz-card">
+
+
+                <!-- Header -->
+                <div class="kz-quiz-header">
+                    <span class="kz-question-badge" id="question-counter">Question 1 / 5</span>
+                    <div class="kz-score-live">🏆 <span id="score-display">0</span> pts</div>
+                </div>
+
+                <!-- Progress dots (dynamically generated by JS) -->
+                <div class="kz-progress-dots" id="progress-dots-container">
+                </div>
+
+                <!-- Question -->
+                <p id="question-text">Loading question...</p>
+
+                <!-- Options -->
+                <div class="kz-options-grid">
+                    <button class="opt-btn" data-val="A">
+                        <span class="opt-letter">A</span>
+                        <span class="opt-text">...</span>
+                    </button>
+                    <button class="opt-btn" data-val="B">
+                        <span class="opt-letter">B</span>
+                        <span class="opt-text">...</span>
+                    </button>
+                    <button class="opt-btn" data-val="C">
+                        <span class="opt-letter">C</span>
+                        <span class="opt-text">...</span>
+                    </button>
+                    <button class="opt-btn" data-val="D">
+                        <span class="opt-letter">D</span>
+                        <span class="opt-text">...</span>
+                    </button>
+                </div>
+
+                <!-- Hidden progress fill (kept for JS compatibility) -->
+                <div style="display:none;">
+                    <div id="progress-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESULT -->
+        <div id="quiz-result" class="hidden">
+            <div class="kz-result-card">
+                <div class="kz-score-ring">
+                    <div class="score-num" id="final-score">0</div>
+                    <div class="score-lbl">Points</div>
+                </div>
+
+                <h2 class="kz-result-title" id="result-title">Nice Try! 🎯</h2>
+                <p class="kz-result-sub" id="result-subtitle">Keep practicing to beat your high score!</p>
+
+                <div class="kz-result-stats">
+                    <div class="kz-result-stat">
+                        <div class="kz-result-stat-num" id="correct-count">0/5</div>
+                        <div class="kz-result-stat-lbl">Correct</div>
+                    </div>
+                    <div class="kz-result-stat">
+                        <div class="kz-result-stat-num" id="personal-best">0</div>
+                        <div class="kz-result-stat-lbl">Best Score</div>
+                    </div>
+                </div>
+
+                <div class="kz-rank-reveal" id="rank-reveal">
+                    <div class="rank-text" id="rank-text">🏆 Rank #—</div>
+                    <div class="rank-sub">on the global leaderboard</div>
+                </div>
+
+                <button id="restart-btn">↻ Play Again</button>
+                <a href="leaderboard.html" class="btn-leaderboard">🌍 View Leaderboard</a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===== VAULT SCREEN (untouched) ===== -->
+    <div id="vault-screen" class="screen hidden">
+
+        <button id="mobile-menu-btn" class="mobile-menu-btn">☰</button>
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+        <div class="dashboard-container">
+            <aside class="sidebar">
+                <div class="sidebar-top">
+                    <div class="logo">
+                        <h2>🔐 Vault</h2>
+                    </div>
+                    <ul class="nav-static">
+                        <li id="personal-vault-btn" class="active">My Private Vault</li>
+                    </ul>
+                    <hr class="divider">
+                    <p class="section-label">SHARED GROUPS</p>
+                </div>
+                <ul class="nav-list" id="group-list"></ul>
+                <div class="sidebar-bottom">
+                    <input type="text" id="new-group-name" placeholder="New Group Name">
+                    <button id="create-group-btn">Create Group</button>
+                    <div class="join-zone">
+                        <input type="text" id="join-group-code" placeholder="Enter Code">
+                        <button id="join-group-btn">Join</button>
+                    </div>
+                    <button id="logout-btn" class="logout-btn">Logout</button>
+                </div>
+            </aside>
+
+            <main class="content-area">
+                <header class="content-header">
+                    <div class="header-left">
+                        <h2 id="current-view-title">Personal Vault</h2>
+                        <div id="members-display" class="members-container hidden"></div>
+                    </div>
+                    <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
+                        <div id="vault-user-profile" style="text-align: right; line-height: 1.2;">
+                            <div id="vault-username" style="color: #fff; font-weight: bold; font-size: 1rem;">User</div>
+                            <div id="vault-userrank" style="color: #00e5ff; font-family: monospace; font-size: 0.85rem;">Rank: ---</div>
+                        </div>
+                        <span id="group-code-display" class="code-badge hidden">Code: ---</span>
+                        <button id="danger-btn" class="danger-btn hidden">Leave Group</button>
+                    </div>
+                </header>
+
+                <div class="vault-tabs" id="vault-tabs">
+                    <button class="tab-btn active" data-target="editor-view">📝 Notes</button>
+                    <button class="tab-btn" data-target="gallery-view">🖼️ Gallery</button>
+                </div>
+
+                <div id="editor-view" class="view-panel active" style="display:block;">
+                    <div id="vault-content" class="vault-container"></div>
+                </div>
+
+                <div id="gallery-view" class="view-panel" style="display:none;">
+                    <section class="card">
+                        <div class="photo-grid" id="photo-grid"></div>
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div id="lightbox" class="hidden">
+        <span class="lb-close" onclick="closeLightbox()">&times;</span>
+        <img id="lightbox-img" src="">
+        <div class="lightbox-controls">
+            <a id="lb-download" href="#" download class="lb-btn">Download Original</a>
+            <button class="lb-btn" onclick="closeLightbox()">Close</button>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toast-container"></div>
+
+    <!-- Custom Modal -->
+    <div id="custom-modal-overlay" class="hidden">
+        <div id="custom-modal">
+            <h3 id="modal-title">Title</h3>
+            <p id="modal-message">Message goes here...</p>
+            <input type="text" id="modal-input" class="hidden" placeholder="Type here...">
+            <div class="modal-actions">
+                <button id="modal-cancel-btn" class="btn-ghost">Cancel</button>
+                <button id="modal-confirm-btn" class="btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/quiz-logic.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/main.js" defer></script>
+</body>
+</html>

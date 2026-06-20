@@ -3,62 +3,130 @@
 // ==========================================
 // 1. STATE & VARIABLES
 // ==========================================
-let userCredentials = { email: '', password: '' };
 let currentPattern = []; 
 let currentContext = { type: 'personal', id: null }; 
-let fakeScore = 0; // Track the "Game" score
-let highScore = localStorage.getItem('fakeHighScore') || 0; // Load from memory
+let fakeScore = 0;
+let correctCount = 0;
+let questionIndex = 0;
+let highScore = 0;
+let globalUserData = null; // Store user data globally
+// Track if user already failed the pattern check (persists across page reloads via sessionStorage)
+let patternFailed = sessionStorage.getItem('patternFailed') === 'true';
+
+// --- QUIZ CONFIG STATE ---
+let quizLength = 5;        // 5, 10, or 20
+let quizDifficulty = 'easy';
+let quizDomain = 'all';
+let patternCheckedThisGame = false; // Has the 5-question pattern check happened yet?
+let isInScoredPhase = false;        // Are we past the pattern window (for 10/20 modes)?
 
 // DOM Elements
-const loadingScreen = document.getElementById('loading-screen');
-const loadingText = document.getElementById('loading-text');
-const captchaScreen = document.getElementById('captcha-screen');
-const robotCheck = document.getElementById('robot-check');
-const loginForm = document.getElementById('login-form');
-const quizIntro = document.getElementById('quiz-intro');
-const quizGame = document.getElementById('quiz-game');
-const startQuizBtn = document.getElementById('start-quiz-btn');
-const vaultScreen = document.getElementById('vault-screen');
-
-const quizResult = document.getElementById('quiz-result');
-const restartBtn = document.getElementById('restart-btn');
+const loadingScreen    = document.getElementById('loading-screen');
+const loadingText      = document.getElementById('loading-text');
+const captchaScreen    = document.getElementById('captcha-screen');
+const robotCheck       = document.getElementById('robot-check');
+const quizIntro        = document.getElementById('quiz-intro');
+const quizGame         = document.getElementById('quiz-game');
+const startQuizBtn     = document.getElementById('start-quiz-btn');
+const vaultScreen      = document.getElementById('vault-screen');
+const quizResult       = document.getElementById('quiz-result');
+const restartBtn       = document.getElementById('restart-btn');
 const highScoreDisplay = document.getElementById('high-score-display');
-// Init High Score UI
-if(highScoreDisplay) highScoreDisplay.innerText = highScore;
 
 // ==========================================
-// 2. AUTHENTICATION FLOW (The Disguise)
+// 2. INITIALIZATION — Verify token on load
 // ==========================================
+(function initApp() {
+    const isAuth = document.cookie.includes('isAuthenticated=true');
+    if (!isAuth) {
+        // No token → go to login
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    // Verify token is valid with the server
+    fetch('/api/auth', { credentials: "include" })
+        .then(res => {
+            if (res.ok) {
+                return res.json();
+            } else {
+                throw new Error('Invalid token');
+            }
+        })
+        .then(userData => {
+            globalUserData = userData; // Save for vault use
+            highScore = userData.highScore || 0;
+            if (highScoreDisplay) highScoreDisplay.innerText = highScore;
 
-// --- EVENT: LOGIN FORM SUBMIT ---
-if(loginForm) {
-    loginForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        userCredentials.email = document.getElementById('email').value;
-        userCredentials.password = document.getElementById('password').value;
+            setTimeout(() => startQuizFlow(), 500);
+        })
+        .catch(() => {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';
+        });
+})();
 
-        // Switch to Loading
-        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-        
-        loadingScreen.classList.remove('hidden');
-        loadingScreen.classList.add('active');
-        loadingText.innerText = "Verifying Credentials...";
-        loadingText.style.color = "#fff";
-
-        // THE ILLUSION
-        setTimeout(() => {
-            loadingText.innerText = "Unusual Traffic Detected.";
-            loadingText.style.color = "#ff4444"; 
-            setTimeout(() => {
-                loadingScreen.classList.remove('active');
-                loadingScreen.classList.add('hidden');
-                captchaScreen.classList.remove('hidden');
-                captchaScreen.classList.add('active');
-            }, 1500);
-        }, 2000);
-    });
+// Show vault directly (used after successful pattern verification)
+function showVaultDirectly() {
+    document.querySelectorAll('.screen').forEach(s => { s.classList.add('hidden'); s.classList.remove('active'); });
+    vaultScreen.classList.remove('hidden');
+    vaultScreen.classList.add('active');
+    loadVaultData();
 }
+
+// Keyboard shortcut to bypass quiz
+window.addEventListener('keydown', (e) => {
+    // Check for Ctrl + Shift + X
+    if (e.ctrlKey && e.shiftKey && e.key === 'X') {
+        const isAuth = document.cookie.includes('isAuthenticated=true');
+        if (isAuth) {
+            console.log('Secret shortcut activated! Bypassing to vault...');
+            e.preventDefault(); // Prevent default browser action just in case
+            showVaultDirectly();
+        }
+    }
+});
+
+// Track if user has seen the captcha this session
+let hasSeenCaptcha = sessionStorage.getItem('hasSeenCaptcha') === 'true';
+
+// Start the quiz flow: Loading → Captcha → Quiz
+function startQuizFlow() {
+    document.querySelectorAll('.screen').forEach(s => { s.classList.add('hidden'); s.classList.remove('active'); });
+    
+    if (hasSeenCaptcha) {
+        // Skip the traffic delay on subsequent attempts
+        const overlay = document.getElementById('quiz-overlay');
+        if(overlay) {
+            overlay.classList.remove('hidden');
+            overlay.classList.add('active');
+        }
+        quizIntro.classList.remove('hidden');
+        quizGame.classList.add('hidden');
+        return;
+    }
+
+    // First time this session: show traffic delay
+    loadingScreen.classList.remove('hidden');
+    loadingScreen.classList.add('active');
+    if (loadingText) { loadingText.innerText = 'Verifying Credentials...'; }
+
+    setTimeout(() => {
+        if (loadingText) { loadingText.innerText = 'Unusual Traffic Detected.'; loadingText.style.color = '#E94560'; }
+        setTimeout(() => {
+            loadingScreen.classList.remove('active'); loadingScreen.classList.add('hidden');
+            captchaScreen.classList.remove('hidden'); captchaScreen.classList.add('active');
+            sessionStorage.setItem('hasSeenCaptcha', 'true');
+        }, 1500);
+    }, 2000);
+}
+
+// Init high score UI
+if (highScoreDisplay) highScoreDisplay.innerText = highScore;
+
+// ==========================================
+// 3. QUIZ FLOW
+// ==========================================
 
 // --- EVENT: CAPTCHA CHECKED ---
 if(robotCheck) {
@@ -80,62 +148,153 @@ if(robotCheck) {
     });
 }
 
+// --- EVENT: QUIZ SETTINGS MENU ---
+const settingsBtn = document.getElementById('quiz-settings-btn');
+const settingsMenu = document.getElementById('quiz-settings-menu');
+const quizQuitBtn = document.getElementById('quiz-quit-btn');
+const quizSoundToggle = document.getElementById('quiz-sound-toggle');
+let quizSoundEnabled = true;
+
+if (settingsBtn && settingsMenu) {
+    settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        settingsMenu.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!settingsBtn.contains(e.target) && !settingsMenu.contains(e.target)) {
+            settingsMenu.classList.add('hidden');
+        }
+    });
+}
+
+if (quizQuitBtn) {
+    quizQuitBtn.addEventListener('click', () => {
+        // Quit game: hide game screen and show intro screen
+        settingsMenu.classList.add('hidden');
+        quizGame.classList.add('hidden');
+        quizIntro.classList.remove('hidden');
+    });
+}
+
+if (quizSoundToggle) {
+    quizSoundToggle.addEventListener('click', () => {
+        quizSoundEnabled = !quizSoundEnabled;
+        quizSoundToggle.innerText = quizSoundEnabled ? '🔊 Sound: On' : '🔇 Sound: Off';
+    });
+}
+
+// --- PILL SELECTOR LOGIC ---
+document.querySelectorAll('.kz-pill-group').forEach(group => {
+    group.querySelectorAll('.kz-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+            group.querySelectorAll('.kz-pill').forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+        });
+    });
+});
+
 // --- EVENT: START QUIZ ---
-if(startQuizBtn) {
+if (startQuizBtn) {
     startQuizBtn.addEventListener('click', () => {
+        // 1. Read config from UI
+        const lengthPill = document.querySelector('#length-selector .kz-pill.active');
+        const diffPill = document.querySelector('#difficulty-selector .kz-pill.active');
+        const domainPill = document.querySelector('#domain-selector .kz-pill.active');
+        quizLength = parseInt(lengthPill?.dataset.value || '5');
+        quizDifficulty = diffPill?.dataset.value || 'easy';
+        quizDomain = domainPill?.dataset.value || 'all';
+
+        // 2. Reset state
+        questionIndex = 0;
+        fakeScore = 0;
+        correctCount = 0;
+        currentPattern = [];
+        patternCheckedThisGame = false;
+        isInScoredPhase = (quizLength === 5); // For 5-question mode, all questions are scored
+
+        // 3. Reset score UI
+        const scoreEl = document.getElementById('score-display');
+        if (scoreEl) scoreEl.innerText = '0';
+
+        // 4. Generate dynamic progress dots
+        const dotsContainer = document.getElementById('progress-dots-container');
+        if (dotsContainer) {
+            dotsContainer.innerHTML = '';
+            for (let i = 0; i < quizLength; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'kz-dot';
+                dot.id = `dot-${i}`;
+                if (i === 0) dot.classList.add('current');
+                dotsContainer.appendChild(dot);
+            }
+        }
+
+        // 5. Switch screens
         quizIntro.classList.add('hidden');
         quizGame.classList.remove('hidden');
-        
-        // LOAD THE FIRST QUESTION FROM YOUR NEW LOGIC
         loadNewQuestion();
     });
 }
 
-// --- EVENT: QUIZ ANSWERS (Dual Logic) ---
+// --- EVENT: QUIZ ANSWERS ---
 document.querySelectorAll('.opt-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
-        // 1. SECRET PATTERN LOGIC (Auth)
-        // We track WHICH button was clicked (Position A, B, C, D)
+        if (btn.disabled) return;
+        document.querySelectorAll('.opt-btn').forEach(b => b.disabled = true);
+
         const targetBtn = e.target.closest('.opt-btn');
         const val = targetBtn.getAttribute('data-val');
-        
         currentPattern.push(val);
 
-        // Visual Feedback (Hidden Progress Bar)
-        const progress = document.getElementById('progress-fill');
-        if(progress) progress.style.width = `${currentPattern.length * 20}%`;
-
-        // 2. FAKE GAME LOGIC (Score)
-        // We check if the TEXT inside matches the correct answer
+        // GAME LOGIC: check if correct answer
         const selectedText = targetBtn.querySelector('.opt-text').innerText;
-        const correctText = targetBtn.getAttribute('data-correct-answer');
+        const correctText  = targetBtn.getAttribute('data-correct-answer');
+        const isCorrect    = (selectedText === correctText);
 
-        if (selectedText === correctText) {
+        if (isCorrect) {
             fakeScore += 10;
-            targetBtn.style.background = "#d4edda"; // Flash Green
-            targetBtn.style.borderColor = "#28a745";
+            correctCount++;
+            targetBtn.classList.add('correct');
         } else {
-            targetBtn.style.background = "#f8d7da"; // Flash Red
-            targetBtn.style.borderColor = "#dc3545";
+            targetBtn.classList.add('wrong');
+            document.querySelectorAll('.opt-btn').forEach(b => {
+                if (b.querySelector('.opt-text').innerText === correctText) {
+                    b.classList.add('correct');
+                }
+            });
         }
-        
-        // Update Score UI
-        const scoreEl = document.getElementById('score-display');
-        if(scoreEl) scoreEl.innerText = fakeScore;
 
-        // 3. DECISION: OPEN VAULT OR NEXT QUESTION?
-        if (currentPattern.length === 5) {
-            attemptLogin(); // Pattern Complete
+        // Update score display
+        const scoreEl = document.getElementById('score-display');
+        if (scoreEl) scoreEl.innerText = fakeScore;
+
+        // Update progress dot
+        const dot = document.getElementById(`dot-${questionIndex}`);
+        if (dot) { dot.classList.remove('current'); dot.classList.add('answered'); }
+
+        questionIndex++;
+
+        // --- DECISION: Pattern check or next question? ---
+        if (!patternCheckedThisGame && currentPattern.length === 5) {
+            // Time to check the pattern (for ALL quiz lengths)
+            patternCheckedThisGame = true;
+            setTimeout(() => verifyPatternAndDecide(), 700);
+        } else if (questionIndex >= quizLength) {
+            // All questions answered → game over
+            setTimeout(() => triggerGameOver(), 700);
         } else {
-            // Wait 0.5s so user sees Green/Red flash, then load next
+            // Advance to next dot & load next question
+            const nextDot = document.getElementById(`dot-${questionIndex}`);
+            if (nextDot) nextDot.classList.add('current');
+
             setTimeout(() => {
-                // Reset styles
                 document.querySelectorAll('.opt-btn').forEach(b => {
-                    b.style.background = "";
-                    b.style.borderColor = "";
+                    b.classList.remove('correct', 'wrong');
+                    b.disabled = false;
                 });
                 loadNewQuestion();
-            }, 500);
+            }, 700);
         }
     });
 });
@@ -143,52 +302,76 @@ document.querySelectorAll('.opt-btn').forEach(btn => {
 // --- HELPER: LOAD NEW QUESTION ---
 function loadNewQuestion() {
     if (typeof Cipher === 'undefined') {
-        console.error("Cipher logic missing! Check quiz-logic.js");
+        console.error('Cipher logic missing! Check quiz-logic.js');
         return;
     }
 
-    // Get random round { text, options, correctAnswer }
-    const round = Cipher.getNewRound();
+    const round = Cipher.getNewRound(quizDifficulty, quizDomain);
+    if (!round) {
+        console.error('No questions available for this filter!');
+        return;
+    }
     
-    // Set Question Text
     const qText = document.getElementById('question-text');
-    if(qText) qText.innerText = round.text;
+    if (qText) qText.innerText = round.text;
 
-    // Set Options A, B, C, D
-    const buttons = document.querySelectorAll('.opt-btn');
-    buttons.forEach((btn, index) => {
+    const counter = document.getElementById('question-counter');
+    if (counter) counter.innerText = `Question ${questionIndex + 1} / ${quizLength}`;
+
+    document.querySelectorAll('.opt-btn').forEach((btn, index) => {
         const span = btn.querySelector('.opt-text');
-        if(span) {
-            span.innerText = round.options[index];
-        }
-        // Store the correct answer ON the button to check later
+        if (span) span.innerText = round.options[index];
         btn.setAttribute('data-correct-answer', round.correctAnswer);
+        btn.disabled = false;
+        btn.classList.remove('correct', 'wrong');
     });
 }
 
-// --- FUNCTION: REAL LOGIN ATTEMPT ---
-async function attemptLogin() {
-    // Optional: Visual feedback "Verifying..."
+// ==========================================
+// 4. PATTERN VERIFICATION — The Core Logic
+// ==========================================
+async function verifyPatternAndDecide() {
     const qText = document.getElementById('question-text');
-    if(qText) qText.innerText = "Verifying...";
+
+    // If the user already failed the pattern in this session → they're trapped
+    // They can play the quiz for fun/leaderboard but vault never opens
+    if (patternFailed) {
+        if (quizLength === 5) {
+            // 5-question mode: game is over
+            if(qText) qText.innerText = "Calculating Score...";
+            setTimeout(() => triggerGameOver(), 500);
+        } else {
+            // 10/20-question mode: continue to scored phase
+            isInScoredPhase = true;
+            // Score is already counting from Q1, keep going
+            const nextDot = document.getElementById(`dot-${questionIndex}`);
+            if (nextDot) nextDot.classList.add('current');
+            setTimeout(() => {
+                document.querySelectorAll('.opt-btn').forEach(b => {
+                    b.classList.remove('correct', 'wrong');
+                    b.disabled = false;
+                });
+                loadNewQuestion();
+            }, 700);
+        }
+        return;
+    }
+
+    // First attempt this session → actually verify the pattern with backend
+    if(qText) qText.innerText = "Analyzing Pattern...";
 
     try {
-        const res = await fetch('/api/auth/login', {
+        const res = await fetch('/api/auth/verify-pattern', {
+            credentials: 'include', 
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                email: userCredentials.email,
-                password: userCredentials.password,
-                pattern: currentPattern
-            })
+            body: JSON.stringify({ pattern: currentPattern })
         });
 
         const data = await res.json();
 
-        if (res.ok) {
-            // SUCCESS: Open Vault
-            localStorage.setItem('token', data.token);
-            
+        if (res.ok && data.unlocked === true) {
+            // ✅ PATTERN CORRECT → Open the Vault! (Game is discarded, no score submitted)
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
 
@@ -197,14 +380,32 @@ async function attemptLogin() {
             loadVaultData();
 
         } else {
-            // FAILURE: TRIGGER GAME OVER
-            // Instead of reloading, we show the "Nice Try" screen
-            triggerGameOver();
+            // ❌ PATTERN WRONG → Mark as failed
+            patternFailed = true;
+            sessionStorage.setItem('patternFailed', 'true');
+
+            if (quizLength === 5) {
+                // 5-question mode: game over now
+                triggerGameOver();
+            } else {
+                // 10/20-question mode: continue to remaining questions
+                isInScoredPhase = true;
+                // Score is already counting, just continue
+                const nextDot = document.getElementById(`dot-${questionIndex}`);
+                if (nextDot) nextDot.classList.add('current');
+                setTimeout(() => {
+                    document.querySelectorAll('.opt-btn').forEach(b => {
+                        b.classList.remove('correct', 'wrong');
+                        b.disabled = false;
+                    });
+                    loadNewQuestion();
+                }, 700);
+            }
         }
     } catch (err) {
-        console.error(err);
+        console.error('Pattern verification error:', err);
         UI.toast("Server Error", "error");
-        triggerGameOver(); // Fail safe to Game Over
+        triggerGameOver();
     }
 }
 
@@ -236,27 +437,27 @@ document.addEventListener('DOMContentLoaded', () => {
         personalBtn.addEventListener('click', () => {
             currentContext = { type: 'personal', id: null };
             loadVaultData();
-            
+
             document.querySelectorAll('.nav-list li, .nav-static li').forEach(el => el.classList.remove('active'));
             personalBtn.classList.add('active');
 
-            if(window.innerWidth <= 768) {
+            if (window.innerWidth <= 768) {
                 sidebar.classList.remove('active');
                 overlay.classList.remove('active');
             }
         });
     }
-    
+
     // Setup Other Buttons
     const createGroupBtn = document.getElementById('create-group-btn');
-    if(createGroupBtn) createGroupBtn.addEventListener('click', handleCreateGroup);
-    
+    if (createGroupBtn) createGroupBtn.addEventListener('click', handleCreateGroup);
+
     const joinGroupBtn = document.getElementById('join-group-btn');
-    if(joinGroupBtn) joinGroupBtn.addEventListener('click', handleJoinGroup);
-    
+    if (joinGroupBtn) joinGroupBtn.addEventListener('click', handleJoinGroup);
+
     // --- LOGOUT LOGIC ---
     const logoutBtn = document.getElementById('logout-btn');
-    if(logoutBtn) {
+    if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
             // Optional: Ask for confirmation using our new UI
             if (typeof UI !== 'undefined') {
@@ -266,27 +467,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // 1. Destroy Token
+            // 1. Destroy Token & Reset Pattern Lock
             localStorage.removeItem('token');
-            
+            sessionStorage.removeItem('patternFailed');
+
             // 2. Optional: Destroy other local keys if you have them
             // localStorage.removeItem('fakeHighScore'); 
 
-            // 3. Reload App
-            location.reload();
+            // 3. Redirect to login
+            window.location.href = 'login.html';
         });
     }
 });
 
 // --- MAIN DATA LOADER ---
 async function loadVaultData() {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    const isAuth = document.cookie.includes('isAuthenticated=true');
+    if (!isAuth) return;
 
     try {
-        const res = await fetch('/api/auth', { headers: { 'x-auth-token': token } });
+        const res = await fetch('/api/auth', { credentials: "include" });
         const userData = await res.json();
-        
+
         renderSidebarGroups(userData.groups || []);
 
         const photoCard = document.querySelector('#photo-grid');
@@ -296,14 +498,25 @@ async function loadVaultData() {
         const membersDiv = document.getElementById('members-display');
 
         // Reset UI visibility
-        if(codeBadge) codeBadge.classList.add('hidden');
-        if(dangerBtn) dangerBtn.classList.add('hidden');
-        if(membersDiv) membersDiv.classList.add('hidden');
+        if (codeBadge) codeBadge.classList.add('hidden');
+        if (dangerBtn) dangerBtn.classList.add('hidden');
+        if (membersDiv) membersDiv.classList.add('hidden');
+
+        const profileDiv = document.getElementById('vault-user-profile');
+        if (profileDiv && globalUserData) {
+            profileDiv.innerHTML = `
+                <div id="vault-username" style="color: #fff; font-weight: bold; font-size: 1rem;">${globalUserData.username || 'User'}</div>
+                <div id="vault-userrank" style="color: #00e5ff; font-family: monospace; font-size: 0.85rem;">${globalUserData.email || ''}</div>
+            `;
+        }
 
         if (currentContext.type === 'personal') {
-            if(viewTitle) viewTitle.innerText = "My Private Vault";
-            
-            const pageRes = await fetch('/api/pages/personal', { headers: { 'x-auth-token': token } });
+            const existingDash = document.querySelector('.group-dashboard');
+            if (existingDash) existingDash.remove();
+
+            if (viewTitle) viewTitle.innerText = "My Private Vault";
+
+            const pageRes = await fetch('/api/pages/personal', { credentials: "include" });
             const pages = await pageRes.json();
             renderNotionView(pages, 'personal', null);
 
@@ -314,24 +527,24 @@ async function loadVaultData() {
 
         } else {
             // GROUP MODE
-            const groupRes = await fetch(`/api/groups/${currentContext.id}`, { headers: { 'x-auth-token': token } });
+            const groupRes = await fetch(`/api/groups/${currentContext.id}`, { credentials: "include" });
             const groupData = await groupRes.json();
 
-            if(viewTitle) viewTitle.innerText = groupData.name;
-            
-            // GROUP DASHBOARD INJECTION
+            if (viewTitle) viewTitle.innerText = groupData.name;
+
             const container = document.getElementById('vault-content');
             
-            // Check Admin Status
+            // Clear previous dashboard if any
+            const existingDash = document.querySelector('.group-dashboard');
+            if (existingDash) existingDash.remove();
+
             const myId = userData._id;
             const adminId = (groupData.admin && groupData.admin._id) ? groupData.admin._id : groupData.admin;
             const isAdmin = (myId === adminId);
-            
+
             const btnText = isAdmin ? "Delete Group" : "Leave Group";
             const btnClass = isAdmin ? "btn-danger" : "btn-warning";
-            const btnAction = isAdmin 
-                ? `deleteGroup('${currentContext.id}')` 
-                : `leaveGroup('${currentContext.id}')`;
+            const btnAction = isAdmin ? `deleteGroup('${currentContext.id}')` : `leaveGroup('${currentContext.id}')`;
 
             const dashboardHTML = `
                 <div class="group-dashboard">
@@ -347,14 +560,19 @@ async function loadVaultData() {
                 </div>
             `;
 
-            // Render Content
-            const pageRes = await fetch(`/api/pages/group/${currentContext.id}`, { headers: { 'x-auth-token': token } });
+            const pageRes = await fetch(`/api/pages/group/${currentContext.id}`, { credentials: "include" });
             const pages = await pageRes.json();
-            
+
             renderNotionView(pages, 'group', currentContext.id);
+
             
-            // Inject Dashboard
-            if(container) container.insertAdjacentHTML('afterbegin', dashboardHTML);
+            const tabsContainer = document.getElementById('vault-tabs');
+            if (tabsContainer) {
+                tabsContainer.insertAdjacentHTML('beforebegin', dashboardHTML);
+            } else if (container) {
+                container.insertAdjacentHTML('afterbegin', dashboardHTML);
+            }
+
 
             if (photoCard) {
                 photoCard.style.display = 'block';
@@ -375,7 +593,7 @@ function renderSidebarGroups(groups) {
     groups.forEach(group => {
         const li = document.createElement('li');
         li.innerText = group.name;
-        
+
         if (currentContext.type === 'group' && currentContext.id === group._id) {
             li.classList.add('active');
         }
@@ -383,16 +601,16 @@ function renderSidebarGroups(groups) {
         li.addEventListener('click', () => {
             currentContext = { type: 'group', id: group._id };
             loadVaultData();
-            
+
             document.querySelectorAll('.nav-list li, .nav-static li').forEach(el => el.classList.remove('active'));
             li.classList.add('active');
 
             // Close Mobile Menu
             const sidebar = document.querySelector('.sidebar');
             const overlay = document.getElementById('sidebar-overlay');
-            if(window.innerWidth <= 768 && sidebar) {
+            if (window.innerWidth <= 768 && sidebar) {
                 sidebar.classList.remove('active');
-                if(overlay) overlay.classList.remove('active');
+                if (overlay) overlay.classList.remove('active');
             }
         });
         list.appendChild(li);
@@ -440,7 +658,7 @@ function renderNotionView(pages, contextType, contextId) {
         li.onclick = () => {
             document.querySelectorAll('.page-item').forEach(el => el.classList.remove('active-page'));
             li.classList.add('active-page');
-            loadPageIntoEditor(page); 
+            loadPageIntoEditor(page);
             splitView.classList.add('show-editor');
         };
         list.appendChild(li);
@@ -448,15 +666,15 @@ function renderNotionView(pages, contextType, contextId) {
 
     document.getElementById('create-page-btn').onclick = async () => {
         const title = await UI.prompt("New Page Title", "e.g., Operation Blackout");
-        if (!title) return; 
+        if (!title) return;
         const url = contextType === 'personal' ? '/api/pages/personal' : `/api/pages/group/${contextId}`;
         try {
-            await fetch(url, {
+            await fetch(url, { credentials: 'include', 
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
-                body: JSON.stringify({ title })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title  })
             });
-            loadVaultData(); 
+            loadVaultData();
         } catch (err) { console.error(err); }
     };
 }
@@ -465,32 +683,31 @@ function renderNotionView(pages, contextType, contextId) {
 function loadPageIntoEditor(page) {
     const editorArea = document.getElementById('editor-content-area');
     let autoSaveTimer;
-    let isAutoSaveOn = true; // Default: ON
-
-    // HISTORY STACK (For Undo/Redo)
-    // We start with the current content as the first "state"
+    let isAutoSaveOn = true; 
+    let currentDocumentVersion = page.__v || 0; 
+    
     let history = [page.content || ''];
     let historyIndex = 0;
 
-    // 0. CONFIGURE MARKDOWN (Fixes Spacing)
-    if (typeof marked !== 'undefined') {
-        marked.setOptions({
-            breaks: true, // 🚨 CRITICAL: Treats "Enter" as a <br> tag
-            gfm: true     // GitHub Flavored Markdown
-        });
-    }
-
-    // 1. INJECT HTML 
-    // (Note: I removed the extra empty <div class="editor-header"> you had, which fixes the gap)
     editorArea.innerHTML = `
         <div class="editor-header">
-            <div class="title-wrapper">
-                <button id="icon-btn" title="Change Icon">📄</button>
+            <div class="page-identity-section">
+                <div class="page-icon-wrapper" id="page-icon-btn" title="Change Icon">📄</div>
                 <input type="text" id="page-title-input" value="${page.title}" placeholder="Untitled Page">
             </div>
             
-            <div class="editor-tools">
-                <button id="preview-btn" class="text-btn" title="Toggle View">👁️ View</button>
+            <div class="editor-tools" style="align-items: center; gap: 10px;">
+                <div style="position: relative; display: inline-block;">
+                    <button id="page-info-btn" class="text-btn" style="border-radius: 50%; padding: 4px 10px; font-style: italic; font-family: serif; color: #888;" title="Page Info">i</button>
+                    <div id="page-info-popup" style="display: none; position: absolute; right: 0; top: 120%; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 15px; min-width: 160px; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.8);">
+                        <div style="color: #888; font-size: 0.8rem; text-align: left; line-height: 1.6;">
+                            <div style="margin-bottom: 8px;">Created by:<br><span style="color: #00e5ff; font-weight: bold; font-size: 0.9rem;">${page.user?.username || 'Unknown'}</span></div>
+                            <div>Edited:<br><span style="color: #fff; font-size: 0.9rem;">${new Date(page.lastEdited || Date.now()).toLocaleDateString()}</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tool-separator"></div>
+                <button id="download-pdf-btn" class="text-btn" style="color: #00e5ff;" title="Download as PDF">PDF</button>
                 <div class="tool-separator"></div>
                 <button id="save-page-btn" class="text-btn">Save</button>
                 <div class="tool-separator"></div>
@@ -502,10 +719,11 @@ function loadPageIntoEditor(page) {
             <div class="slash-item" data-cmd="header"><span class="slash-icon">H1</span> Big Heading</div>
             <div class="slash-item" data-cmd="subheader"><span class="slash-icon">H2</span> Medium Heading</div>
             <div class="slash-item" data-cmd="list"><span class="slash-icon">≡</span> Bullet List</div>
-            <div class="slash-item" data-cmd="todo"><span class="slash-icon">☐</span> To-Do Checkbox</div>
             <div class="slash-item" data-cmd="code"><span class="slash-icon">{}</span> Code Block</div>
             <div class="slash-item" data-cmd="callout"><span class="slash-icon">💡</span> Callout Box</div>
-            <div class="slash-item" data-cmd="date"><span class="slash-icon">📅</span> Today's Date</div>
+            <div class="slash-item" data-cmd="quote"><span class="slash-icon">❞</span> Quote</div>
+            <div class="slash-item" data-cmd="divider"><span class="slash-icon">—</span> Divider</div>
+            <div class="slash-item" data-cmd="highlight"><span class="slash-icon">🖍</span> Highlight</div>
         </div>
 
         <div class="markdown-toolbar" id="toolbar">
@@ -517,42 +735,106 @@ function loadPageIntoEditor(page) {
             <button class="tool-btn" data-type="italic" title="Italic">I</button>
             <button class="tool-btn" data-type="header" title="Header">H</button>
             <button class="tool-btn" data-type="list" title="List">≡</button>
-            <button class="tool-btn" data-type="code" title="Code Block">{}</button>
-            <button class="tool-btn" data-type="link" title="Link">🔗</button>
-
+            
             <div style="flex-grow: 1;"></div>
-
-           <label class="toggle-switch" title="Toggle Auto-Save">
-                    <input type="checkbox" id="autosave-toggle" class="toggle-checkbox" checked>
+            <label class="toggle-switch" title="Toggle Auto-Save">
+                <input type="checkbox" id="autosave-toggle" class="toggle-checkbox" checked>
+                <span class="status-icon">⚡</span>
+            </label>
         </div>
         
-        <div style="position: relative; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden;">
-            <textarea id="page-content-input" placeholder="# Start typing...">${page.content || ''}</textarea>
-            <div id="markdown-preview"></div>
+        <div style="position: relative; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 20px;">
+            <div id="page-editor" class="notion-editor" contenteditable="true" placeholder="Start typing with '/' for commands...">${page.content || ''}</div>
         </div>
     `;
 
-    // DOM Elements
     const titleInput = document.getElementById('page-title-input');
-    const contentInput = document.getElementById('page-content-input');
-    const previewDiv = document.getElementById('markdown-preview');
+    const pageEditor = document.getElementById('page-editor');
     const saveBtn = document.getElementById('save-page-btn');
-    const previewBtn = document.getElementById('preview-btn');
     const toolbar = document.getElementById('toolbar');
     const slashMenu = document.getElementById('slash-menu');
-    
-    // New DOM Elements
-    // Update these selectors if IDs were removed or changed
-    // Since we used data-type in the HTML above, we can grab them like this:
     const undoBtn = toolbar.querySelector('[data-type="undo"]');
     const redoBtn = toolbar.querySelector('[data-type="redo"]');
     const autoSaveToggle = document.getElementById('autosave-toggle');
+    const pageIconBtn = document.getElementById('page-icon-btn');
+    const downloadPdfBtn = document.getElementById('download-pdf-btn');
+    const pageInfoBtn = document.getElementById('page-info-btn');
+    const pageInfoPopup = document.getElementById('page-info-popup');
 
-    // --- HISTORY LOGIC (Undo/Redo) ---
+    if (pageInfoBtn && pageInfoPopup) {
+        pageInfoBtn.onclick = (e) => {
+            e.stopPropagation();
+            const isVisible = pageInfoPopup.style.display === 'block';
+            pageInfoPopup.style.display = isVisible ? 'none' : 'block';
+        };
+        document.addEventListener('click', (e) => {
+            if (!pageInfoPopup.contains(e.target) && e.target !== pageInfoBtn) {
+                pageInfoPopup.style.display = 'none';
+            }
+        });
+    }
+
+    // --- PDF EXPORT LOGIC ---
+    downloadPdfBtn.onclick = () => {
+        const editorHtml = pageEditor.innerHTML;
+        const title = titleInput.value || 'Untitled';
+        
+        // Use a simple print window to save as PDF
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>${title}</title>
+                    <style>
+                        body { font-family: 'Merriweather', serif; padding: 40px; color: #000; line-height: 1.8; }
+                        h1 { font-family: 'Courier New', Courier, monospace; font-size: 2.2rem; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-top: 1.5em; margin-bottom: 0.5em; }
+                        h2 { font-family: 'Courier New', Courier, monospace; font-size: 1.6rem; margin-top: 1.2em; margin-bottom: 0.5em; }
+                        p, div { margin-bottom: 0.7em; }
+                        pre { background: #f4f4f4; padding: 15px; border-radius: 8px; font-family: monospace; border: 1px solid #ddd; }
+                        blockquote { border-left: 4px solid #6c5ce7; padding-left: 15px; color: #555; background: #f9f9fc; margin: 15px 0; padding-top: 10px; padding-bottom: 10px; }
+                        hr { border: none; border-top: 1px solid #ddd; margin: 30px 0; }
+                        mark { background-color: rgba(0, 229, 255, 0.3); color: #000; padding: 2px 4px; }
+                        ul { padding-left: 25px; margin-bottom: 1em; }
+                        li { margin-bottom: 8px; }
+                    </style>
+                </head>
+                <body>
+                    <h1>${title}</h1>
+                    ${editorHtml}
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        
+        // Wait for styles to load, then print
+        setTimeout(() => {
+            printWindow.print();
+        }, 250);
+    };
+
+    // --- ICON LOGIC ---
+    const icons = ['📄', '🔥', '💡', '🚀', '⭐', '💻', '🔒', '👽', '💀'];
+    let currentIconIndex = 0;
+    pageIconBtn.addEventListener('click', () => {
+        currentIconIndex = (currentIconIndex + 1) % icons.length;
+        pageIconBtn.innerText = icons[currentIconIndex];
+        if (isAutoSaveOn) triggerAutoSave();
+    });
+
+    const updateIconBtn = () => {
+        const match = titleInput.value.match(/^(©|®|[ -㌀]|�[퀀-�]|�[퀀-�]|�[퀀-�])/);
+        if (match) {
+            pageIconBtn.innerText = match[0];
+            titleInput.value = titleInput.value.replace(match[0], '').trim();
+        }
+    };
+    updateIconBtn();
+    titleInput.addEventListener('input', updateIconBtn);
+
+    // --- HISTORY LOGIC ---
     const saveToHistory = () => {
-        const current = contentInput.value;
+        const current = pageEditor.innerHTML;
         if (current !== history[historyIndex]) {
-            // If we undo and then type, we remove the "future" states
             history = history.slice(0, historyIndex + 1);
             history.push(current);
             historyIndex++;
@@ -562,46 +844,28 @@ function loadPageIntoEditor(page) {
     undoBtn.onclick = () => {
         if (historyIndex > 0) {
             historyIndex--;
-            contentInput.value = history[historyIndex];
-            if(isAutoSaveOn) triggerAutoSave();
+            pageEditor.innerHTML = history[historyIndex];
+            if (isAutoSaveOn) triggerAutoSave();
         }
     };
 
     redoBtn.onclick = () => {
         if (historyIndex < history.length - 1) {
             historyIndex++;
-            contentInput.value = history[historyIndex];
-            if(isAutoSaveOn) triggerAutoSave();
+            pageEditor.innerHTML = history[historyIndex];
+            if (isAutoSaveOn) triggerAutoSave();
         }
     };
 
-    // --- SMART HISTORY TRIGGER ---
     let historyDebounce;
-
-    // 1. Toolbar Clicks (Immediate Save)
-    // We keep your existing toolbar listener, as buttons should save instantly.
-
-    // 2. Typing (Delayed Save)
-    // This saves "chunks" of work naturally when you pause.
-    contentInput.addEventListener('input', () => {
+    pageEditor.addEventListener('input', () => {
         clearTimeout(historyDebounce);
-        historyDebounce = setTimeout(() => {
-            saveToHistory();
-        }, 800); // Waits 0.8 seconds after you stop typing to save a "state"
+        historyDebounce = setTimeout(saveToHistory, 800); 
     });
 
     // --- SAVE LOGIC ---
-    // --- SAVE LOGIC ---
     autoSaveToggle.onchange = (e) => {
         isAutoSaveOn = e.target.checked;
-        
-        // 1. Visual Feedback (Toast)
-        if (typeof UI !== 'undefined') {
-            const status = isAutoSaveOn ? "ENABLED ⚡" : "DISABLED 🛑";
-            UI.toast(`AutoSave ${status}`, isAutoSaveOn ? "success" : "info");
-        }
-
-        // 2. Button Logic
         if (!isAutoSaveOn) {
             saveBtn.innerText = "Save";
             saveBtn.style.color = "";
@@ -611,38 +875,62 @@ function loadPageIntoEditor(page) {
 
     const performSave = async (silent = false) => {
         const titleVal = titleInput.value;
-        const contentVal = contentInput.value;
-        const originalText = saveBtn.innerText;
-        
-        if(!silent) saveBtn.innerText = "Saving...";
-        
+        const contentVal = pageEditor.innerHTML;
+
+        if (!silent) saveBtn.innerText = "Saving...";
+
         try {
-            const res = await fetch(`/api/pages/${page._id}`, {
+            const res = await fetch(`/api/pages/${page._id}`, { credentials: 'include', 
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
-                body: JSON.stringify({ title: titleVal, content: contentVal })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    title: titleVal, 
+                    content: contentVal,
+                    version: currentDocumentVersion
+                })
             });
-            
+
+            if (res.status === 409) {
+                isAutoSaveOn = false; 
+                if (autoSaveToggle) autoSaveToggle.checked = false;
+                clearTimeout(autoSaveTimer);
+                saveBtn.innerText = "Sync Conflict";
+                saveBtn.style.color = "#ff4d4d"; 
+                alert("Conflict: This document was modified by another user. Auto-save has been disabled to prevent overwriting their work.");
+                return;
+            }
+
             if (res.ok) {
+                const updatedPage = await res.json();
+                currentDocumentVersion = updatedPage.__v;
+
                 page.title = titleVal;
                 page.content = contentVal;
+                page.__v = updatedPage.__v;
+                
                 const sidebarItem = document.getElementById(`page-link-${page._id}`);
                 if (sidebarItem) sidebarItem.innerText = titleVal || "Untitled Page";
 
-                if(!silent) {
+                if (!silent) {
                     saveBtn.innerText = "Saved";
-                    saveBtn.style.color = "#00ff00"; 
-                    setTimeout(() => { 
+                    saveBtn.style.color = "#00ff00";
+                    setTimeout(() => {
                         saveBtn.innerText = "Save";
                         saveBtn.style.color = "#888";
                     }, 1500);
                 }
+            } else {
+                saveBtn.innerText = "Error";
+                saveBtn.style.color = "#ff4d4d";
             }
-        } catch (err) { saveBtn.innerText = "Error"; }
+        } catch (err) { 
+            saveBtn.innerText = "Error"; 
+            saveBtn.style.color = "#ff4d4d";
+        }
     };
 
     const triggerAutoSave = () => {
-        if (!isAutoSaveOn) return; // Respect the toggle
+        if (!isAutoSaveOn) return; 
         saveBtn.innerText = "Typing...";
         saveBtn.style.color = "#ffff00";
         clearTimeout(autoSaveTimer);
@@ -650,221 +938,135 @@ function loadPageIntoEditor(page) {
     };
 
     titleInput.addEventListener('input', triggerAutoSave);
-    contentInput.addEventListener('input', triggerAutoSave);
+    pageEditor.addEventListener('input', triggerAutoSave);
     saveBtn.onclick = () => performSave(false);
 
-    // --- INTERACTIVE CHECKBOXES ---
-    // This allows clicking a checkbox in View Mode to update the text!
-    previewDiv.addEventListener('click', (e) => {
-        if (e.target.type === 'checkbox') {
-            const li = e.target.parentElement; 
-            const rawText = li.textContent.trim(); // Get the text of the item
-            const isChecked = e.target.checked;
-            
-            // Logic: Find "- [ ] Text" or "- [x] Text" in the source code
-            const originalVal = contentInput.value;
-            // Escape special regex characters in the user's text
-            const escapedText = rawText.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
-            
-            let newVal;
-            if (isChecked) {
-                // Change [ ] to [x]
-                const regex = new RegExp(`- \\[ \\] ${escapedText}`, '');
-                newVal = originalVal.replace(regex, `- [x] ${rawText}`);
-            } else {
-                // Change [x] to [ ]
-                const regex = new RegExp(`- \\[x\\] ${escapedText}`, '');
-                newVal = originalVal.replace(regex, `- [ ] ${rawText}`);
-            }
-
-            if (newVal !== originalVal) {
-                contentInput.value = newVal;
-                saveToHistory(); // Record this change
-                if(isAutoSaveOn) triggerAutoSave();
-            }
-        }
-    });
-
-    // --- TOOLBAR INSERT LOGIC ---
-    const insertSyntax = (before, after = "") => {
-        const start = contentInput.selectionStart;
-        const end = contentInput.selectionEnd;
-        const text = contentInput.value;
-        const selection = text.substring(start, end);
-        const newText = text.substring(0, start) + before + selection + after + text.substring(end);
-        contentInput.value = newText;
-        contentInput.focus();
-        contentInput.selectionStart = start + before.length;
-        contentInput.selectionEnd = end + before.length;
-        saveToHistory(); // Save toolbar actions
-        triggerAutoSave();
-    };
-
-    toolbar.addEventListener('click', (e) => {
-        // Handle Button Clicks
+    // --- TOOLBAR LOGIC (WYSIWYG) ---
+    toolbar.addEventListener('mousedown', (e) => {
         if (e.target.tagName !== 'BUTTON') return;
+        e.preventDefault(); // Keep focus on editor
+        
         const type = e.target.dataset.type;
-
-        // 🚨 NEW: Handle History Buttons inside Toolbar
-        if (type === 'undo') {
-            undoBtn.click(); // Trigger the existing logic
-            return;
-        }
-        if (type === 'redo') {
-            redoBtn.click(); // Trigger the existing logic
-            return;
-        }
+        if (type === 'undo') { undoBtn.click(); return; }
+        if (type === 'redo') { redoBtn.click(); return; }
 
         switch (type) {
-            case 'bold':   insertSyntax('**', '**'); break;
-            case 'italic': insertSyntax('*', '*'); break;
-            case 'header': insertSyntax('## '); break;
-            case 'list':   insertSyntax('- '); break;
-            case 'code':   insertSyntax('```\n', '\n```'); break;
-            case 'link':   insertSyntax('[', '](url)'); break;
+            case 'bold': document.execCommand('bold', false, null); break;
+            case 'italic': document.execCommand('italic', false, null); break;
+            case 'header': document.execCommand('formatBlock', false, 'H2'); break;
+            case 'list': document.execCommand('insertUnorderedList', false, null); break;
         }
-    });
-
-    // --- TOGGLE PREVIEW ---
-    let isPreviewMode = false;
-    previewBtn.onclick = () => {
-        isPreviewMode = !isPreviewMode;
-        if (isPreviewMode) {
-            // Switch to VIEW
-            const htmlContent = marked.parse(contentInput.value); 
-            previewDiv.innerHTML = htmlContent;
-            
-            contentInput.style.display = 'none';
-            if(toolbar) toolbar.style.display = 'none';
-            if(slashMenu) slashMenu.style.display = 'none';
-            previewDiv.style.display = 'block';
-            
-            previewBtn.innerText = "✏️ Edit";
-            previewBtn.classList.add('active');
-        } else {
-            // Switch to EDIT
-            contentInput.style.display = 'block';
-            if(toolbar) toolbar.style.display = 'flex';
-            previewDiv.style.display = 'none';
-            
-            previewBtn.innerText = "👁️ View";
-            previewBtn.classList.remove('active');
-            contentInput.focus();
-        }
-    };
-
-    // --- SLASH MENU LOGIC ---
-    const executeSlash = (cmd) => {
-        const text = contentInput.value;
-        const end = contentInput.selectionEnd;
-        const before = text.substring(0, end - 1); 
-        const after = text.substring(end);
-        
-        let insert = "";
-        switch(cmd) {
-            case 'header': insert = "# "; break;
-            case 'subheader': insert = "## "; break;
-            case 'list': insert = "\n- "; break; 
-            case 'todo': insert = "\n- [ ] "; break;
-            case 'code': insert = "\n```\n\n```\n"; break; 
-            case 'callout': insert = "\n> 💡 "; break;
-            case 'date': insert = `**${new Date().toLocaleDateString()}** `; break;
-        }
-
-        contentInput.value = before + insert + after;
-        const newPos = before.length + insert.length;
-        contentInput.selectionStart = newPos;
-        contentInput.selectionEnd = newPos;
-        contentInput.focus();
-        slashMenu.style.display = 'none';
+        pageEditor.focus();
         saveToHistory();
         triggerAutoSave();
+    });
+
+    // --- SLASH MENU LOGIC ---
+    let slashMenuVisible = false;
+
+    const showSlashMenu = () => {
+        slashMenuVisible = true;
+        
+        // Get precise caret position using Selection API
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            // Position relative to editor Area
+            const editorRect = pageEditor.getBoundingClientRect();
+            
+            slashMenu.style.display = 'flex';
+            slashMenu.style.top = (rect.bottom - editorRect.top + 40) + 'px'; 
+            slashMenu.style.left = (rect.left - editorRect.left + 20) + 'px';
+        }
     };
 
-    contentInput.addEventListener('keyup', (e) => {
-        if (e.key === '/') slashMenu.style.display = 'block';
-        else if (e.key === 'Escape') slashMenu.style.display = 'none';
-        else slashMenu.style.display = 'none';
-    });
-    
-    slashMenu.addEventListener('click', (e) => {
-        const item = e.target.closest('.slash-item');
-        if (!item) return;
-        executeSlash(item.dataset.cmd);
-    });
+    const hideSlashMenu = () => {
+        slashMenuVisible = false;
+        slashMenu.style.display = 'none';
+    };
 
-    // --- SMART LIST LOGIC ---
-    contentInput.addEventListener('keydown', (e) => {
+    pageEditor.addEventListener('keydown', (e) => {
+        if (e.key === '/') {
+            setTimeout(showSlashMenu, 10);
+        } else if (slashMenuVisible && (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter' || e.key === 'Backspace')) {
+            hideSlashMenu();
+        }
+        
+        // Block Enter behavior to make sure it creates clean divs/paragraphs
         if (e.key === 'Enter') {
-            const start = contentInput.selectionStart;
-            const value = contentInput.value;
-            const lineStart = value.lastIndexOf('\n', start - 1) + 1;
-            const currentLine = value.substring(lineStart, start);
-            const isList = /^\s*-\s(.*)/.exec(currentLine); 
-            const isTodo = /^\s*-\s\[[ x]\]\s(.*)/.exec(currentLine); 
-
-            // Escape Empty List
-            if ((isList && !isList[1]) || (isTodo && !isTodo[1])) {
-                e.preventDefault();
-                const newValue = value.substring(0, lineStart) + value.substring(start);
-                contentInput.value = newValue;
-                contentInput.selectionStart = contentInput.selectionEnd = lineStart;
-                return;
-            }
-            // Continue List
-            if (isTodo) {
-                e.preventDefault();
-                document.execCommand('insertText', false, "\n- [ ] ");
-                return;
-            }
-            if (isList) {
-                e.preventDefault();
-                document.execCommand('insertText', false, "\n- ");
-                return;
-            }
+            // Let the browser handle standard contenteditable enters (usually adds <div> or <p>)
+            setTimeout(() => { triggerAutoSave(); saveToHistory(); }, 10);
         }
     });
 
-    // --- PAGE ICON LOGIC ---
-    const iconBtn = document.getElementById('icon-btn');
-    const emojiRegex = /^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/;
-    
-    const updateIconBtn = () => {
-        const match = titleInput.value.match(emojiRegex);
-        iconBtn.innerText = match ? match[0] : "📄";
-    };
-    updateIconBtn();
-    titleInput.addEventListener('input', updateIconBtn);
+    pageEditor.addEventListener('mousedown', hideSlashMenu);
 
-    iconBtn.onclick = async () => {
-        let newIcon = null;
-        if (typeof UI !== 'undefined') {
-            newIcon = await UI.prompt("Type an Emoji", "e.g., 💀, 🚀, 🔐");
-        } else {
-            newIcon = prompt("Type an Emoji:");
-        }
-        if (newIcon) {
-            let text = titleInput.value.replace(emojiRegex, '').trim();
-            titleInput.value = `${newIcon} ${text}`;
-            updateIconBtn();
-            performSave(false);
-        }
-    };
+    slashMenu.querySelectorAll('.slash-item').forEach(item => {
+        item.onmousedown = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const cmd = item.getAttribute('data-cmd');
+            
+            // Remove the '/' that triggered it
+            document.execCommand('delete', false, null);
+
+            switch (cmd) {
+                case 'header': document.execCommand('formatBlock', false, 'H1'); break;
+                case 'subheader': document.execCommand('formatBlock', false, 'H2'); break;
+                case 'list': document.execCommand('insertUnorderedList', false, null); break;
+                case 'code': 
+                    const pre = document.createElement('pre');
+                    pre.style.background = '#1e1e1e';
+                    pre.style.padding = '15px';
+                    pre.style.borderRadius = '8px';
+                    pre.innerHTML = '<code>// code here...</code>';
+                    window.getSelection().getRangeAt(0).insertNode(pre);
+                    break;
+                case 'callout': 
+                    const bq = document.createElement('blockquote');
+                    bq.innerHTML = '💡 Callout text...';
+                    window.getSelection().getRangeAt(0).insertNode(bq);
+                    break;
+                case 'quote':
+                    const quote = document.createElement('blockquote');
+                    quote.style.borderLeft = '4px solid #888';
+                    quote.style.background = 'transparent';
+                    quote.innerHTML = '<i>Quote...</i>';
+                    window.getSelection().getRangeAt(0).insertNode(quote);
+                    break;
+                case 'divider':
+                    const hr = document.createElement('hr');
+                    window.getSelection().getRangeAt(0).insertNode(hr);
+                    break;
+                case 'highlight':
+                    const mark = document.createElement('mark');
+                    mark.innerHTML = 'Highlighted Text';
+                    window.getSelection().getRangeAt(0).insertNode(mark);
+                    break;
+            }
+
+            hideSlashMenu();
+            saveToHistory();
+            triggerAutoSave();
+        };
+    });
 
     // --- DELETE LOGIC ---
     document.getElementById('delete-page-btn').onclick = async () => {
         if (typeof UI !== 'undefined') {
-            if(!(await UI.confirm("Delete Page?", "Gone forever."))) return;
+            if (!(await UI.confirm("Delete Page?", "Gone forever."))) return;
         } else if (!confirm("Delete?")) return;
         try {
             const res = await fetch(`/api/pages/${page._id}`, {
                 method: 'DELETE',
-                headers: { 'x-auth-token': localStorage.getItem('token') }
+                credentials: "include"
             });
             if (res.ok) {
                 const splitView = document.getElementById('split-view-container');
-                if(splitView) splitView.classList.remove('show-editor');
-                loadVaultData(); 
+                if (splitView) splitView.classList.remove('show-editor');
+                loadVaultData();
             }
         } catch (err) { console.error(err); }
     };
@@ -875,16 +1077,16 @@ function loadPageIntoEditor(page) {
 // ==========================================
 async function handleCreateGroup() {
     const name = document.getElementById('new-group-name').value;
-if(!name) {
+    if (!name) {
         UI.toast("Please enter a group name", "error"); // Replaces alert
         return;
-    }    
-    const res = await fetch('/api/groups/create', {
+    }
+    const res = await fetch('/api/groups/create', { credentials: 'include', 
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
-        body: JSON.stringify({ name })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name  })
     });
-    if(res.ok) {
+    if (res.ok) {
         UI.toast("Group Created Successfully", "success");
         document.getElementById('new-group-name').value = "";
         loadVaultData();
@@ -893,17 +1095,17 @@ if(!name) {
 
 async function handleJoinGroup() {
     const code = document.getElementById('join-group-code').value;
-if(!code) {
+    if (!code) {
         UI.toast("Please enter an invite code", "error");
         return;
     }
-    const res = await fetch('/api/groups/join', {
+    const res = await fetch('/api/groups/join', { credentials: 'include', 
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
-        body: JSON.stringify({ inviteCode: code })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteCode: code  })
     });
     const data = await res.json();
-    if(res.ok) {
+    if (res.ok) {
         UI.toast(`Joined ${data.group.name}!`, "success");
         document.getElementById('join-group-code').value = "";
         loadVaultData();
@@ -914,7 +1116,7 @@ if(!code) {
 
 async function loadAlbumView() {
     const container = document.getElementById('photo-grid');
-    if(!container) return; 
+    if (!container) return;
 
     let url = '/api/albums?type=personal';
     if (currentContext.type === 'group') {
@@ -922,7 +1124,7 @@ async function loadAlbumView() {
     }
 
     try {
-        const res = await fetch(url, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+        const res = await fetch(url, { credentials: "include" });
         const albums = await res.json();
 
         container.innerHTML = `
@@ -930,7 +1132,7 @@ async function loadAlbumView() {
                 <div class="section-title">
                     <span>📷 Secure Gallery</span>
                 </div>
-                <button onclick="createNewAlbum()" class="btn-outline">
+                <button onclick="createNewAlbum()" class="btn-outline" style="width: auto; padding: 8px 15px;">
                     + New Album
                 </button>
             </div>
@@ -963,12 +1165,15 @@ function openAlbum(album) {
     const inputId = `upload-${album._id}`;
 
     container.innerHTML = `
-        <div class="album-view-controls">
-            <button onclick="loadAlbumView()" class="btn-gray">← Back</button>
-            <h3>${album.name}</h3>
-            <div>
-                <button onclick="triggerUpload('${inputId}')" class="btn-green">+ Photos</button>
+        <div class="album-view-controls" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 15px; border-bottom: 1px solid #2a2a2a; padding-bottom: 15px; margin-bottom: 20px;">
+            <button onclick="loadAlbumView()" class="btn-gray" style="width: auto; padding: 8px 15px;">← Back</button>
+            <h3 style="flex-grow: 1; text-align: center; color: white; margin: 0;">${album.name}</h3>
+            <div class="bulk-upload-zone" style="text-align: right;">
+                <button onclick="triggerUpload('${inputId}')" class="btn-green" style="width: auto; padding: 8px 20px; font-weight: bold;">
+                    <span style="font-size: 1.1rem; margin-right: 5px;">📤</span> Bulk Upload Photos
+                </button>
                 <input type="file" id="${inputId}" multiple accept="image/*" style="display:none">
+                <div style="font-size: 0.75rem; color: #888; margin-top: 5px;">You can select multiple files</div>
             </div>
         </div>
         <div class="photo-wrapper" id="photos-wrapper"></div>
@@ -989,25 +1194,25 @@ function openAlbum(album) {
 }
 
 // --- GLOBAL HELPERS ---
-window.triggerUpload = function(inputId) { document.getElementById(inputId).click(); };
-window.createNewAlbum = async function() {
+window.triggerUpload = function (inputId) { document.getElementById(inputId).click(); };
+window.createNewAlbum = async function () {
     const name = await UI.prompt("New Album Name");
     if (!name) return;
-    await fetch('/api/albums', {
+    await fetch('/api/albums', { credentials: 'include', 
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
-        body: JSON.stringify({ name, type: currentContext.type, groupId: currentContext.id })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, type: currentContext.type, groupId: currentContext.id  })
     });
     loadAlbumView();
 };
-window.uploadPhotos = async function(e, albumId) {
+window.uploadPhotos = async function (e, albumId) {
     const files = e.target.files;
     if (!files.length) return;
     const formData = new FormData();
     for (let i = 0; i < files.length; i++) formData.append('photos', files[i]);
     const res = await fetch(`/api/albums/${albumId}/upload`, {
         method: 'POST',
-        headers: { 'x-auth-token': localStorage.getItem('token') },
+        credentials: "include",
         body: formData
     });
     if (res.ok) {
@@ -1015,95 +1220,186 @@ window.uploadPhotos = async function(e, albumId) {
         openAlbum(updated);
     }
 };
-window.deleteAlbum = async function(id, e) {
+window.deleteAlbum = async function (id, e) {
     e.stopPropagation();
-    if(!(await UI.confirm("Delete Album?", "All photos inside will be lost."))) return;
+    if (!(await UI.confirm("Delete Album?", "All photos inside will be lost."))) return;
     await fetch(`/api/albums/${id}`, {
         method: 'DELETE',
-        headers: { 'x-auth-token': localStorage.getItem('token') }
+        credentials: "include"
     });
     loadAlbumView();
 };
-window.deletePhoto = async function(albumId, filename) {
-    if(!(await UI.confirm("Delete Photo?", "Are you sure?"))) return;
+window.deletePhoto = async function (albumId, filename) {
+    if (!(await UI.confirm("Delete Photo?", "Are you sure?"))) return;
     const res = await fetch(`/api/albums/${albumId}/photo/${filename}`, {
         method: 'DELETE',
-        headers: { 'x-auth-token': localStorage.getItem('token') }
+        credentials: "include"
     });
-    if(res.ok) {
+    if (res.ok) {
         const updated = await res.json();
         openAlbum(updated);
     }
 };
-window.openLightbox = function(src) {
+window.openLightbox = function (src) {
     const box = document.getElementById('lightbox');
     document.getElementById('lightbox-img').src = src;
     box.classList.remove('hidden');
 };
-window.closeLightbox = function() {
+window.closeLightbox = function () {
     document.getElementById('lightbox').classList.add('hidden');
 };
 
 // --- GLOBAL GROUP ACTIONS ---
-window.leaveGroup = async function(groupId) {
-const yes = await UI.confirm("Leave Group?", "You will lose access to these files.");
-    if(!yes) return;
-    const token = localStorage.getItem('token');
-    await fetch(`/api/groups/${groupId}/leave`, { method: 'POST', headers: { 'x-auth-token': token } });
+window.leaveGroup = async function (groupId) {
+    const yes = await UI.confirm("Leave Group?", "You will lose access to these files.");
+    if (!yes) return;
+    const isAuth = document.cookie.includes('isAuthenticated=true');
+    await fetch(`/api/groups/${groupId}/leave`, { method: 'POST', credentials: "include" });
     location.reload();
 };
 
-window.deleteGroup = async function(groupId) {
-const yes = await UI.confirm("Delete Group?", "⚠️ WARNING: This wipes all data for everyone.");
-    if(!yes) return;
-    const token = localStorage.getItem('token');
-    await fetch(`/api/groups/${groupId}`, { method: 'DELETE', headers: { 'x-auth-token': token } });
+window.deleteGroup = async function (groupId) {
+    const yes = await UI.confirm("Delete Group?", "⚠️ WARNING: This wipes all data for everyone.");
+    if (!yes) return;
+    const isAuth = document.cookie.includes('isAuthenticated=true');
+    await fetch(`/api/groups/${groupId}`, { method: 'DELETE', credentials: "include" });
     location.reload();
 };
 
 // --- GAME OVER LOGIC ---
-function triggerGameOver() {
-    // 1. Update High Score
+async function triggerGameOver() {
+    // 1. Update High Score (dynamically in memory, backend handles persistence)
+    let isNewBest = false;
     if (fakeScore > highScore) {
         highScore = fakeScore;
-        localStorage.setItem('fakeHighScore', highScore); // Save it
+        isNewBest = true;
     }
 
-    // 2. Update UI
-    document.getElementById('final-score').innerText = fakeScore;
-    if(highScoreDisplay) highScoreDisplay.innerText = highScore;
+    // 2. Update Kuizu result card UI
+    const finalScoreEl = document.getElementById('final-score');
+    if (finalScoreEl) finalScoreEl.innerText = fakeScore;
+    if (highScoreDisplay) highScoreDisplay.innerText = highScore;
 
-    // 3. Switch Screens
-    quizGame.classList.add('hidden');
-    quizResult.classList.remove('hidden');
+    // Correct count
+    const correctEl = document.getElementById('correct-count');
+    if (correctEl) correctEl.innerText = `${correctCount}/${quizLength}`;
+
+    // Personal best
+    const pbEl = document.getElementById('personal-best');
+    if (pbEl) pbEl.innerText = highScore;
+
+    // Dynamic title based on percentage
+    const maxScore = quizLength * 10;
+    const pct = fakeScore / maxScore;
+    const titleEl = document.getElementById('result-title');
+    const subEl = document.getElementById('result-subtitle');
+    if (titleEl) {
+        if (pct === 1) {
+            titleEl.innerText = 'Perfect Score! 🎉';
+            if (subEl) subEl.innerText = 'You got every single one right. Impressive!';
+        } else if (pct >= 0.6) {
+            titleEl.innerText = 'Great Job! 🎯';
+            if (subEl) subEl.innerText = `Solid performance — keep pushing for ${maxScore}!`;
+        } else if (pct >= 0.2) {
+            titleEl.innerText = 'Nice Try! 🧠';
+            if (subEl) subEl.innerText = 'You can do better. Play again and improve!';
+        } else {
+            titleEl.innerText = 'Better Luck Next Time 😅';
+            if (subEl) subEl.innerText = 'Every master was once a beginner. Try again!';
+        }
+    }
+
+    // 3. Switch screens
+    if (quizGame) quizGame.classList.add('hidden');
+    if (quizResult) quizResult.classList.remove('hidden');
+
+    // 4. Submit score to leaderboard API
+    const isAuth = document.cookie.includes('isAuthenticated=true');
+    if (isAuth) {
+        try {
+            const res = await fetch('/api/leaderboard/submit', {
+                credentials: 'include', 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ score: fakeScore })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                // Show rank reveal
+                const rankReveal = document.getElementById('rank-reveal');
+                const rankText = document.getElementById('rank-text');
+                if (rankReveal && rankText) {
+                    rankText.innerText = `🏆 You are Rank #${data.rank} globally!`;
+                    rankReveal.style.display = 'block';
+                }
+                if (data.isNewHighScore) {
+                    if (titleEl) titleEl.innerText = '🏆 New High Score!';
+                }
+            }
+        } catch (err) {
+            console.warn('Could not submit score:', err);
+        }
+    }
 }
 
 // --- RESTART LISTENER ---
-if(restartBtn) {
+if (restartBtn) {
     restartBtn.addEventListener('click', () => {
-        // Reset State
+        // Reset all state
         fakeScore = 0;
+        correctCount = 0;
         currentPattern = [];
-        currentQuestionIndex = 0; // Optional: Reset question index or keep going
-        
-        // Update Score UI
+        questionIndex = 0;
+        patternCheckedThisGame = false;
+        isInScoredPhase = false;
+
+        // Reset score UI
         const scoreEl = document.getElementById('score-display');
-        if(scoreEl) scoreEl.innerText = "0";
-        
-        // Reset Progress Bar
-        const progress = document.getElementById('progress-fill');
-        if(progress) progress.style.width = "0%";
-        
-        // Switch Screens
-        quizResult.classList.add('hidden');
-        quizIntro.classList.remove('hidden'); // Go back to Start Page
-        
-        // Make sure buttons are reset from Green/Red
+        if (scoreEl) scoreEl.innerText = '0';
+
+        // Reset option buttons
         document.querySelectorAll('.opt-btn').forEach(b => {
-             b.style.background = "";
-             b.style.borderColor = "";
+            b.classList.remove('correct', 'wrong');
+            b.disabled = false;
         });
 
+        // Hide rank reveal
+        const rankReveal = document.getElementById('rank-reveal');
+        if (rankReveal) rankReveal.style.display = 'none';
+
+        // Switch screens back to config/intro
+        if (quizResult) quizResult.classList.add('hidden');
+        if (quizIntro) quizIntro.classList.remove('hidden');
     });
 }
 
+// ==========================================
+// 6. VAULT TABS LOGIC
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    const tabs = document.querySelectorAll('.vault-tabs .tab-btn');
+    if (tabs.length > 0) {
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active from all tabs
+                tabs.forEach(t => t.classList.remove('active'));
+                // Add active to clicked tab
+                tab.classList.add('active');
+
+                // Hide all views
+                document.querySelectorAll('.view-panel').forEach(panel => {
+                    panel.style.display = 'none';
+                    panel.classList.remove('active');
+                });
+
+                // Show target view
+                const targetId = tab.getAttribute('data-target');
+                const targetPanel = document.getElementById(targetId);
+                if (targetPanel) {
+                    targetPanel.style.display = 'block';
+                    targetPanel.classList.add('active');
+                }
+            });
+        });
+    }
+});

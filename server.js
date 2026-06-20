@@ -5,12 +5,14 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const path = require('path');
+const cookieParser = require('cookie-parser');
 // IMPORT THE ROUTE
 const authRoute = require('./src/routes/auth');
 const vaultRoute = require('./src/routes/vault'); 
 const groupsRoute = require('./src/routes/groups');
 const pagesRoute = require('./src/routes/pages');
 const albumsRoute = require('./src/routes/albums');
+const leaderboardRoute = require('./src/routes/leaderboard');
 
 
 // 2. Load the secret variables from your .env file
@@ -20,6 +22,7 @@ dotenv.config();
 const app = express();
 
 // 3. Middleware (The Gatekeepers)
+app.use(cookieParser());
 // This line allows your server to understand JSON data sent from the frontend
 app.use(express.json());
 // Serve the frontend files (HTML, CSS, JS)
@@ -33,6 +36,12 @@ app.use('/api/vault', vaultRoute);
 app.use('/api/groups', groupsRoute);
 app.use('/api/pages', pagesRoute);
 app.use('/api/albums', albumsRoute);
+app.use('/api/leaderboard', leaderboardRoute);
+
+// Serve landing.html as the root entry point
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'landing.html'));
+});
 
 // 4. The Database Connection Function
 const connectDB = async () => {

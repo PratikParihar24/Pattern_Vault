@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile — MindMaster</title>
+    <link rel="stylesheet" href="css/kuizu-theme.css">
+    <style>
+        .profile-wrapper {
+            min-height: calc(100vh - var(--nav-height));
+            padding: calc(var(--nav-height) + 40px) 20px 80px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .profile-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-medium);
+            border-radius: var(--radius-xl);
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .profile-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 120px;
+            background: var(--gradient-primary);
+            opacity: 0.1;
+        }
+
+        .profile-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: var(--bg-dark);
+            border: 3px solid var(--primary);
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .profile-name {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .profile-email {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+
+        .profile-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-box {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 20px;
+        }
+
+        .stat-value {
+            font-family: 'Poppins', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .logout-btn {
+            width: 100%;
+            background: rgba(233,69,96,0.1);
+            color: #E94560;
+            border: 1px solid rgba(233,69,96,0.2);
+            padding: 12px;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(233,69,96,0.2);
+            transform: translateY(-2px);
+        }
+
+        /* Modal Styles */
+        .kz-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .kz-modal.hidden {
+            display: none;
+        }
+        .kz-modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-medium);
+            padding: 30px;
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 400px;
+            box-shadow: var(--shadow-lg);
+        }
+    </style>
+</head>
+<body class="kuizu-page">
+
+    <!-- Navbar -->
+    <nav class="kz-navbar" id="navbar">
+        <div class="kz-nav-inner">
+            <a href="landing.html" class="kz-logo">
+                <div class="kz-logo-icon">🧠</div>
+                <span class="kz-logo-text">Mind<span>Master</span></span>
+            </a>
+            <ul class="kz-nav-links">
+                <li><a href="landing.html">Home</a></li>
+                <li><a href="how-to-play.html">How to Play</a></li>
+                <li><a href="leaderboard.html">Leaderboard</a></li>
+            </ul>
+            <div class="kz-nav-actions" id="navActions">
+                <a href="app.html" class="kz-btn kz-btn-primary kz-btn-sm">🎮 Play Now</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="profile-wrapper">
+        <div style="width: 100%; max-width: 500px; margin: 0 auto; display: flex; flex-direction: column;">
+            <a href="javascript:history.back()" class="kz-back-btn"><span>←</span> Back</a>
+            
+            <div class="profile-card kz-animate">
+                <div class="profile-avatar">👤</div>
+                <div class="profile-name" id="userName">Loading...</div>
+                <div class="profile-email" id="userEmail">...</div>
+
+                <div class="profile-stats">
+                <div class="stat-box">
+                    <div class="stat-value" id="userHighScore">0</div>
+                    <div class="stat-label">High Score</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="userRank">-</div>
+                    <div class="stat-label">Global Rank</div>
+                </div>
+            </div>
+
+            <button class="logout-btn" onclick="handleLogout()">🚪 Logout Securely</button>
+        </div>
+        </div>
+    </div>
+
+    <!-- Logout Confirmation Modal -->
+    <div id="logoutModal" class="kz-modal hidden">
+        <div class="kz-modal-content kz-animate">
+            <h3 style="margin-bottom: 10px; font-weight: 800;">Log out?</h3>
+            <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 0.95rem;">Are you sure you want to log out of your account?</p>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="kz-btn kz-btn-ghost kz-btn-sm" onclick="closeLogoutModal()">Cancel</button>
+                <button class="kz-btn kz-btn-primary kz-btn-sm" style="background: #E94560; border-color: #E94560; color: #fff;" onclick="confirmLogout()">Yes, Log Out</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/landing.js"></script>
+    <script>
+        // Check if logged in
+        const isAuth = document.cookie.includes('isAuthenticated=true');
+        if (!isAuth) {
+            window.location.href = 'login.html';
+        }
+
+        // Fetch user data
+        async function loadProfile() {
+            try {
+                const res = await fetch('/api/auth', {
+                    credentials: 'include'
+                });
+                if (!res.ok) throw new Error('Not logged in');
+                const user = await res.json();
+                
+                document.getElementById('userName').innerText = user.displayName || 'Player';
+                document.getElementById('userEmail').innerText = user.email || '';
+                
+                // Load local high score (if available)
+                const localHighScore = localStorage.getItem('fakeHighScore') || '0';
+                document.getElementById('userHighScore').innerText = localHighScore;
+
+                // Load real leaderboard data to find rank
+                const lbRes = await fetch('/api/leaderboard', { credentials: 'include' });
+                if (lbRes.ok) {
+                    const lbData = await lbRes.json();
+                    const myEntry = lbData.find(entry => entry._id === user._id);
+                    if (myEntry) {
+                        // Update with real server score and find rank
+                        document.getElementById('userHighScore').innerText = myEntry.highScore;
+                        const rankIndex = lbData.findIndex(entry => entry._id === user._id);
+                        document.getElementById('userRank').innerText = `#${rankIndex + 1}`;
+                    } else {
+                        // User not in top 50, fetch exact rank
+                        try {
+                            const rankRes = await fetch('/api/leaderboard/my-rank', { credentials: 'include' });
+                            if (rankRes.ok) {
+                                const rankData = await rankRes.json();
+                                document.getElementById('userRank').innerText = `#${rankData.rank}`;
+                                document.getElementById('userHighScore').innerText = rankData.user.highScore;
+                            } else {
+                                document.getElementById('userRank').innerText = 'Unranked';
+                            }
+                        } catch(e) {
+                            document.getElementById('userRank').innerText = 'Unranked';
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                // Cookie invalid or expired
+                window.location.href = 'login.html';
+            }
+        }
+
+        window.handleLogout = function() {
+            document.getElementById('logoutModal').classList.remove('hidden');
+        };
+
+        window.closeLogoutModal = function() {
+            document.getElementById('logoutModal').classList.add('hidden');
+        };
+
+        window.confirmLogout = async function() {
+            await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+            sessionStorage.removeItem('patternFailed');
+            window.location.href = 'landing.html';
+        };
+
+        loadProfile();
+    </script>
+</body>
+</html>
