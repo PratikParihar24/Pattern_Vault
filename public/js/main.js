@@ -29,15 +29,15 @@ const highScoreDisplay = document.getElementById('high-score-display');
 // 2. INITIALIZATION — Verify token on load
 // ==========================================
 (function initApp() {
-    const token = localStorage.getItem('token');
-    if (!token) {
+    const isAuth = document.cookie.includes('isAuthenticated=true');
+    if (!isAuth) {
         // No token → go to login
         window.location.href = 'login.html';
         return;
     }
     
     // Verify token is valid with the server
-    fetch('/api/auth', { headers: { 'x-auth-token': token } })
+    fetch('/api/auth', { credentials: "include" })
         .then(res => {
             if (res.ok) {
                 return res.json();
@@ -69,8 +69,8 @@ function showVaultDirectly() {
 window.addEventListener('keydown', (e) => {
     // Check for Ctrl + Shift + X
     if (e.ctrlKey && e.shiftKey && e.key === 'X') {
-        const token = localStorage.getItem('token');
-        if (token) {
+        const isAuth = document.cookie.includes('isAuthenticated=true');
+        if (isAuth) {
             console.log('Secret shortcut activated! Bypassing to vault...');
             e.preventDefault(); // Prevent default browser action just in case
             showVaultDirectly();
@@ -293,14 +293,13 @@ async function verifyPatternAndDecide() {
     if(qText) qText.innerText = "Analyzing Pattern...";
 
     try {
-        const token = localStorage.getItem('token');
-        const res = await fetch('/api/auth/verify-pattern', {
+        const isAuth = document.cookie.includes('isAuthenticated=true');
+        const res = await fetch('/api/auth/verify-pattern', { credentials: 'include', 
             method: 'POST',
             headers: { 
-                'Content-Type': 'application/json',
-                'x-auth-token': token
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ pattern: currentPattern })
+            body: JSON.stringify({ pattern: currentPattern  })
         });
 
         const data = await res.json();
@@ -400,11 +399,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // --- MAIN DATA LOADER ---
 async function loadVaultData() {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    const isAuth = document.cookie.includes('isAuthenticated=true');
+    if (!isAuth) return;
 
     try {
-        const res = await fetch('/api/auth', { headers: { 'x-auth-token': token } });
+        const res = await fetch('/api/auth', { credentials: "include" });
         const userData = await res.json();
 
         renderSidebarGroups(userData.groups || []);
@@ -423,7 +422,7 @@ async function loadVaultData() {
         if (currentContext.type === 'personal') {
             if (viewTitle) viewTitle.innerText = "My Private Vault";
 
-            const pageRes = await fetch('/api/pages/personal', { headers: { 'x-auth-token': token } });
+            const pageRes = await fetch('/api/pages/personal', { credentials: "include" });
             const pages = await pageRes.json();
             renderNotionView(pages, 'personal', null);
 
@@ -434,7 +433,7 @@ async function loadVaultData() {
 
         } else {
             // GROUP MODE
-            const groupRes = await fetch(`/api/groups/${currentContext.id}`, { headers: { 'x-auth-token': token } });
+            const groupRes = await fetch(`/api/groups/${currentContext.id}`, { credentials: "include" });
             const groupData = await groupRes.json();
 
             if (viewTitle) viewTitle.innerText = groupData.name;
@@ -468,7 +467,7 @@ async function loadVaultData() {
             `;
 
             // Render Content
-            const pageRes = await fetch(`/api/pages/group/${currentContext.id}`, { headers: { 'x-auth-token': token } });
+            const pageRes = await fetch(`/api/pages/group/${currentContext.id}`, { credentials: "include" });
             const pages = await pageRes.json();
 
             renderNotionView(pages, 'group', currentContext.id);
@@ -571,10 +570,10 @@ function renderNotionView(pages, contextType, contextId) {
         if (!title) return;
         const url = contextType === 'personal' ? '/api/pages/personal' : `/api/pages/group/${contextId}`;
         try {
-            await fetch(url, {
+            await fetch(url, { credentials: 'include', 
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
-                body: JSON.stringify({ title })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title  })
             });
             loadVaultData();
         } catch (err) { console.error(err); }
@@ -737,10 +736,10 @@ function loadPageIntoEditor(page) {
         if (!silent) saveBtn.innerText = "Saving...";
 
         try {
-            const res = await fetch(`/api/pages/${page._id}`, {
+            const res = await fetch(`/api/pages/${page._id}`, { credentials: 'include', 
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
-                body: JSON.stringify({ title: titleVal, content: contentVal })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: titleVal, content: contentVal  })
             });
 
             if (res.ok) {
@@ -851,8 +850,9 @@ function loadPageIntoEditor(page) {
         isPreviewMode = !isPreviewMode;
         if (isPreviewMode) {
             // Switch to VIEW
-            const htmlContent = marked.parse(contentInput.value);
-            previewDiv.innerHTML = htmlContent;
+            const rawHtml = marked.parse(contentInput.value);
+            const sanitizedHtml = DOMPurify.sanitize(rawHtml);
+            previewDiv.innerHTML = sanitizedHtml;
 
             contentInput.style.display = 'none';
             if (toolbar) toolbar.style.display = 'none';
@@ -979,7 +979,7 @@ function loadPageIntoEditor(page) {
         try {
             const res = await fetch(`/api/pages/${page._id}`, {
                 method: 'DELETE',
-                headers: { 'x-auth-token': localStorage.getItem('token') }
+                credentials: "include"
             });
             if (res.ok) {
                 const splitView = document.getElementById('split-view-container');
@@ -999,10 +999,10 @@ async function handleCreateGroup() {
         UI.toast("Please enter a group name", "error"); // Replaces alert
         return;
     }
-    const res = await fetch('/api/groups/create', {
+    const res = await fetch('/api/groups/create', { credentials: 'include', 
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
-        body: JSON.stringify({ name })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name  })
     });
     if (res.ok) {
         UI.toast("Group Created Successfully", "success");
@@ -1017,10 +1017,10 @@ async function handleJoinGroup() {
         UI.toast("Please enter an invite code", "error");
         return;
     }
-    const res = await fetch('/api/groups/join', {
+    const res = await fetch('/api/groups/join', { credentials: 'include', 
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
-        body: JSON.stringify({ inviteCode: code })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteCode: code  })
     });
     const data = await res.json();
     if (res.ok) {
@@ -1042,7 +1042,7 @@ async function loadAlbumView() {
     }
 
     try {
-        const res = await fetch(url, { headers: { 'x-auth-token': localStorage.getItem('token') } });
+        const res = await fetch(url, { credentials: "include" });
         const albums = await res.json();
 
         container.innerHTML = `
@@ -1113,10 +1113,10 @@ window.triggerUpload = function (inputId) { document.getElementById(inputId).cli
 window.createNewAlbum = async function () {
     const name = await UI.prompt("New Album Name");
     if (!name) return;
-    await fetch('/api/albums', {
+    await fetch('/api/albums', { credentials: 'include', 
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-auth-token': localStorage.getItem('token') },
-        body: JSON.stringify({ name, type: currentContext.type, groupId: currentContext.id })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, type: currentContext.type, groupId: currentContext.id  })
     });
     loadAlbumView();
 };
@@ -1127,7 +1127,7 @@ window.uploadPhotos = async function (e, albumId) {
     for (let i = 0; i < files.length; i++) formData.append('photos', files[i]);
     const res = await fetch(`/api/albums/${albumId}/upload`, {
         method: 'POST',
-        headers: { 'x-auth-token': localStorage.getItem('token') },
+        credentials: "include",
         body: formData
     });
     if (res.ok) {
@@ -1140,7 +1140,7 @@ window.deleteAlbum = async function (id, e) {
     if (!(await UI.confirm("Delete Album?", "All photos inside will be lost."))) return;
     await fetch(`/api/albums/${id}`, {
         method: 'DELETE',
-        headers: { 'x-auth-token': localStorage.getItem('token') }
+        credentials: "include"
     });
     loadAlbumView();
 };
@@ -1148,7 +1148,7 @@ window.deletePhoto = async function (albumId, filename) {
     if (!(await UI.confirm("Delete Photo?", "Are you sure?"))) return;
     const res = await fetch(`/api/albums/${albumId}/photo/${filename}`, {
         method: 'DELETE',
-        headers: { 'x-auth-token': localStorage.getItem('token') }
+        credentials: "include"
     });
     if (res.ok) {
         const updated = await res.json();
@@ -1168,16 +1168,16 @@ window.closeLightbox = function () {
 window.leaveGroup = async function (groupId) {
     const yes = await UI.confirm("Leave Group?", "You will lose access to these files.");
     if (!yes) return;
-    const token = localStorage.getItem('token');
-    await fetch(`/api/groups/${groupId}/leave`, { method: 'POST', headers: { 'x-auth-token': token } });
+    const isAuth = document.cookie.includes('isAuthenticated=true');
+    await fetch(`/api/groups/${groupId}/leave`, { method: 'POST', credentials: "include" });
     location.reload();
 };
 
 window.deleteGroup = async function (groupId) {
     const yes = await UI.confirm("Delete Group?", "⚠️ WARNING: This wipes all data for everyone.");
     if (!yes) return;
-    const token = localStorage.getItem('token');
-    await fetch(`/api/groups/${groupId}`, { method: 'DELETE', headers: { 'x-auth-token': token } });
+    const isAuth = document.cookie.includes('isAuthenticated=true');
+    await fetch(`/api/groups/${groupId}`, { method: 'DELETE', credentials: "include" });
     location.reload();
 };
 
@@ -1227,13 +1227,13 @@ async function triggerGameOver() {
     if (quizResult) quizResult.classList.remove('hidden');
 
     // 4. Submit score to leaderboard API
-    const token = localStorage.getItem('token');
+    const isAuth = document.cookie.includes('isAuthenticated=true');
     if (token) {
         try {
-            const res = await fetch('/api/leaderboard/submit', {
+            const res = await fetch('/api/leaderboard/submit', { credentials: 'include', 
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
-                body: JSON.stringify({ score: fakeScore })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ score: fakeScore  })
             });
             if (res.ok) {
                 const data = await res.json();

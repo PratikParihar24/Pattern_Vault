@@ -2,14 +2,14 @@
 // Fetches and renders the global leaderboard
 
 (async function() {
-    const token = localStorage.getItem('token');
+    const isAuth = document.cookie.includes('isAuthenticated=true');
 
     // ============================================================
     // 1. FETCH LEADERBOARD DATA
     // ============================================================
     let players = [];
     try {
-        const res = await fetch('/api/leaderboard');
+        const res = await fetch('/api/leaderboard', { credentials: 'include' });
         if (res.ok) {
             players = await res.json();
         }
@@ -20,10 +20,10 @@
     // ============================================================
     // 2. FETCH MY RANK (if logged in)
     // ============================================================
-    if (token) {
+    if (isAuth) {
         try {
             const rankRes = await fetch('/api/leaderboard/my-rank', {
-                headers: { 'x-auth-token': token }
+                credentials: 'include'
             });
             if (rankRes.ok) {
                 const myData = await rankRes.json();

@@ -195,8 +195,8 @@
     <script src="js/landing.js"></script>
     <script>
         // Check if logged in
-        const currentToken = localStorage.getItem('token');
-        if (!currentToken) {
+        const isAuth = document.cookie.includes('isAuthenticated=true');
+        if (!isAuth) {
             window.location.href = 'login.html';
         }
 
@@ -204,7 +204,7 @@
         async function loadProfile() {
             try {
                 const res = await fetch('/api/auth', {
-                    headers: { 'x-auth-token': currentToken }
+                    credentials: 'include'
                 });
                 if (!res.ok) throw new Error('Not logged in');
                 const user = await res.json();
@@ -217,7 +217,7 @@
                 document.getElementById('userHighScore').innerText = localHighScore;
 
                 // Load real leaderboard data to find rank
-                const lbRes = await fetch('/api/leaderboard');
+                const lbRes = await fetch('/api/leaderboard', { credentials: 'include' });
                 if (lbRes.ok) {
                     const lbData = await lbRes.json();
                     const myEntry = lbData.find(entry => entry.user && entry.user._id === user._id);
@@ -232,8 +232,7 @@
                 }
             } catch (err) {
                 console.error(err);
-                // Token invalid
-                localStorage.removeItem('token');
+                // Cookie invalid or expired
                 window.location.href = 'login.html';
             }
         }
@@ -246,8 +245,8 @@
             document.getElementById('logoutModal').classList.add('hidden');
         };
 
-        window.confirmLogout = function() {
-            localStorage.removeItem('token');
+        window.confirmLogout = async function() {
+            await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
             sessionStorage.removeItem('patternFailed');
             window.location.href = 'landing.html';
         };
