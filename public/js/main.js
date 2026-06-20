@@ -666,6 +666,7 @@ function loadPageIntoEditor(page) {
     const editorArea = document.getElementById('editor-content-area');
     let autoSaveTimer;
     let isAutoSaveOn = true; // Default: ON
+    let currentDocumentVersion = page.__v || 0; // OCC: Track the version of this document
 
     // HISTORY STACK (For Undo/Redo)
     // We start with the current content as the first "state"
@@ -742,8 +743,6 @@ function loadPageIntoEditor(page) {
     const slashMenu = document.getElementById('slash-menu');
 
     // New DOM Elements
-    // Update these selectors if IDs were removed or changed
-    // Since we used data-type in the HTML above, we can grab them like this:
     const undoBtn = toolbar.querySelector('[data-type="undo"]');
     const redoBtn = toolbar.querySelector('[data-type="redo"]');
     const autoSaveToggle = document.getElementById('autosave-toggle');
@@ -752,7 +751,6 @@ function loadPageIntoEditor(page) {
     const saveToHistory = () => {
         const current = contentInput.value;
         if (current !== history[historyIndex]) {
-            // If we undo and then type, we remove the "future" states
             history = history.slice(0, historyIndex + 1);
             history.push(current);
             historyIndex++;
@@ -778,30 +776,22 @@ function loadPageIntoEditor(page) {
     // --- SMART HISTORY TRIGGER ---
     let historyDebounce;
 
-    // 1. Toolbar Clicks (Immediate Save)
-    // We keep your existing toolbar listener, as buttons should save instantly.
-
-    // 2. Typing (Delayed Save)
-    // This saves "chunks" of work naturally when you pause.
     contentInput.addEventListener('input', () => {
         clearTimeout(historyDebounce);
         historyDebounce = setTimeout(() => {
             saveToHistory();
-        }, 800); // Waits 0.8 seconds after you stop typing to save a "state"
+        }, 800); 
     });
 
-    // --- SAVE LOGIC ---
     // --- SAVE LOGIC ---
     autoSaveToggle.onchange = (e) => {
         isAutoSaveOn = e.target.checked;
 
-        // 1. Visual Feedback (Toast)
         if (typeof UI !== 'undefined') {
             const status = isAutoSaveOn ? "ENABLED ⚡" : "DISABLED 🛑";
             UI.toast(`AutoSave ${status}`, isAutoSaveOn ? "success" : "info");
         }
 
-        // 2. Button Logic
         if (!isAutoSaveOn) {
             saveBtn.innerText = "Save";
             saveBtn.style.color = "";
@@ -812,7 +802,6 @@ function loadPageIntoEditor(page) {
     const performSave = async (silent = false) => {
         const titleVal = titleInput.value;
         const contentVal = contentInput.value;
-        const originalText = saveBtn.innerText;
 
         if (!silent) saveBtn.innerText = "Saving...";
 
@@ -820,12 +809,34 @@ function loadPageIntoEditor(page) {
             const res = await fetch(`/api/pages/${page._id}`, { credentials: 'include', 
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title: titleVal, content: contentVal  })
+                body: JSON.stringify({ 
+                    title: titleVal, 
+                    content: contentVal,
+                    version: currentDocumentVersion // Include version for OCC
+                })
             });
 
+            if (res.status === 409) {
+                // OCC Conflict! Document was edited by someone else
+                isAutoSaveOn = false; // Stop auto-save to prevent looping/spamming
+                if (autoSaveToggle) autoSaveToggle.checked = false;
+                clearTimeout(autoSaveTimer);
+
+                saveBtn.innerText = "Sync Conflict";
+                saveBtn.style.color = "#ff4d4d"; // Red warning
+                
+                alert("Conflict: This document was modified by another user. Auto-save has been disabled to prevent overwriting their work. Please reload to see the latest changes.");
+                return;
+            }
+
             if (res.ok) {
+                const updatedPage = await res.json();
+                currentDocumentVersion = updatedPage.__v; // Update local version
+
                 page.title = titleVal;
                 page.content = contentVal;
+                page.__v = updatedPage.__v;
+                
                 const sidebarItem = document.getElementById(`page-link-${page._id}`);
                 if (sidebarItem) sidebarItem.innerText = titleVal || "Untitled Page";
 
@@ -837,8 +848,14 @@ function loadPageIntoEditor(page) {
                         saveBtn.style.color = "#888";
                     }, 1500);
                 }
+            } else {
+                saveBtn.innerText = "Error";
+                saveBtn.style.color = "#ff4d4d";
             }
-        } catch (err) { saveBtn.innerText = "Error"; }
+        } catch (err) { 
+            saveBtn.innerText = "Error"; 
+            saveBtn.style.color = "#ff4d4d";
+        }
     };
 
     const triggerAutoSave = () => {
