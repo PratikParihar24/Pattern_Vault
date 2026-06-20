@@ -235,6 +235,28 @@
     <script src="js/landing.js"></script>
     <script src="js/register.js"></script>
     <script>
+        // If user navigates to register page while already logged in, redirect them back to home
+        if (localStorage.getItem('token')) {
+            window.location.replace('landing.html');
+        }
+
+        // Handle browser back button caching (bfcache)
+        window.addEventListener('pageshow', (e) => {
+            if (localStorage.getItem('token')) {
+                window.location.replace('landing.html');
+            } else if (e.persisted) {
+                const btn = document.getElementById('reg-btn');
+                const msgBox = document.getElementById('reg-message');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = '🚀 Create Free Account';
+                }
+                if (msgBox) {
+                    msgBox.style.display = 'none';
+                }
+            }
+        });
+
         // Live name preview
         const nameInput = document.getElementById('displayName');
         const preview   = document.getElementById('namePreview');

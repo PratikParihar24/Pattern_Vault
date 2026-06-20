@@ -118,8 +118,15 @@
             } catch(e) {}
         }
 
+        let currentRank = 1;
+        let prevScore = null;
+
         listEl.innerHTML = data.map((p, i) => {
-            const rank = i + 1;
+            if (p.highScore !== prevScore) {
+                currentRank = i + 1;
+                prevScore = p.highScore;
+            }
+            const rank = currentRank;
             const isTop3 = rank <= 3;
             const rankDisplay = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
             const initials = (p.displayName || '?').slice(0, 2).toUpperCase();

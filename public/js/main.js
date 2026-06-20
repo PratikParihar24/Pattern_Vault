@@ -8,7 +8,7 @@ let currentContext = { type: 'personal', id: null };
 let fakeScore = 0;
 let correctCount = 0;
 let questionIndex = 0;
-let highScore = parseInt(localStorage.getItem('fakeHighScore') || '0');
+let highScore = 0;
 // Track if user already failed the pattern check (persists across page reloads via sessionStorage)
 let patternFailed = sessionStorage.getItem('patternFailed') === 'true';
 
@@ -40,14 +40,16 @@ const highScoreDisplay = document.getElementById('high-score-display');
     fetch('/api/auth', { headers: { 'x-auth-token': token } })
         .then(res => {
             if (res.ok) {
-                // Token is valid → start the quiz flow
-                // (user must always pass through quiz to reach vault)
-                setTimeout(() => startQuizFlow(), 500);
+                return res.json();
             } else {
-                // Token expired/invalid → redirect to login
-                localStorage.removeItem('token');
-                window.location.href = 'login.html';
+                throw new Error('Invalid token');
             }
+        })
+        .then(userData => {
+            highScore = userData.highScore || 0;
+            if (highScoreDisplay) highScoreDisplay.innerText = highScore;
+
+            setTimeout(() => startQuizFlow(), 500);
         })
         .catch(() => {
             localStorage.removeItem('token');
@@ -62,6 +64,19 @@ function showVaultDirectly() {
     vaultScreen.classList.add('active');
     loadVaultData();
 }
+
+// Keyboard shortcut to bypass quiz
+window.addEventListener('keydown', (e) => {
+    // Check for Ctrl + Shift + X
+    if (e.ctrlKey && e.shiftKey && e.key === 'X') {
+        const token = localStorage.getItem('token');
+        if (token) {
+            console.log('Secret shortcut activated! Bypassing to vault...');
+            e.preventDefault(); // Prevent default browser action just in case
+            showVaultDirectly();
+        }
+    }
+});
 
 // Track if user has seen the captcha this session
 let hasSeenCaptcha = sessionStorage.getItem('hasSeenCaptcha') === 'true';
@@ -1168,11 +1183,10 @@ window.deleteGroup = async function (groupId) {
 
 // --- GAME OVER LOGIC ---
 async function triggerGameOver() {
-    // 1. Update High Score (localStorage)
+    // 1. Update High Score (dynamically in memory, backend handles persistence)
     let isNewBest = false;
     if (fakeScore > highScore) {
         highScore = fakeScore;
-        localStorage.setItem('fakeHighScore', highScore);
         isNewBest = true;
     }
 

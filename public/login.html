@@ -276,7 +276,9 @@
 
         // Handle browser back button caching (bfcache)
         window.addEventListener('pageshow', (e) => {
-            if (e.persisted) {
+            if (localStorage.getItem('token')) {
+                window.location.replace('landing.html');
+            } else if (e.persisted) {
                 btn.disabled = false;
                 btn.textContent = '🎮 Login & Play';
                 msgBox.style.display = 'none';
