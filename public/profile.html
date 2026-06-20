@@ -220,14 +220,26 @@
                 const lbRes = await fetch('/api/leaderboard', { credentials: 'include' });
                 if (lbRes.ok) {
                     const lbData = await lbRes.json();
-                    const myEntry = lbData.find(entry => entry.user && entry.user._id === user._id);
+                    const myEntry = lbData.find(entry => entry._id === user._id);
                     if (myEntry) {
                         // Update with real server score and find rank
-                        document.getElementById('userHighScore').innerText = myEntry.score;
-                        const rankIndex = lbData.findIndex(entry => entry.user && entry.user._id === user._id);
+                        document.getElementById('userHighScore').innerText = myEntry.highScore;
+                        const rankIndex = lbData.findIndex(entry => entry._id === user._id);
                         document.getElementById('userRank').innerText = `#${rankIndex + 1}`;
                     } else {
-                        document.getElementById('userRank').innerText = 'Unranked';
+                        // User not in top 50, fetch exact rank
+                        try {
+                            const rankRes = await fetch('/api/leaderboard/my-rank', { credentials: 'include' });
+                            if (rankRes.ok) {
+                                const rankData = await rankRes.json();
+                                document.getElementById('userRank').innerText = `#${rankData.rank}`;
+                                document.getElementById('userHighScore').innerText = rankData.user.highScore;
+                            } else {
+                                document.getElementById('userRank').innerText = 'Unranked';
+                            }
+                        } catch(e) {
+                            document.getElementById('userRank').innerText = 'Unranked';
+                        }
                     }
                 }
             } catch (err) {

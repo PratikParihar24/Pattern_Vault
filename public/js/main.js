@@ -12,6 +12,13 @@ let highScore = 0;
 // Track if user already failed the pattern check (persists across page reloads via sessionStorage)
 let patternFailed = sessionStorage.getItem('patternFailed') === 'true';
 
+// --- QUIZ CONFIG STATE ---
+let quizLength = 5;        // 5, 10, or 20
+let quizDifficulty = 'easy';
+let quizDomain = 'all';
+let patternCheckedThisGame = false; // Has the 5-question pattern check happened yet?
+let isInScoredPhase = false;        // Are we past the pattern window (for 10/20 modes)?
+
 // DOM Elements
 const loadingScreen    = document.getElementById('loading-screen');
 const loadingText      = document.getElementById('loading-text');
@@ -175,19 +182,53 @@ if (quizSoundToggle) {
     });
 }
 
+// --- PILL SELECTOR LOGIC ---
+document.querySelectorAll('.kz-pill-group').forEach(group => {
+    group.querySelectorAll('.kz-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+            group.querySelectorAll('.kz-pill').forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+        });
+    });
+});
+
 // --- EVENT: START QUIZ ---
 if (startQuizBtn) {
     startQuizBtn.addEventListener('click', () => {
+        // 1. Read config from UI
+        const lengthPill = document.querySelector('#length-selector .kz-pill.active');
+        const diffPill = document.querySelector('#difficulty-selector .kz-pill.active');
+        const domainPill = document.querySelector('#domain-selector .kz-pill.active');
+        quizLength = parseInt(lengthPill?.dataset.value || '5');
+        quizDifficulty = diffPill?.dataset.value || 'easy';
+        quizDomain = domainPill?.dataset.value || 'all';
+
+        // 2. Reset state
         questionIndex = 0;
         fakeScore = 0;
         correctCount = 0;
         currentPattern = [];
+        patternCheckedThisGame = false;
+        isInScoredPhase = (quizLength === 5); // For 5-question mode, all questions are scored
+
+        // 3. Reset score UI
         const scoreEl = document.getElementById('score-display');
         if (scoreEl) scoreEl.innerText = '0';
-        for (let i = 0; i < 5; i++) {
-            const d = document.getElementById(`dot-${i}`);
-            if (d) { d.className = 'kz-dot'; if (i === 0) d.classList.add('current'); }
+
+        // 4. Generate dynamic progress dots
+        const dotsContainer = document.getElementById('progress-dots-container');
+        if (dotsContainer) {
+            dotsContainer.innerHTML = '';
+            for (let i = 0; i < quizLength; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'kz-dot';
+                dot.id = `dot-${i}`;
+                if (i === 0) dot.classList.add('current');
+                dotsContainer.appendChild(dot);
+            }
         }
+
+        // 5. Switch screens
         quizIntro.classList.add('hidden');
         quizGame.classList.remove('hidden');
         loadNewQuestion();
@@ -232,11 +273,16 @@ document.querySelectorAll('.opt-btn').forEach(btn => {
 
         questionIndex++;
 
-        // After 5 questions → verify pattern
-        if (currentPattern.length === 5) {
+        // --- DECISION: Pattern check or next question? ---
+        if (!patternCheckedThisGame && currentPattern.length === 5) {
+            // Time to check the pattern (for ALL quiz lengths)
+            patternCheckedThisGame = true;
             setTimeout(() => verifyPatternAndDecide(), 700);
+        } else if (questionIndex >= quizLength) {
+            // All questions answered → game over
+            setTimeout(() => triggerGameOver(), 700);
         } else {
-            // Advance to next dot
+            // Advance to next dot & load next question
             const nextDot = document.getElementById(`dot-${questionIndex}`);
             if (nextDot) nextDot.classList.add('current');
 
@@ -258,13 +304,17 @@ function loadNewQuestion() {
         return;
     }
 
-    const round = Cipher.getNewRound();
+    const round = Cipher.getNewRound(quizDifficulty, quizDomain);
+    if (!round) {
+        console.error('No questions available for this filter!');
+        return;
+    }
     
     const qText = document.getElementById('question-text');
     if (qText) qText.innerText = round.text;
 
     const counter = document.getElementById('question-counter');
-    if (counter) counter.innerText = `Question ${questionIndex + 1} / 5`;
+    if (counter) counter.innerText = `Question ${questionIndex + 1} / ${quizLength}`;
 
     document.querySelectorAll('.opt-btn').forEach((btn, index) => {
         const span = btn.querySelector('.opt-text');
@@ -284,8 +334,24 @@ async function verifyPatternAndDecide() {
     // If the user already failed the pattern in this session → they're trapped
     // They can play the quiz for fun/leaderboard but vault never opens
     if (patternFailed) {
-        if(qText) qText.innerText = "Calculating Score...";
-        setTimeout(() => triggerGameOver(), 500);
+        if (quizLength === 5) {
+            // 5-question mode: game is over
+            if(qText) qText.innerText = "Calculating Score...";
+            setTimeout(() => triggerGameOver(), 500);
+        } else {
+            // 10/20-question mode: continue to scored phase
+            isInScoredPhase = true;
+            // Score is already counting from Q1, keep going
+            const nextDot = document.getElementById(`dot-${questionIndex}`);
+            if (nextDot) nextDot.classList.add('current');
+            setTimeout(() => {
+                document.querySelectorAll('.opt-btn').forEach(b => {
+                    b.classList.remove('correct', 'wrong');
+                    b.disabled = false;
+                });
+                loadNewQuestion();
+            }, 700);
+        }
         return;
     }
 
@@ -293,19 +359,17 @@ async function verifyPatternAndDecide() {
     if(qText) qText.innerText = "Analyzing Pattern...";
 
     try {
-        const isAuth = document.cookie.includes('isAuthenticated=true');
-        const res = await fetch('/api/auth/verify-pattern', { credentials: 'include', 
+        const res = await fetch('/api/auth/verify-pattern', {
+            credentials: 'include', 
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ pattern: currentPattern  })
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pattern: currentPattern })
         });
 
         const data = await res.json();
 
         if (res.ok && data.unlocked === true) {
-            // ✅ PATTERN CORRECT → Open the Vault!
+            // ✅ PATTERN CORRECT → Open the Vault! (Game is discarded, no score submitted)
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
 
@@ -314,10 +378,27 @@ async function verifyPatternAndDecide() {
             loadVaultData();
 
         } else {
-            // ❌ PATTERN WRONG → User is now trapped in the simulation
+            // ❌ PATTERN WRONG → Mark as failed
             patternFailed = true;
             sessionStorage.setItem('patternFailed', 'true');
-            triggerGameOver();
+
+            if (quizLength === 5) {
+                // 5-question mode: game over now
+                triggerGameOver();
+            } else {
+                // 10/20-question mode: continue to remaining questions
+                isInScoredPhase = true;
+                // Score is already counting, just continue
+                const nextDot = document.getElementById(`dot-${questionIndex}`);
+                if (nextDot) nextDot.classList.add('current');
+                setTimeout(() => {
+                    document.querySelectorAll('.opt-btn').forEach(b => {
+                        b.classList.remove('correct', 'wrong');
+                        b.disabled = false;
+                    });
+                    loadNewQuestion();
+                }, 700);
+            }
         }
     } catch (err) {
         console.error('Pattern verification error:', err);
@@ -1197,23 +1278,25 @@ async function triggerGameOver() {
 
     // Correct count
     const correctEl = document.getElementById('correct-count');
-    if (correctEl) correctEl.innerText = `${correctCount}/5`;
+    if (correctEl) correctEl.innerText = `${correctCount}/${quizLength}`;
 
     // Personal best
     const pbEl = document.getElementById('personal-best');
     if (pbEl) pbEl.innerText = highScore;
 
-    // Dynamic title
+    // Dynamic title based on percentage
+    const maxScore = quizLength * 10;
+    const pct = fakeScore / maxScore;
     const titleEl = document.getElementById('result-title');
     const subEl = document.getElementById('result-subtitle');
     if (titleEl) {
-        if (fakeScore === 50) {
+        if (pct === 1) {
             titleEl.innerText = 'Perfect Score! 🎉';
             if (subEl) subEl.innerText = 'You got every single one right. Impressive!';
-        } else if (fakeScore >= 30) {
+        } else if (pct >= 0.6) {
             titleEl.innerText = 'Great Job! 🎯';
-            if (subEl) subEl.innerText = 'Solid performance — keep it up to hit 50!';
-        } else if (fakeScore >= 10) {
+            if (subEl) subEl.innerText = `Solid performance — keep pushing for ${maxScore}!`;
+        } else if (pct >= 0.2) {
             titleEl.innerText = 'Nice Try! 🧠';
             if (subEl) subEl.innerText = 'You can do better. Play again and improve!';
         } else {
@@ -1228,12 +1311,13 @@ async function triggerGameOver() {
 
     // 4. Submit score to leaderboard API
     const isAuth = document.cookie.includes('isAuthenticated=true');
-    if (token) {
+    if (isAuth) {
         try {
-            const res = await fetch('/api/leaderboard/submit', { credentials: 'include', 
+            const res = await fetch('/api/leaderboard/submit', {
+                credentials: 'include', 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ score: fakeScore  })
+                body: JSON.stringify({ score: fakeScore })
             });
             if (res.ok) {
                 const data = await res.json();
@@ -1262,16 +1346,12 @@ if (restartBtn) {
         correctCount = 0;
         currentPattern = [];
         questionIndex = 0;
+        patternCheckedThisGame = false;
+        isInScoredPhase = false;
 
         // Reset score UI
         const scoreEl = document.getElementById('score-display');
         if (scoreEl) scoreEl.innerText = '0';
-
-        // Reset progress dots
-        for (let i = 0; i < 5; i++) {
-            const d = document.getElementById(`dot-${i}`);
-            if (d) { d.className = 'kz-dot'; if (i === 0) d.classList.add('current'); }
-        }
 
         // Reset option buttons
         document.querySelectorAll('.opt-btn').forEach(b => {
@@ -1283,7 +1363,7 @@ if (restartBtn) {
         const rankReveal = document.getElementById('rank-reveal');
         if (rankReveal) rankReveal.style.display = 'none';
 
-        // Switch screens back to intro
+        // Switch screens back to config/intro
         if (quizResult) quizResult.classList.add('hidden');
         if (quizIntro) quizIntro.classList.remove('hidden');
     });
