@@ -110,10 +110,8 @@
 
         // Determine current user's ID (decode JWT)
         let myName = null;
-        if (token) {
+        if (isAuth) {
             try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                // We'll match by rank banner name instead
                 myName = document.getElementById('myDisplayName')?.textContent;
             } catch(e) {}
         }
