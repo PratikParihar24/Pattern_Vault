@@ -256,8 +256,11 @@
 
     <script src="js/landing.js"></script>
     <script>
+        // Helper to check auth
+        const isAuth = () => document.cookie.includes('isAuthenticated=true');
+
         // If user navigates to login page while already logged in, redirect them back to home
-        if (localStorage.getItem('token')) {
+        if (isAuth()) {
             window.location.replace('landing.html');
         } else {
             // Only clear pattern state if actually not logged in
@@ -276,7 +279,7 @@
 
         // Handle browser back button caching (bfcache)
         window.addEventListener('pageshow', (e) => {
-            if (localStorage.getItem('token')) {
+            if (isAuth()) {
                 window.location.replace('landing.html');
             } else if (e.persisted) {
                 btn.disabled = false;
@@ -287,37 +290,36 @@
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
+            btn.disabled = true;
+            btn.textContent = 'Authenticating...';
+            msgBox.style.display = 'none';
 
             const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-
-            btn.disabled = true;
-            btn.textContent = 'Logging in...';
-            msgBox.style.display = 'none';
+            const password = document.getElementById('password').value.trim();
 
             try {
                 const res = await fetch('/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
                     body: JSON.stringify({ email, password })
                 });
 
                 const data = await res.json();
 
                 if (res.ok) {
-                    // Login successful → store token → go to quiz/vault
-                    localStorage.setItem('token', data.token);
+                    // Login successful → go to quiz/vault (HttpOnly cookie is set by backend)
                     showMsg('Login successful! Loading...', 'success');
                     setTimeout(() => {
                         window.location.href = 'app.html';
                     }, 500);
                 } else {
-                    showMsg(data.msg || 'Login failed', 'error');
+                    showMsg(data.msg || 'Login failed');
                     btn.disabled = false;
                     btn.textContent = '🎮 Login & Play';
                 }
             } catch (err) {
-                showMsg('Server error. Please try again.', 'error');
+                showMsg('Server error. Try again later.');
                 btn.disabled = false;
                 btn.textContent = '🎮 Login & Play';
             }

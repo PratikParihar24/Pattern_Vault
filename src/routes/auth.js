@@ -83,9 +83,22 @@ router.post('/login', async (req, res) => {
         // 3. Create the JWT Token
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 
-        // 4. Send back the token
+        // 4. Send back the token as an HttpOnly cookie
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+        });
+
+        // Also set a non-HttpOnly cookie for frontend UI logic
+        res.cookie('isAuthenticated', 'true', {
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 30 * 24 * 60 * 60 * 1000
+        });
+
         res.json({
-            token,
             user: {
                 id: user._id,
                 email: user.email
@@ -95,6 +108,13 @@ router.post('/login', async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// --- NEW ROUTE: LOGOUT ---
+router.post('/logout', (req, res) => {
+    res.clearCookie('token');
+    res.clearCookie('isAuthenticated');
+    res.json({ msg: 'Logged out' });
 });
 
 // --- ROUTE 3: VERIFY PATTERN (After Quiz) ---

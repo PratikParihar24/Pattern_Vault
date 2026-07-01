@@ -226,6 +226,8 @@
 
             <div class="auth-msg" id="reg-message"></div>
 
+            <div class="auth-msg" id="reg-message"></div>
+
             <div class="auth-footer" style="margin-top:20px;">
                 Already a player? <a href="login.html">Login here →</a>
             </div>
@@ -235,14 +237,17 @@
     <script src="js/landing.js"></script>
     <script src="js/register.js"></script>
     <script>
+        // Helper to check auth
+        const isAuth = () => document.cookie.includes('isAuthenticated=true');
+
         // If user navigates to register page while already logged in, redirect them back to home
-        if (localStorage.getItem('token')) {
+        if (isAuth()) {
             window.location.replace('landing.html');
         }
 
         // Handle browser back button caching (bfcache)
         window.addEventListener('pageshow', (e) => {
-            if (localStorage.getItem('token')) {
+            if (isAuth()) {
                 window.location.replace('landing.html');
             } else if (e.persisted) {
                 const btn = document.getElementById('reg-btn');

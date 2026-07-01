@@ -5,6 +5,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const path = require('path');
+const cookieParser = require('cookie-parser');
 // IMPORT THE ROUTE
 const authRoute = require('./src/routes/auth');
 const vaultRoute = require('./src/routes/vault'); 
@@ -21,6 +22,7 @@ dotenv.config();
 const app = express();
 
 // 3. Middleware (The Gatekeepers)
+app.use(cookieParser());
 // This line allows your server to understand JSON data sent from the frontend
 app.use(express.json());
 // Serve the frontend files (HTML, CSS, JS)

@@ -152,14 +152,14 @@
     // ============================================
     // 5. AUTH STATE CHECK — If logged in, update nav
     // ============================================
-    window.handleLogout = function() {
-        localStorage.removeItem('token');
+    window.handleLogout = async function() {
+        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
         sessionStorage.removeItem('patternFailed');
         window.location.reload();
     };
 
-    const token = localStorage.getItem('token');
-    if (token) {
+    const isAuth = document.cookie.includes('isAuthenticated=true');
+    if (isAuth) {
         // Navbar: Just show "My Profile" to avoid redundant CTAs on the first screen
         const navActions = document.querySelector('.kz-nav-actions');
         if (navActions) {
