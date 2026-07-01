@@ -11,7 +11,7 @@ const Group = require('../models/Group'); // <--- CRITICAL IMPORT
 // GET All Personal Pages
 router.get('/personal', authMiddleware, async (req, res) => {
     try {
-        const pages = await Page.find({ user: req.user.id, group: null }).sort({ lastEdited: -1 });
+        const pages = await Page.find({ user: req.user.id, group: null }).populate('user', 'username email').sort({ lastEdited: -1 });
         res.json(pages);
     } catch (err) {
         console.error(err);
@@ -53,7 +53,7 @@ router.get('/group/:groupId', authMiddleware, async (req, res) => {
             return res.status(403).json({ msg: 'Access Denied' });
         }
 
-        const pages = await Page.find({ group: groupId }).sort({ lastEdited: -1 });
+        const pages = await Page.find({ group: groupId }).populate('user', 'username email').sort({ lastEdited: -1 });
         res.json(pages);
     } catch (err) {
         console.error(err);
@@ -94,19 +94,37 @@ router.post('/group/:groupId', authMiddleware, async (req, res) => {
 // ==========================================
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
-        const { title, content } = req.body;
-        let page = await Page.findById(req.params.id);
-        if (!page) return res.status(404).json({ msg: 'Page not found' });
+        const { title, content, version } = req.body;
+        
+        if (version === undefined) {
+             return res.status(400).json({ msg: 'Version is required for optimistic concurrency control' });
+        }
 
         // NOTE: For now, we only check if YOU created it. 
         // Ideally, for groups, we should check if you are a MEMBER of the group.
-        // But since you are the creator of your personal pages, this works for both for now.
         
-        if (title) page.title = title;
-        if (content !== undefined) page.content = content;
-        page.lastEdited = Date.now();
+        let updateData = { lastEdited: Date.now() };
+        if (title) updateData.title = title;
+        if (content !== undefined) updateData.content = content;
 
-        await page.save();
+        const page = await Page.findOneAndUpdate(
+            { _id: req.params.id, __v: version },
+            { 
+                $set: updateData,
+                $inc: { __v: 1 }
+            },
+            { new: true }
+        );
+
+        if (!page) {
+            // Check if document exists to differentiate 404 vs 409
+            const existingPage = await Page.findById(req.params.id);
+            if (!existingPage) return res.status(404).json({ msg: 'Page not found' });
+            
+            // Document exists but version mismatched
+            return res.status(409).json({ msg: 'Conflict: Document was modified by another user.' });
+        }
+
         res.json(page);
     } catch (err) {
         console.error(err);

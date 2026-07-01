@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindMaster — Play Smarter, Think Sharper</title>
+    <meta name="description" content="MindMaster is the ultimate brain-training quiz game. Compete on the leaderboard, unlock achievements, and prove your intelligence.">
+    <meta property="og:title" content="MindMaster Quiz">
+    <meta property="og:description" content="Play the ultimate quiz game and climb the global leaderboard.">
+    <link rel="stylesheet" href="css/kuizu-theme.css">
+    <style>
+        /* ============ HERO ============ */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: calc(var(--nav-height) + 40px) clamp(20px, 5vw, 80px) 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 50% -10%, rgba(233,69,96,0.15) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 60%, rgba(167,139,250,0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        /* Floating blobs */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+        }
+        .blob-1 { width: 500px; height: 500px; background: rgba(233,69,96,0.06); top: -100px; right: -100px; animation: kz-float 7s ease-in-out infinite; }
+        .blob-2 { width: 300px; height: 300px; background: rgba(167,139,250,0.08); bottom: 100px; left: -80px; animation: kz-float 9s ease-in-out 2s infinite; }
+        .blob-3 { width: 200px; height: 200px; background: rgba(96,165,250,0.06); top: 40%; left: 30%; animation: kz-float 6s ease-in-out 1s infinite; }
+
+        .hero-inner {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(233,69,96,0.1);
+            border: 1px solid rgba(233,69,96,0.25);
+            color: var(--primary);
+            padding: 6px 14px;
+            border-radius: var(--radius-pill);
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 24px;
+        }
+
+        .hero-eyebrow .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--primary);
+            animation: kz-pulse-glow 1.5s ease-in-out infinite;
+        }
+
+        .hero-title { margin-bottom: 20px; }
+
+        .hero-desc {
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+            line-height: 1.75;
+            margin-bottom: 36px;
+            max-width: 500px;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 32px;
+            margin-top: 48px;
+            flex-wrap: wrap;
+        }
+
+        .hero-stat-item {}
+        .hero-stat-num {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1;
+        }
+        .hero-stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* ============ QUIZ CARD MOCKUP ============ */
+        .hero-visual {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .quiz-mockup-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-medium);
+            border-radius: var(--radius-xl);
+            padding: 32px;
+            width: 340px;
+            box-shadow: var(--shadow-lg), 0 0 60px rgba(233,69,96,0.12);
+            animation: kz-float 5s ease-in-out infinite;
+            position: relative;
+            z-index: 2;
+        }
+
+        .qm-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .qm-progress-dots { display: flex; gap: 6px; }
+        .qm-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.12);
+        }
+        .qm-dot.done { background: var(--accent-green); }
+        .qm-dot.active { background: var(--primary); transform: scale(1.4); }
+
+        .qm-badge {
+            background: rgba(233,69,96,0.12);
+            border: 1px solid rgba(233,69,96,0.25);
+            color: var(--primary);
+            padding: 4px 10px;
+            border-radius: var(--radius-pill);
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .qm-question {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.5;
+            margin-bottom: 24px;
+            min-height: 56px;
+        }
+
+        .qm-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        .qm-opt {
+            background: rgba(255,255,255,0.05);
+            border: 1.5px solid var(--border-medium);
+            border-radius: var(--radius-md);
+            padding: 14px 10px;
+            text-align: center;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .qm-opt:hover { border-color: var(--primary); color: var(--primary); background: rgba(233,69,96,0.08); }
+        .qm-opt.correct { background: rgba(74,222,128,0.12); border-color: var(--accent-green); color: var(--accent-green); }
+        .qm-opt.wrong  { background: rgba(233,69,96,0.12); border-color: var(--primary); color: var(--primary); }
+
+        .qm-timer {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+        .qm-timer-bar {
+            flex: 1; height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .qm-timer-fill {
+            height: 100%;
+            width: 65%;
+            background: var(--gradient-primary);
+            border-radius: 2px;
+            transition: width 1s linear;
+        }
+        .qm-timer-label { font-size: 0.8rem; color: var(--primary); font-weight: 700; }
+
+        /* Floating mini cards */
+        .float-card {
+            position: absolute;
+            background: var(--bg-card);
+            border: 1px solid var(--border-medium);
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            box-shadow: var(--shadow-md);
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .float-card-1 {
+            top: -10px; left: -40px;
+            animation: kz-float 4s ease-in-out 0.5s infinite;
+            z-index: 3;
+        }
+        .float-card-2 {
+            bottom: 10px; right: -30px;
+            animation: kz-float 5s ease-in-out 1.5s infinite;
+            z-index: 3;
+        }
+
+        .float-card .fc-icon {
+            width: 28px; height: 28px;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem;
+        }
+
+        /* ============ FEATURES ============ */
+        .features-section {
+            background: var(--bg-dark);
+            border-top: 1px solid var(--border-subtle);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .feature-card .kz-card-icon {
+            font-size: 2rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .feature-card p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.65;
+        }
+
+        /* ============ HOW IT WORKS ============ */
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 32px;
+            position: relative;
+        }
+
+        .steps-grid::before {
+            content: '';
+            position: absolute;
+            top: 24px;
+            left: calc(16.7% + 24px);
+            right: calc(16.7% + 24px);
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--border-medium), transparent);
+        }
+
+        .step-card {
+            text-align: center;
+        }
+        .step-card .kz-step-num {
+            margin: 0 auto 20px;
+            width: 52px; height: 52px;
+            font-size: 1.2rem;
+        }
+        .step-card h3 {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+        .step-card p {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            line-height: 1.65;
+        }
+
+        /* ============ CTA SECTION ============ */
+        .cta-section {
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse 60% 80% at 50% 50%, rgba(233,69,96,0.08), transparent);
+            pointer-events: none;
+        }
+
+        .cta-card {
+            background: var(--gradient-card);
+            border: 1px solid var(--border-medium);
+            border-radius: var(--radius-xl);
+            padding: 80px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: var(--gradient-primary);
+        }
+
+        .cta-card h2 {
+            margin-bottom: 16px;
+        }
+        .cta-card p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 36px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .cta-actions {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* ============ RESPONSIVE ============ */
+        @media (max-width: 900px) {
+            .hero-inner { grid-template-columns: 1fr; text-align: center; }
+            .hero-desc { margin-left: auto; margin-right: auto; }
+            .hero-cta { justify-content: center; }
+            .hero-stats { justify-content: center; }
+            .hero-visual { display: none; }
+            .steps-grid { grid-template-columns: 1fr; }
+            .steps-grid::before { display: none; }
+        }
+
+        @media (max-width: 768px) {
+            .hero { padding-top: calc(var(--nav-height) + 20px); }
+        }
+    </style>
+</head>
+<body class="kuizu-page">
+
+    <!-- ===== NAVBAR ===== -->
+    <nav class="kz-navbar" id="navbar">
+        <div class="kz-nav-inner">
+            <a href="landing.html" class="kz-logo">
+                <div class="kz-logo-icon">🧠</div>
+                <span class="kz-logo-text">Mind<span>Master</span></span>
+            </a>
+
+            <ul class="kz-nav-links">
+                <li><a href="landing.html" class="active">Home</a></li>
+                <li><a href="how-to-play.html">How to Play</a></li>
+                <li><a href="leaderboard.html">Leaderboard</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="faq.html">FAQ</a></li>
+            </ul>
+
+            <div class="kz-nav-actions">
+                <a href="login.html" class="kz-btn kz-btn-ghost kz-btn-sm">Login</a>
+                <a href="register.html" class="kz-btn kz-btn-primary kz-btn-sm">Register</a>
+            </div>
+
+            <button class="kz-hamburger" id="hamburger" aria-label="Menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Mobile Nav -->
+    <div class="kz-mobile-nav" id="mobileNav">
+        <a href="landing.html">🏠 Home</a>
+        <a href="how-to-play.html">🎮 How to Play</a>
+        <a href="leaderboard.html">🏆 Leaderboard</a>
+        <a href="about.html">💡 About</a>
+        <a href="faq.html">❓ FAQ</a>
+        <hr style="border-color:var(--border-subtle); margin: 8px 0;">
+        <a href="login.html" style="color:var(--text-secondary)">Login</a>
+        <a href="register.html" style="background:var(--gradient-primary); color:#fff; text-align:center; border-radius:var(--radius-pill);">Register Free</a>
+    </div>
+
+    <!-- ===== HERO ===== -->
+    <section class="hero">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+
+        <div class="hero-inner">
+            <div class="hero-content">
+                <div class="hero-eyebrow kz-animate">
+                    <span class="dot"></span>
+                    Now Live — Global Leaderboard
+                </div>
+
+                <h1 class="kz-h1 hero-title kz-animate kz-animate-delay-1">
+                    Test Your <span class="kz-gradient-text">Brain</span><br>
+                    Unlock Your <span class="kz-gradient-text">Mind</span>
+                </h1>
+
+                <p class="hero-desc kz-animate kz-animate-delay-2">
+                    Play mind-bending trivia across 30+ categories. Answer 5 questions to prove your intelligence, climb the global leaderboard, and challenge your friends.
+                </p>
+
+                <div class="hero-cta kz-animate kz-animate-delay-3">
+                    <a href="register.html" class="kz-btn kz-btn-primary kz-btn-lg">
+                        🎮 Start Playing Free
+                    </a>
+                    <a href="how-to-play.html" class="kz-btn kz-btn-ghost kz-btn-lg">
+                        How it Works
+                    </a>
+                </div>
+
+                <div class="hero-stats kz-animate kz-animate-delay-4">
+                    <div class="hero-stat-item">
+                        <div class="hero-stat-num">30+</div>
+                        <div class="hero-stat-label">Questions</div>
+                    </div>
+                    <div class="hero-stat-item">
+                        <div class="hero-stat-num">5</div>
+                        <div class="hero-stat-label">Rounds/Game</div>
+                    </div>
+                    <div class="hero-stat-item">
+                        <div class="hero-stat-num">∞</div>
+                        <div class="hero-stat-label">Replays</div>
+                    </div>
+                    <div class="hero-stat-item">
+                        <div class="hero-stat-num">🌍</div>
+                        <div class="hero-stat-label">Global Ranks</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quiz Card Mockup -->
+            <div class="hero-visual kz-animate kz-animate-delay-2">
+                <!-- Floating badges -->
+                <div class="float-card float-card-1">
+                    <div class="fc-icon" style="background:rgba(74,222,128,0.15);">✅</div>
+                    Correct! +10 XP
+                </div>
+                <div class="float-card float-card-2">
+                    <div class="fc-icon" style="background:rgba(245,158,11,0.15);">🏆</div>
+                    Rank #3 Global
+                </div>
+
+                <div class="quiz-mockup-card">
+                    <div class="qm-header">
+                        <div class="qm-progress-dots">
+                            <div class="qm-dot done"></div>
+                            <div class="qm-dot done"></div>
+                            <div class="qm-dot active"></div>
+                            <div class="qm-dot"></div>
+                            <div class="qm-dot"></div>
+                        </div>
+                        <div class="qm-badge">Q 3 / 5</div>
+                    </div>
+
+                    <div class="qm-question">
+                        Which programming language is known as the "snake"? 🐍
+                    </div>
+
+                    <div class="qm-options">
+                        <div class="qm-opt correct">Python</div>
+                        <div class="qm-opt">Cobra</div>
+                        <div class="qm-opt">Java</div>
+                        <div class="qm-opt wrong">Viper</div>
+                    </div>
+
+                    <div class="qm-timer">
+                        <div class="qm-timer-bar">
+                            <div class="qm-timer-fill"></div>
+                        </div>
+                        <span class="qm-timer-label">13s</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== FEATURES ===== -->
+    <section class="kz-section features-section">
+        <div class="kz-container">
+            <div class="kz-section-header">
+                <span class="kz-label">Why MindMaster?</span>
+                <h2 class="kz-h2">Everything a quiz game <span class="kz-gradient-text">should be</span></h2>
+                <p class="kz-body" style="max-width:520px; margin:16px auto 0;">Designed for those who love to challenge themselves. Fast, competitive, and genuinely fun.</p>
+            </div>
+
+            <div class="kz-grid-3">
+                <div class="kz-card feature-card kz-animate">
+                    <div class="kz-card-icon" style="background:rgba(233,69,96,0.12);">🎯</div>
+                    <h3>30+ Question Bank</h3>
+                    <p>Spanning science, geography, history, programming, and pop culture. New questions keep you on your toes.</p>
+                </div>
+                <div class="kz-card feature-card kz-animate kz-animate-delay-1">
+                    <div class="kz-card-icon" style="background:rgba(74,222,128,0.12);">🏆</div>
+                    <h3>Global Leaderboard</h3>
+                    <p>Every game contributes to your rank. Rise through the tiers and claim your spot at the top.</p>
+                </div>
+                <div class="kz-card feature-card kz-animate kz-animate-delay-2">
+                    <div class="kz-card-icon" style="background:rgba(96,165,250,0.12);">⚡</div>
+                    <h3>Instant Feedback</h3>
+                    <p>See right and wrong answers in real-time. Learn while you play and track your performance across games.</p>
+                </div>
+                <div class="kz-card feature-card kz-animate kz-animate-delay-1">
+                    <div class="kz-card-icon" style="background:rgba(167,139,250,0.12);">🔐</div>
+                    <h3>Secure Accounts</h3>
+                    <p>Your progress and scores are securely saved. JWT-authenticated sessions keep your data safe.</p>
+                </div>
+                <div class="kz-card feature-card kz-animate kz-animate-delay-2">
+                    <div class="kz-card-icon" style="background:rgba(245,158,11,0.12);">📱</div>
+                    <h3>Mobile First</h3>
+                    <p>Optimized for every screen size. Play on your phone, tablet, or desktop seamlessly.</p>
+                </div>
+                <div class="kz-card feature-card kz-animate kz-animate-delay-3">
+                    <div class="kz-card-icon" style="background:rgba(233,69,96,0.12);">🎮</div>
+                    <h3>Endless Replay</h3>
+                    <p>Questions shuffle every round. No two games are ever the same — the challenge never ends.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== HOW IT WORKS ===== -->
+    <section class="kz-section">
+        <div class="kz-container">
+            <div class="kz-section-header">
+                <span class="kz-label">Simple as 1-2-3</span>
+                <h2 class="kz-h2">Start playing in <span class="kz-gradient-text">seconds</span></h2>
+            </div>
+
+            <div class="steps-grid">
+                <div class="step-card kz-animate">
+                    <div class="kz-step-num">1</div>
+                    <h3>Create Account</h3>
+                    <p>Sign up with your email and choose a display name that shows on the global leaderboard.</p>
+                </div>
+                <div class="step-card kz-animate kz-animate-delay-1">
+                    <div class="kz-step-num">2</div>
+                    <h3>Play the Quiz</h3>
+                    <p>Answer 5 randomly shuffled trivia questions. Pick wisely — every answer affects your pattern score.</p>
+                </div>
+                <div class="step-card kz-animate kz-animate-delay-2">
+                    <div class="kz-step-num">3</div>
+                    <h3>Climb the Ranks</h3>
+                    <p>Your best score is submitted to the global leaderboard. Beat your personal best and outrank others.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== CATEGORIES ===== -->
+    <section class="kz-section" style="background:var(--bg-dark); border-top:1px solid var(--border-subtle); border-bottom:1px solid var(--border-subtle);">
+        <div class="kz-container">
+            <div class="kz-section-header">
+                <span class="kz-label">Question Categories</span>
+                <h2 class="kz-h2">What will you <span class="kz-gradient-text">be tested on?</span></h2>
+            </div>
+
+            <div class="kz-grid-4">
+                <div class="kz-card" style="text-align:center; padding:24px 16px;" class="kz-animate">
+                    <div style="font-size:2.2rem; margin-bottom:12px;">🔬</div>
+                    <h4 style="font-weight:800; margin-bottom:6px;">Science</h4>
+                    <p style="font-size:0.85rem; color:var(--text-muted);">Physics, Chemistry, Biology</p>
+                </div>
+                <div class="kz-card" style="text-align:center; padding:24px 16px;">
+                    <div style="font-size:2.2rem; margin-bottom:12px;">🌍</div>
+                    <h4 style="font-weight:800; margin-bottom:6px;">Geography</h4>
+                    <p style="font-size:0.85rem; color:var(--text-muted);">Countries, Capitals, Oceans</p>
+                </div>
+                <div class="kz-card" style="text-align:center; padding:24px 16px;">
+                    <div style="font-size:2.2rem; margin-bottom:12px;">💻</div>
+                    <h4 style="font-weight:800; margin-bottom:6px;">Tech & Code</h4>
+                    <p style="font-size:0.85rem; color:var(--text-muted);">Programming, Networks, Logic</p>
+                </div>
+                <div class="kz-card" style="text-align:center; padding:24px 16px;">
+                    <div style="font-size:2.2rem; margin-bottom:12px;">📚</div>
+                    <h4 style="font-weight:800; margin-bottom:6px;">History</h4>
+                    <p style="font-size:0.85rem; color:var(--text-muted);">Events, Dates, Famous Figures</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== CTA ===== -->
+    <section class="kz-section cta-section">
+        <div class="kz-container">
+            <div class="cta-card">
+                <span class="kz-label" style="display:block;margin-bottom:16px;">Ready?</span>
+                <h2 class="kz-h2">Your brain is waiting. <span class="kz-gradient-text">Are you?</span></h2>
+                <p>Join players worldwide and prove you're the smartest in the room. No downloads. No waiting. Just play.</p>
+                <div class="cta-actions">
+                    <a href="register.html" class="kz-btn kz-btn-primary kz-btn-lg">🚀 Create Free Account</a>
+                    <a href="login.html" class="kz-btn kz-btn-ghost kz-btn-lg">Already have one? Login</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="kz-footer">
+        <div class="kz-footer-inner">
+            <div class="kz-footer-grid">
+                <div class="kz-footer-brand">
+                    <a href="landing.html" class="kz-logo" style="margin-bottom:16px; display:inline-flex;">
+                        <div class="kz-logo-icon">🧠</div>
+                        <span class="kz-logo-text">Mind<span>Master</span></span>
+                    </a>
+                    <p>The ultimate brain-training quiz game. Compete, learn, and master your mind.</p>
+                </div>
+
+                <div>
+                    <div class="kz-footer-title">Game</div>
+                    <ul class="kz-footer-links">
+                        <li><a href="how-to-play.html">How to Play</a></li>
+                        <li><a href="leaderboard.html">Leaderboard</a></li>
+                        <li><a href="register.html">Register</a></li>
+                        <li><a href="login.html">Login</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <div class="kz-footer-title">Info</div>
+                    <ul class="kz-footer-links">
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="faq.html">FAQ</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <div class="kz-footer-title">Tech Stack</div>
+                    <ul class="kz-footer-links">
+                        <li><a href="#">Node.js + Express</a></li>
+                        <li><a href="#">MongoDB + Mongoose</a></li>
+                        <li><a href="#">Vanilla JS</a></li>
+                        <li><a href="#">JWT Auth</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="kz-footer-bottom">
+                <span>© 2026 MindMaster. Built with ❤️ for the love of knowledge.</span>
+                <span style="color:var(--text-muted); font-size:0.8rem;">v2.0 — Kuizu Edition</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/landing.js"></script>
+</body>
+</html>

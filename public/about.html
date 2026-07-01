@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Us — MindMaster</title>
+    <meta name="description" content="Learn about the team and technology behind MindMaster — the full-stack quiz game built with Node.js, MongoDB, and vanilla JS.">
+    <link rel="stylesheet" href="css/kuizu-theme.css">
+    <style>
+        .page-hero {
+            min-height: 40vh;
+            display: flex; align-items: center;
+            padding: calc(var(--nav-height) + 60px) clamp(20px,5vw,80px) 80px;
+            text-align: center;
+            position: relative; overflow: hidden;
+        }
+        .page-hero::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse 70% 60% at 50% 0%, rgba(167,139,250,0.1), transparent 70%);
+            pointer-events: none;
+        }
+        .page-hero-inner { max-width: var(--max-width); margin: 0 auto; width: 100%; position: relative; z-index: 1; }
+
+        .tech-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-medium);
+            border-radius: var(--radius-pill);
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+        .tech-pill:hover {
+            border-color: rgba(233,69,96,0.3);
+            color: var(--text-primary);
+            background: var(--bg-card-hover);
+        }
+        .tech-pills { display: flex; flex-wrap: wrap; gap: 10px; }
+
+        .mission-card {
+            background: var(--gradient-card);
+            border: 1px solid var(--border-medium);
+            border-radius: var(--radius-xl);
+            padding: 60px 48px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .mission-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--accent-purple), var(--accent-blue));
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: var(--border-subtle);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+        .stat-item {
+            background: var(--bg-card);
+            padding: 32px 20px;
+            text-align: center;
+        }
+        .stat-num {
+            font-family: 'Poppins', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--text-primary);
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+        .stat-lbl {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+
+        @media (max-width: 640px) {
+            .stat-grid { grid-template-columns: 1fr 1fr; }
+            .mission-card { padding: 40px 24px; }
+        }
+    </style>
+</head>
+<body class="kuizu-page">
+
+    <!-- NAVBAR -->
+    <nav class="kz-navbar scrolled" id="navbar">
+        <div class="kz-nav-inner">
+            <a href="landing.html" class="kz-logo">
+                <div class="kz-logo-icon">🧠</div>
+                <span class="kz-logo-text">Mind<span>Master</span></span>
+            </a>
+            <ul class="kz-nav-links">
+                <li><a href="landing.html">Home</a></li>
+                <li><a href="how-to-play.html">How to Play</a></li>
+                <li><a href="leaderboard.html">Leaderboard</a></li>
+                <li><a href="about.html" class="active">About</a></li>
+                <li><a href="faq.html">FAQ</a></li>
+            </ul>
+            <div class="kz-nav-actions">
+                <a href="login.html" class="kz-btn kz-btn-ghost kz-btn-sm">Login</a>
+                <a href="register.html" class="kz-btn kz-btn-primary kz-btn-sm">Register</a>
+            </div>
+            <button class="kz-hamburger" id="hamburger"><span></span><span></span><span></span></button>
+        </div>
+    </nav>
+    <div class="kz-mobile-nav" id="mobileNav">
+        <a href="landing.html">🏠 Home</a>
+        <a href="how-to-play.html">🎮 How to Play</a>
+        <a href="leaderboard.html">🏆 Leaderboard</a>
+        <a href="about.html">💡 About</a>
+        <a href="faq.html">❓ FAQ</a>
+        <hr style="border-color:var(--border-subtle); margin:8px 0;">
+        <a href="login.html">Login</a>
+        <a href="register.html" style="background:var(--gradient-primary);color:#fff;text-align:center;border-radius:var(--radius-pill);">Register Free</a>
+    </div>
+
+    <!-- PAGE HERO -->
+    <section class="page-hero">
+        <div class="page-hero-inner" style="display: flex; flex-direction: column;">
+            <a href="javascript:history.back()" class="kz-back-btn"><span>←</span> Back</a>
+            <span class="kz-label kz-animate" style="display:inline-block;margin-bottom:16px;">Our Story</span>
+            <h1 class="kz-h1 kz-animate kz-animate-delay-1">About <span class="kz-gradient-text">MindMaster</span></h1>
+            <p class="kz-body kz-animate kz-animate-delay-2" style="max-width:540px;margin:16px auto 0;">
+                A full-stack project built from the ground up — designed to challenge the mind while demonstrating real-world engineering depth.
+            </p>
+        </div>
+    </section>
+
+    <!-- MISSION -->
+    <section class="kz-section" style="padding-top:0;">
+        <div class="kz-container" style="max-width:860px;">
+            <div class="mission-card kz-animate">
+                <span style="font-size:3rem; display:block; margin-bottom:20px;">🧠</span>
+                <h2 class="kz-h2" style="margin-bottom:20px;">Our Mission</h2>
+                <p class="kz-body" style="font-size:1.1rem; max-width:600px; margin:0 auto;">
+                    MindMaster was born from a simple belief: <strong style="color:var(--text-primary);">learning should feel like playing</strong>. We built a competitive quiz platform that makes trivia addictive, rewards curiosity, and gives every player a fair shot at the top — no matter their background.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- STATS -->
+    <section class="kz-section" style="padding-top:0;">
+        <div class="kz-container">
+            <div class="stat-grid kz-animate">
+                <div class="stat-item">
+                    <div class="stat-num" style="color:var(--primary);">30+</div>
+                    <div class="stat-lbl">Questions</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num" style="color:var(--accent-green);">5</div>
+                    <div class="stat-lbl">APIs Built</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num" style="color:var(--accent-gold);">JWT</div>
+                    <div class="stat-lbl">Auth System</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-num" style="color:var(--accent-purple);">100%</div>
+                    <div class="stat-lbl">Vanilla JS</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- TECH STACK -->
+    <section class="kz-section" style="background:var(--bg-dark); border-top:1px solid var(--border-subtle); border-bottom:1px solid var(--border-subtle);">
+        <div class="kz-container">
+            <div class="kz-grid-2" style="align-items:start; gap:60px;">
+                <div class="kz-animate">
+                    <span class="kz-label" style="display:block;margin-bottom:16px;">Technical Foundation</span>
+                    <h2 class="kz-h2" style="margin-bottom:20px;">Built with <span class="kz-gradient-text">real-world tech</span></h2>
+                    <p class="kz-body" style="margin-bottom:32px;">
+                        Every layer of MindMaster — from the database schema to the quiz animation — was hand-crafted. No frameworks doing the heavy lifting. Just clean, purposeful code.
+                    </p>
+                    <div class="tech-pills">
+                        <span class="tech-pill">🟢 Node.js</span>
+                        <span class="tech-pill">🚂 Express.js</span>
+                        <span class="tech-pill">🍃 MongoDB</span>
+                        <span class="tech-pill">🔷 Mongoose</span>
+                        <span class="tech-pill">🔐 JWT Auth</span>
+                        <span class="tech-pill">🔒 Bcrypt</span>
+                        <span class="tech-pill">⚡ Vanilla JS</span>
+                        <span class="tech-pill">🎨 CSS Variables</span>
+                        <span class="tech-pill">📝 Marked.js</span>
+                        <span class="tech-pill">📁 Multer</span>
+                    </div>
+                </div>
+
+                <div class="kz-animate kz-animate-delay-1" style="display:flex; flex-direction:column; gap:20px;">
+                    <div class="kz-card">
+                        <div class="kz-card-icon" style="background:rgba(74,222,128,0.1); margin-bottom:14px;">🏗️</div>
+                        <h3 style="font-size:1rem; font-weight:800; margin-bottom:8px;">RESTful Architecture</h3>
+                        <p class="kz-body" style="font-size:0.88rem;">5 core API route groups: Auth, Vault, Groups, Pages, Albums + Leaderboard. Structured for scalability and clean separation of concerns.</p>
+                    </div>
+                    <div class="kz-card">
+                        <div class="kz-card-icon" style="background:rgba(96,165,250,0.1); margin-bottom:14px;">🔐</div>
+                        <h3 style="font-size:1rem; font-weight:800; margin-bottom:8px;">Security First</h3>
+                        <p class="kz-body" style="font-size:0.88rem;">JWT-based stateless sessions, Bcrypt password hashing, middleware-protected routes, and a custom pattern-based access control layer.</p>
+                    </div>
+                    <div class="kz-card">
+                        <div class="kz-card-icon" style="background:rgba(245,158,11,0.1); margin-bottom:14px;">📱</div>
+                        <h3 style="font-size:1rem; font-weight:800; margin-bottom:8px;">Responsive by Design</h3>
+                        <p class="kz-body" style="font-size:0.88rem;">Mobile-first layouts with CSS Grid, Flexbox, and custom responsive components. Works flawlessly from 320px to 4K.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ARCHITECTURE OVERVIEW -->
+    <section class="kz-section">
+        <div class="kz-container" style="max-width:860px;">
+            <div class="kz-section-header">
+                <span class="kz-label">System Design</span>
+                <h2 class="kz-h2">How it all <span class="kz-gradient-text">connects</span></h2>
+            </div>
+
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                <div class="kz-card kz-animate" style="display:grid; grid-template-columns:60px 1fr; gap:20px; align-items:center;">
+                    <div style="font-size:2rem; text-align:center;">🌐</div>
+                    <div>
+                        <h4 style="font-weight:800; margin-bottom:4px;">Frontend (Public)</h4>
+                        <p class="kz-body" style="font-size:0.88rem;">HTML5 + CSS3 + Vanilla JS. Landing, quiz game, leaderboard — all server-rendered static files. Zero build tools.</p>
+                    </div>
+                </div>
+                <div style="height:1px; background: linear-gradient(90deg, transparent, var(--primary), transparent);"></div>
+                <div class="kz-card kz-animate kz-animate-delay-1" style="display:grid; grid-template-columns:60px 1fr; gap:20px; align-items:center;">
+                    <div style="font-size:2rem; text-align:center;">⚙️</div>
+                    <div>
+                        <h4 style="font-weight:800; margin-bottom:4px;">Backend (API)</h4>
+                        <p class="kz-body" style="font-size:0.88rem;">Node.js + Express serves both static files and REST API. JWT middleware protects private routes. Multer handles file uploads.</p>
+                    </div>
+                </div>
+                <div style="height:1px; background: linear-gradient(90deg, transparent, var(--accent-purple), transparent);"></div>
+                <div class="kz-card kz-animate kz-animate-delay-2" style="display:grid; grid-template-columns:60px 1fr; gap:20px; align-items:center;">
+                    <div style="font-size:2rem; text-align:center;">🍃</div>
+                    <div>
+                        <h4 style="font-weight:800; margin-bottom:4px;">Database (MongoDB Atlas)</h4>
+                        <p class="kz-body" style="font-size:0.88rem;">Mongoose schemas for Users, Groups, Pages, Albums. Relational references via ObjectId. Cloud-hosted for reliability.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="kz-section" style="text-align:center; padding-top:0;">
+        <div class="kz-container">
+            <div style="background:var(--gradient-card); border:1px solid var(--border-medium); border-radius:var(--radius-xl); padding:60px 40px;">
+                <h2 class="kz-h2" style="margin-bottom:16px;">Impressed? Come <span class="kz-gradient-text">play</span>.</h2>
+                <p class="kz-body" style="max-width:400px; margin:0 auto 32px;">The best way to understand MindMaster is to experience it. Sign up and take the quiz.</p>
+                <a href="register.html" class="kz-btn kz-btn-primary kz-btn-lg">🚀 Get Started</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="kz-footer">
+        <div class="kz-footer-inner">
+            <div class="kz-footer-bottom" style="padding-top:0;border-top:none;justify-content:center;gap:24px;">
+                <a href="landing.html" style="color:var(--text-muted);text-decoration:none;font-size:0.9rem;">Home</a>
+                <a href="leaderboard.html" style="color:var(--text-muted);text-decoration:none;font-size:0.9rem;">Leaderboard</a>
+                <a href="how-to-play.html" style="color:var(--text-muted);text-decoration:none;font-size:0.9rem;">How to Play</a>
+                <a href="faq.html" style="color:var(--text-muted);text-decoration:none;font-size:0.9rem;">FAQ</a>
+                <span style="color:var(--text-muted);font-size:0.9rem;">© 2026 MindMaster</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/landing.js"></script>
+</body>
+</html>

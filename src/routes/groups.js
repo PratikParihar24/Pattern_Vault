@@ -2,6 +2,8 @@
 const router = require('express').Router();
 const Group = require('../models/Group');
 const User = require('../models/User');
+const Page = require('../models/Page');
+const Album = require('../models/Album');
 const authMiddleware = require('../middleware/authMiddleware');
 
 // --- NEW IMPORTS FOR PHOTOS ---
@@ -244,10 +246,14 @@ router.delete('/:id', authMiddleware, async (req, res) => {
             { $pull: { groups: groupId } }   // Remove the group ID
         );
 
-        // 3. Destroy the Group
+        // 3. Cleanup: Cascade delete all associated Pages and Albums
+        await Page.deleteMany({ group: groupId });
+        await Album.deleteMany({ group: groupId });
+
+        // 4. Destroy the Group
         await Group.findByIdAndDelete(groupId);
 
-        res.json({ msg: "Group deleted permanently." });
+        res.json({ msg: "Group deleted permanently, along with all associated pages and albums." });
 
     } catch (err) {
         console.error("Delete Error:", err);

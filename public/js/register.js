@@ -1,44 +1,64 @@
 // public/js/register.js
 
-const form = document.getElementById('register-form');
+const form   = document.getElementById('register-form');
 const msgBox = document.getElementById('reg-message');
 
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const email = document.getElementById('reg-email').value;
-    const password = document.getElementById('reg-password').value;
-    const btn = form.querySelector('button');
+if (form) {
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-    // Visual Feedback
-    btn.innerText = "Creating...";
-    btn.disabled = true;
-    msgBox.innerText = "";
+        const displayName = document.getElementById('displayName').value.trim();
+        const email       = document.getElementById('reg-email').value.trim();
+        const password    = document.getElementById('reg-password').value;
+        const btn         = form.querySelector('button[type="submit"]') || document.getElementById('reg-btn');
 
-    try {
-        const res = await fetch('/api/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-            msgBox.style.color = '#0f0'; // Hacker Green
-            msgBox.innerText = "Success! Redirecting to Login...";
-            
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 1500);
-        } else {
-            throw new Error(data.msg || "Registration failed");
+        // Validation
+        if (displayName.length < 2) {
+            showMsg('Display name must be at least 2 characters', 'error');
+            return;
         }
 
-    } catch (err) {
-        msgBox.style.color = '#ff3333'; // Error Red
-        msgBox.innerText = err.message;
-        btn.innerText = "Create Profile";
-        btn.disabled = false;
-    }
-});
+        // Visual Feedback
+        btn.textContent = 'Creating account...';
+        btn.disabled = true;
+        msgBox.style.display = 'none';
+
+        try {
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ email, password, displayName })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                showMsg('🎉 Account created! Redirecting to login...', 'success');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+            } else if (data.msg && data.msg.toLowerCase().includes('already exists')) {
+                // User already exists → redirect to login
+                showMsg('Account already exists! Redirecting to login...', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+            } else {
+                throw new Error(data.msg || 'Registration failed');
+            }
+
+        } catch (err) {
+            showMsg(err.message, 'error');
+            btn.textContent = '🚀 Create Free Account';
+            btn.disabled = false;
+        }
+    });
+}
+
+function showMsg(text, type) {
+    if (!msgBox) return;
+    msgBox.textContent = text;
+    msgBox.className = `auth-msg ${type}`;
+    msgBox.style.display = 'block';
+}
