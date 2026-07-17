@@ -19,32 +19,13 @@ const decImageCache = {};
 
 async function getCryptoKey() {
     if (activeCryptoKey) return activeCryptoKey;
-    let b64Key = sessionStorage.getItem('vaultKey');
+    let b64Key = localStorage.getItem('vaultKey');
     if (b64Key) {
         activeCryptoKey = await CryptoHelper.importKey(b64Key);
         return activeCryptoKey;
     }
-    // Prompt the user to enter password to derive key
-    if (typeof UI !== 'undefined') {
-        const password = await UI.prompt("Enter your account password to unlock the Vault's encryption key:", "");
-        if (password && globalUserData && globalUserData.email) {
-            try {
-                activeCryptoKey = await CryptoHelper.deriveKey(password, globalUserData.email);
-                const exported = await CryptoHelper.exportKey(activeCryptoKey);
-                sessionStorage.setItem('vaultKey', exported);
-                return activeCryptoKey;
-            } catch (err) {
-                console.error("Error deriving key:", err);
-                alert("Error deriving encryption key.");
-                handleLogout();
-                return null;
-            }
-        } else {
-            alert("Password required to decrypt the vault.");
-            handleLogout();
-            return null;
-        }
-    }
+    // No key found -> must log out to log in again and derive the key
+    handleLogout();
     return null;
 }
 
@@ -82,7 +63,7 @@ function clearImageCache() {
 }
 
 async function handleLogout() {
-    sessionStorage.removeItem('vaultKey');
+    localStorage.removeItem('vaultKey');
     activeCryptoKey = null;
     clearImageCache();
     localStorage.removeItem('token');

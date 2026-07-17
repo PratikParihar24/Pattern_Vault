@@ -155,7 +155,7 @@
     window.handleLogout = async function() {
         await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
         sessionStorage.removeItem('patternFailed');
-        sessionStorage.removeItem('vaultKey');
+        localStorage.removeItem('vaultKey');
         window.location.reload();
     };
 

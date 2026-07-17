@@ -312,7 +312,7 @@
                     try {
                         const key = await CryptoHelper.deriveKey(password, email);
                         const b64Key = await CryptoHelper.exportKey(key);
-                        sessionStorage.setItem('vaultKey', b64Key);
+                        localStorage.setItem('vaultKey', b64Key);
                     } catch (cryptoErr) {
                         console.error('Failed to derive encryption key:', cryptoErr);
                     }
