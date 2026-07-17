@@ -13,6 +13,88 @@ let globalUserData = null; // Store user data globally
 // Track if user already failed the pattern check (persists across page reloads via sessionStorage)
 let patternFailed = sessionStorage.getItem('patternFailed') === 'true';
 
+// --- CRYPTO STATE & HELPERS ---
+let activeCryptoKey = null;
+const decImageCache = {};
+
+async function getCryptoKey() {
+    if (activeCryptoKey) return activeCryptoKey;
+    let b64Key = sessionStorage.getItem('vaultKey');
+    if (b64Key) {
+        activeCryptoKey = await CryptoHelper.importKey(b64Key);
+        return activeCryptoKey;
+    }
+    // Prompt the user to enter password to derive key
+    if (typeof UI !== 'undefined') {
+        const password = await UI.prompt("Enter your account password to unlock the Vault's encryption key:", "");
+        if (password && globalUserData && globalUserData.email) {
+            try {
+                activeCryptoKey = await CryptoHelper.deriveKey(password, globalUserData.email);
+                const exported = await CryptoHelper.exportKey(activeCryptoKey);
+                sessionStorage.setItem('vaultKey', exported);
+                return activeCryptoKey;
+            } catch (err) {
+                console.error("Error deriving key:", err);
+                alert("Error deriving encryption key.");
+                handleLogout();
+                return null;
+            }
+        } else {
+            alert("Password required to decrypt the vault.");
+            handleLogout();
+            return null;
+        }
+    }
+    return null;
+}
+
+async function getDecryptedImageSrc(filename) {
+    if (decImageCache[filename]) {
+        return decImageCache[filename];
+    }
+    try {
+        const key = await getCryptoKey();
+        const response = await fetch(`/uploads/${filename}`);
+        if (!response.ok) throw new Error("Failed to fetch image");
+        
+        const encryptedBuffer = await response.arrayBuffer();
+        const decryptedBuffer = await CryptoHelper.decryptFile(encryptedBuffer, key);
+        
+        const ext = filename.split('.').pop().toLowerCase();
+        let mimeType = 'image/jpeg';
+        if (ext === 'png') mimeType = 'image/png';
+        else if (ext === 'gif') mimeType = 'image/gif';
+        else if (ext === 'webp') mimeType = 'image/webp';
+        
+        const blob = new Blob([decryptedBuffer], { type: mimeType });
+        const objectUrl = URL.createObjectURL(blob);
+        decImageCache[filename] = objectUrl;
+        return objectUrl;
+    } catch (err) {
+        console.error("Error decrypting image:", filename, err);
+        return "";
+    }
+}
+
+function clearImageCache() {
+    Object.values(decImageCache).forEach(url => URL.revokeObjectURL(url));
+    for (let key in decImageCache) delete decImageCache[key];
+}
+
+async function handleLogout() {
+    sessionStorage.removeItem('vaultKey');
+    activeCryptoKey = null;
+    clearImageCache();
+    localStorage.removeItem('token');
+    sessionStorage.removeItem('patternFailed');
+    try {
+        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch (err) {
+        console.error("Logout API failed:", err);
+    }
+    window.location.href = 'login.html';
+}
+
 // --- QUIZ CONFIG STATE ---
 let quizLength = 5;        // 5, 10, or 20
 let quizDifficulty = 'easy';
@@ -467,15 +549,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // 1. Destroy Token & Reset Pattern Lock
-            localStorage.removeItem('token');
-            sessionStorage.removeItem('patternFailed');
-
-            // 2. Optional: Destroy other local keys if you have them
-            // localStorage.removeItem('fakeHighScore'); 
-
-            // 3. Redirect to login
-            window.location.href = 'login.html';
+            await handleLogout();
         });
     }
 });
@@ -488,6 +562,10 @@ async function loadVaultData() {
     try {
         const res = await fetch('/api/auth', { credentials: "include" });
         const userData = await res.json();
+        globalUserData = userData;
+
+        const key = await getCryptoKey();
+        if (!key) return;
 
         renderSidebarGroups(userData.groups || []);
 
@@ -620,7 +698,7 @@ function renderSidebarGroups(groups) {
 // ==========================================
 // 4. EDITOR VIEW
 // ==========================================
-function renderNotionView(pages, contextType, contextId) {
+async function renderNotionView(pages, contextType, contextId) {
     const container = document.getElementById('vault-content');
     if (!container) return;
 
@@ -648,31 +726,37 @@ function renderNotionView(pages, contextType, contextId) {
         };
     }
 
+    const key = await getCryptoKey();
     const list = document.getElementById('page-list-ul');
-    pages.forEach(page => {
+    for (const page of pages) {
+        const decryptedTitle = await CryptoHelper.decryptText(page.title, key);
         const li = document.createElement('li');
         li.className = 'page-item';
-        li.innerText = page.title || "Untitled Page";
+        li.innerText = decryptedTitle || "Untitled Page";
         li.id = `page-link-${page._id}`;
 
         li.onclick = () => {
             document.querySelectorAll('.page-item').forEach(el => el.classList.remove('active-page'));
             li.classList.add('active-page');
-            loadPageIntoEditor(page);
+            loadPageIntoEditor(page, decryptedTitle);
             splitView.classList.add('show-editor');
         };
         list.appendChild(li);
-    });
+    }
 
     document.getElementById('create-page-btn').onclick = async () => {
         const title = await UI.prompt("New Page Title", "e.g., Operation Blackout");
         if (!title) return;
+
+        const key = await getCryptoKey();
+        const encryptedTitle = await CryptoHelper.encryptText(title, key);
+
         const url = contextType === 'personal' ? '/api/pages/personal' : `/api/pages/group/${contextId}`;
         try {
             await fetch(url, { credentials: 'include', 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title  })
+                body: JSON.stringify({ title: encryptedTitle })
             });
             loadVaultData();
         } catch (err) { console.error(err); }
@@ -680,20 +764,24 @@ function renderNotionView(pages, contextType, contextId) {
 }
 
 // --- PRO EDITOR (Toolbar + Markdown + AutoSave + Undo/Redo + Interactive Checkboxes) ---
-function loadPageIntoEditor(page) {
+async function loadPageIntoEditor(page, decryptedTitlePre) {
     const editorArea = document.getElementById('editor-content-area');
     let autoSaveTimer;
     let isAutoSaveOn = true; 
     let currentDocumentVersion = page.__v || 0; 
     
-    let history = [page.content || ''];
+    const key = await getCryptoKey();
+    const decryptedTitle = decryptedTitlePre || await CryptoHelper.decryptText(page.title, key);
+    const decryptedContent = await CryptoHelper.decryptText(page.content, key);
+
+    let history = [decryptedContent || ''];
     let historyIndex = 0;
 
     editorArea.innerHTML = `
         <div class="editor-header">
             <div class="page-identity-section">
                 <div class="page-icon-wrapper" id="page-icon-btn" title="Change Icon">📄</div>
-                <input type="text" id="page-title-input" value="${page.title}" placeholder="Untitled Page">
+                <input type="text" id="page-title-input" value="${decryptedTitle}" placeholder="Untitled Page">
             </div>
             
             <div class="editor-tools" style="align-items: center; gap: 10px;">
@@ -744,7 +832,7 @@ function loadPageIntoEditor(page) {
         </div>
         
         <div style="position: relative; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 20px;">
-            <div id="page-editor" class="notion-editor" contenteditable="true" placeholder="Start typing with '/' for commands...">${page.content || ''}</div>
+            <div id="page-editor" class="notion-editor" contenteditable="true" placeholder="Start typing with '/' for commands...">${decryptedContent || ''}</div>
         </div>
     `;
 
@@ -879,13 +967,17 @@ function loadPageIntoEditor(page) {
 
         if (!silent) saveBtn.innerText = "Saving...";
 
+        const key = await getCryptoKey();
+        const encryptedTitle = await CryptoHelper.encryptText(titleVal, key);
+        const encryptedContent = await CryptoHelper.encryptText(contentVal, key);
+
         try {
             const res = await fetch(`/api/pages/${page._id}`, { credentials: 'include', 
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    title: titleVal, 
-                    content: contentVal,
+                    title: encryptedTitle, 
+                    content: encryptedContent,
                     version: currentDocumentVersion
                 })
             });
@@ -1182,14 +1274,26 @@ function openAlbum(album) {
     document.getElementById(inputId).onchange = (e) => uploadPhotos(e, album._id);
 
     const wrapper = document.getElementById('photos-wrapper');
-    album.photos.forEach(photo => {
+    album.photos.forEach(async (photo) => {
         const div = document.createElement('div');
         div.className = 'photo-item';
         div.innerHTML = `
-            <img src="/uploads/${photo.filename}" onclick="openLightbox('/uploads/${photo.filename}')">
+            <div class="photo-loading-placeholder" style="width: 100%; height: 150px; background: #1a1a1a; display: flex; align-items: center; justify-content: center; color: #555; font-family: monospace;">Decrypting...</div>
             <button class="delete-photo-btn" onclick="deletePhoto('${album._id}', '${photo.filename}')">×</button>
         `;
         wrapper.appendChild(div);
+
+        const decryptedSrc = await getDecryptedImageSrc(photo.filename);
+        if (decryptedSrc) {
+            const img = document.createElement('img');
+            img.src = decryptedSrc;
+            img.onclick = () => openLightbox(decryptedSrc);
+            const placeholder = div.querySelector('.photo-loading-placeholder');
+            if (placeholder) placeholder.replaceWith(img);
+        } else {
+            const placeholder = div.querySelector('.photo-loading-placeholder');
+            if (placeholder) placeholder.innerText = "[Decryption Failed]";
+        }
     });
 }
 
@@ -1208,8 +1312,25 @@ window.createNewAlbum = async function () {
 window.uploadPhotos = async function (e, albumId) {
     const files = e.target.files;
     if (!files.length) return;
+
+    const key = await getCryptoKey();
+    if (!key) return;
+
     const formData = new FormData();
-    for (let i = 0; i < files.length; i++) formData.append('photos', files[i]);
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const encryptedBuffer = await CryptoHelper.encryptFile(arrayBuffer, key);
+            const encryptedBlob = new Blob([encryptedBuffer], { type: 'application/octet-stream' });
+            formData.append('photos', encryptedBlob, file.name);
+        } catch (err) {
+            console.error("Failed to encrypt photo:", file.name, err);
+            UI.toast(`Failed to encrypt photo: ${file.name}`, "error");
+            return;
+        }
+    }
+
     const res = await fetch(`/api/albums/${albumId}/upload`, {
         method: 'POST',
         credentials: "include",

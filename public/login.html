@@ -254,6 +254,7 @@
         </div>
     </main>
 
+    <script src="js/crypto-helper.js"></script>
     <script src="js/landing.js"></script>
     <script>
         // Helper to check auth
@@ -308,6 +309,14 @@
                 const data = await res.json();
 
                 if (res.ok) {
+                    try {
+                        const key = await CryptoHelper.deriveKey(password, email);
+                        const b64Key = await CryptoHelper.exportKey(key);
+                        sessionStorage.setItem('vaultKey', b64Key);
+                    } catch (cryptoErr) {
+                        console.error('Failed to derive encryption key:', cryptoErr);
+                    }
+
                     // Login successful → go to quiz/vault (HttpOnly cookie is set by backend)
                     showMsg('Login successful! Loading...', 'success');
                     setTimeout(() => {
