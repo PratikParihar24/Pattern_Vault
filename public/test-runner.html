@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E2EE Vault Cryptographic Test Suite 🧪</title>
+    <style>
+        body {
+            background-color: #0b0c10;
+            color: #c5c6c7;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #66fcf1;
+            border-bottom: 2px solid #1f2833;
+            padding-bottom: 10px;
+        }
+        .summary {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #1f2833;
+            border-radius: 8px;
+            border-left: 5px solid #66fcf1;
+        }
+        .test-case {
+            background: #1f2833;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 5px solid #45f3ff;
+            transition: all 0.3s ease;
+        }
+        .test-case.pass {
+            border-left-color: #2ecc71;
+        }
+        .test-case.fail {
+            border-left-color: #e74c3c;
+            background: #2d1f21;
+        }
+        .test-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+        }
+        .test-name {
+            font-size: 1.1rem;
+            color: #fff;
+        }
+        .test-status {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .pass .test-status {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+        }
+        .fail .test-status {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+        }
+        .test-details {
+            margin-top: 10px;
+            font-family: monospace;
+            background: #0b0c10;
+            padding: 10px;
+            border-radius: 4px;
+            color: #8f94fb;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        button {
+            background: #66fcf1;
+            color: #0b0c10;
+            border: none;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #45f3ff;
+        }
+    </style>
+</head>
+<body>
+    <h1>E2EE Vault Cryptographic Test Suite 🧪</h1>
+    <div class="summary" id="summary">Preparing test suite...</div>
+    <button onclick="runTests()">Run Tests</button>
+    <div id="test-results" style="margin-top: 30px;"></div>
+
+    <script src="js/crypto-helper.js"></script>
+    <script>
+        const resultsContainer = document.getElementById('test-results');
+        const summaryContainer = document.getElementById('summary');
+
+        function logTestResult(name, passed, details) {
+            const div = document.createElement('div');
+            div.className = `test-case ${passed ? 'pass' : 'fail'}`;
+            div.innerHTML = `
+                <div class="test-header">
+                    <span class="test-name">${name}</span>
+                    <span class="test-status">${passed ? 'PASS' : 'FAIL'}</span>
+                </div>
+                <div class="test-details">${details}</div>
+            `;
+            resultsContainer.appendChild(div);
+        }
+
+        async function runTests() {
+            resultsContainer.innerHTML = '';
+            summaryContainer.innerText = 'Running tests...';
+            summaryContainer.style.borderLeftColor = '#66fcf1';
+            
+            let passedCount = 0;
+            let totalCount = 0;
+
+            const assert = (condition, message) => {
+                if (!condition) throw new Error(message);
+            };
+
+            // Test 1: Key Derivation
+            totalCount++;
+            try {
+                const password = "SuperSecretPassword123!";
+                const email = "test@example.com";
+                const key1 = await CryptoHelper.deriveKey(password, email);
+                assert(key1 instanceof CryptoKey, "deriveKey should return a CryptoKey instance");
+                assert(key1.type === "secret", "Key type should be secret");
+                assert(key1.algorithm.name === "AES-GCM", "Algorithm should be AES-GCM");
+                
+                // Deterministic check
+                const key2 = await CryptoHelper.deriveKey(password, email);
+                const b64Key1 = await CryptoHelper.exportKey(key1);
+                const b64Key2 = await CryptoHelper.exportKey(key2);
+                assert(b64Key1 === b64Key2, "Deterministic derivation: same credentials must produce identical keys");
+                
+                // Different salt check
+                const key3 = await CryptoHelper.deriveKey(password, "other@example.com");
+                const b64Key3 = await CryptoHelper.exportKey(key3);
+                assert(b64Key1 !== b64Key3, "Different email must produce different key");
+
+                passedCount++;
+                logTestResult("PBKDF2 Key Derivation", true, `Successfully derived and verified AES-GCM 256 keys.\nBase64 Derived Key: ${b64Key1}`);
+            } catch (err) {
+                logTestResult("PBKDF2 Key Derivation", false, err.stack);
+            }
+
+            // Test 2: Import / Export Key
+            totalCount++;
+            try {
+                const password = "TestPassword";
+                const email = "user@test.com";
+                const key = await CryptoHelper.deriveKey(password, email);
+                const b64 = await CryptoHelper.exportKey(key);
+                
+                const importedKey = await CryptoHelper.importKey(b64);
+                const b64Imported = await CryptoHelper.exportKey(importedKey);
+                assert(b64 === b64Imported, "Imported key must match original exported key");
+                
+                passedCount++;
+                logTestResult("Key Export/Import Validation", true, `Verified export to base64 JWK/Raw format and import back to CryptoKey.\nKey: ${b64}`);
+            } catch (err) {
+                logTestResult("Key Export/Import Validation", false, err.stack);
+            }
+
+            // Test 3: Text Encryption / Decryption
+            totalCount++;
+            try {
+                const password = "VaultPassword";
+                const email = "vault@example.com";
+                const key = await CryptoHelper.deriveKey(password, email);
+                
+                const plainText = "My private note with special characters: 🔒 !@#$%^&*()_+";
+                const cipherText = await CryptoHelper.encryptText(plainText, key);
+                
+                assert(cipherText.includes('.'), "Ciphertext format must be iv.ciphertext");
+                assert(cipherText !== plainText, "Ciphertext must not match plaintext");
+                
+                const decryptedText = await CryptoHelper.decryptText(cipherText, key);
+                assert(decryptedText === plainText, "Decrypted text must match original plaintext");
+                
+                passedCount++;
+                logTestResult("AES-GCM Text Enc/Dec", true, `Plaintext: "${plainText}"\nCiphertext: "${cipherText}"\nDecrypted: "${decryptedText}"`);
+            } catch (err) {
+                logTestResult("AES-GCM Text Enc/Dec", false, err.stack);
+            }
+
+            // Test 4: Image/File Encryption & Decryption
+            totalCount++;
+            try {
+                const password = "VaultPassword";
+                const email = "vault@example.com";
+                const key = await CryptoHelper.deriveKey(password, email);
+                
+                // Create dummy file data (ArrayBuffer)
+                const mockFileData = new Uint8Array([71, 73, 70, 56, 57, 97, 1, 0, 1, 0, 128, 0, 0, 0, 0, 0, 255, 255, 255, 33, 249, 4, 1, 0, 0, 0, 0, 44, 0, 0, 0, 0, 1, 0, 1, 0, 0, 2, 2, 76, 1, 0, 59]); // 1x1 Transparent GIF
+                const arrayBuffer = mockFileData.buffer;
+                
+                const encryptedBuffer = await CryptoHelper.encryptFile(arrayBuffer, key);
+                assert(encryptedBuffer.byteLength === arrayBuffer.byteLength + 12 + 16, "Encrypted size must be original + 12 (IV) + 16 (GCM auth tag)");
+                
+                const decryptedBuffer = await CryptoHelper.decryptFile(encryptedBuffer, key);
+                const decryptedData = new Uint8Array(decryptedBuffer);
+                
+                assert(decryptedData.length === mockFileData.length, "Decrypted length must match original");
+                for (let i = 0; i < decryptedData.length; i++) {
+                    assert(decryptedData[i] === mockFileData[i], `Byte mismatch at index ${i}`);
+                }
+                
+                passedCount++;
+                logTestResult("AES-GCM File Enc/Dec", true, `Original file buffer size: ${arrayBuffer.byteLength} bytes.\nEncrypted buffer size: ${encryptedBuffer.byteLength} bytes.\nDecrypted file buffer size: ${decryptedBuffer.byteLength} bytes.`);
+            } catch (err) {
+                logTestResult("AES-GCM File Enc/Dec", false, err.stack);
+            }
+
+            // Test 5: Backward Compatibility Fallback
+            totalCount++;
+            try {
+                const password = "VaultPassword";
+                const email = "vault@example.com";
+                const key = await CryptoHelper.deriveKey(password, email);
+                
+                const plainLegacyText = "This is a legacy page created in plain text before E2EE was rolled out.";
+                const decrypted = await CryptoHelper.decryptText(plainLegacyText, key);
+                assert(decrypted === plainLegacyText, "Legacy plaintext should bypass decryption and return original string");
+                
+                passedCount++;
+                logTestResult("Legacy Plaintext Fallback", true, `Original Legacy Text: "${plainLegacyText}"\nProcessed Decrypted Output: "${decrypted}"`);
+            } catch (err) {
+                logTestResult("Legacy Plaintext Fallback", false, err.stack);
+            }
+
+            // Summary
+            summaryContainer.innerText = `Tests Completed: ${passedCount}/${totalCount} Passed.`;
+            summaryContainer.style.borderLeftColor = passedCount === totalCount ? '#2ecc71' : '#e74c3c';
+        }
+
+        // Run on load
+        runTests();
+    </script>
+</body>
+</html>

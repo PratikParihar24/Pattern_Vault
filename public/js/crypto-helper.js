@@ -70,10 +70,16 @@ const CryptoHelper = {
 
     // 3. DECRYPT TEXT
     decryptText: async function(encryptedStr, key) {
-        if (!encryptedStr || !encryptedStr.includes('.')) return encryptedStr; // Return raw if not encrypted/malformed
+        if (!encryptedStr) return "";
+        
+        // Base64 format check: must contain exactly one dot, and both sides must be valid base64 characters
+        const b64Regex = /^[A-Za-z0-9+/=]+\.[A-Za-z0-9+/=]+$/;
+        if (!b64Regex.test(encryptedStr)) {
+            return encryptedStr; // Return raw if not matching encrypted format
+        }
+        
         try {
             const parts = encryptedStr.split('.');
-            if (parts.length !== 2) return encryptedStr;
             const iv = new Uint8Array(atob(parts[0]).split("").map(c => c.charCodeAt(0)));
             const ciphertext = new Uint8Array(atob(parts[1]).split("").map(c => c.charCodeAt(0)));
             
@@ -86,8 +92,8 @@ const CryptoHelper = {
             const decoder = new TextDecoder();
             return decoder.decode(decrypted);
         } catch (e) {
-            console.error("Decryption failed:", e);
-            return "[Decryption Failed - Invalid Key]";
+            console.warn("Decryption failed, returning raw string:", e);
+            return encryptedStr; // Return raw if decryption fails (e.g. false positive formatted as text)
         }
     },
 
