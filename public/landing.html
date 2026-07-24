@@ -118,6 +118,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            padding-top: 110px;
         }
 
         .quiz-mockup-card {
@@ -225,7 +226,7 @@
         }
 
         .float-card-1 {
-            top: -10px; left: -40px;
+            top: 112px; left: -40px;
             animation: kz-float 4s ease-in-out 0.5s infinite;
             z-index: 3;
         }
@@ -235,14 +236,22 @@
             z-index: 3;
         }
         .float-card-3 {
-            top: -60px; left: 50%;
-            transform: translateX(-50%);
-            animation: kz-float 6s ease-in-out 1s infinite;
+            top: 16px; left: 50%;
+            width: min(440px, calc(100% - 24px));
+            box-sizing: border-box;
+            white-space: normal;
+            animation: vault-card-float 6s ease-in-out 1s infinite;
             z-index: 4;
             background: linear-gradient(135deg, var(--primary) 0%, #a855f7 100%);
             border: 2px solid rgba(255,255,255,0.8);
             box-shadow: 0 10px 30px rgba(233,69,96,0.5);
             padding: 16px 24px;
+        }
+        .float-card-3 .fc-icon { flex-shrink: 0; }
+
+        @keyframes vault-card-float {
+            0%, 100% { transform: translate(-50%, 0); }
+            50%      { transform: translate(-50%, -12px); }
         }
 
         .float-card .fc-icon {
@@ -598,39 +607,6 @@
         </div>
     </section>
 
-    <!-- ===== CATEGORIES ===== -->
-    <section class="kz-section" style="background:var(--bg-dark); border-top:1px solid var(--border-subtle); border-bottom:1px solid var(--border-subtle);">
-        <div class="kz-container">
-            <div class="kz-section-header">
-                <span class="kz-label">Question Categories</span>
-                <h2 class="kz-h2">What will you <span class="kz-gradient-text">be tested on?</span></h2>
-            </div>
-
-            <div class="kz-grid-4">
-                <div class="kz-card" style="text-align:center; padding:24px 16px;" class="kz-animate">
-                    <div style="font-size:2.2rem; margin-bottom:12px;">🔬</div>
-                    <h4 style="font-weight:800; margin-bottom:6px;">Science</h4>
-                    <p style="font-size:0.85rem; color:var(--text-muted);">Physics, Chemistry, Biology</p>
-                </div>
-                <div class="kz-card" style="text-align:center; padding:24px 16px;">
-                    <div style="font-size:2.2rem; margin-bottom:12px;">🌍</div>
-                    <h4 style="font-weight:800; margin-bottom:6px;">Geography</h4>
-                    <p style="font-size:0.85rem; color:var(--text-muted);">Countries, Capitals, Oceans</p>
-                </div>
-                <div class="kz-card" style="text-align:center; padding:24px 16px;">
-                    <div style="font-size:2.2rem; margin-bottom:12px;">💻</div>
-                    <h4 style="font-weight:800; margin-bottom:6px;">Tech & Code</h4>
-                    <p style="font-size:0.85rem; color:var(--text-muted);">Programming, Networks, Logic</p>
-                </div>
-                <div class="kz-card" style="text-align:center; padding:24px 16px;">
-                    <div style="font-size:2.2rem; margin-bottom:12px;">📚</div>
-                    <h4 style="font-weight:800; margin-bottom:6px;">History</h4>
-                    <p style="font-size:0.85rem; color:var(--text-muted);">Events, Dates, Famous Figures</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <!-- ===== CTA ===== -->
     <section class="kz-section cta-section">
         <div class="kz-container">
@@ -678,11 +654,11 @@
 
                 <div>
                     <div class="kz-footer-title">Tech Stack</div>
-                    <ul class="kz-footer-links">
-                        <li><a href="#">Node.js + Express</a></li>
-                        <li><a href="#">MongoDB + Mongoose</a></li>
-                        <li><a href="#">Vanilla JS</a></li>
-                        <li><a href="#">JWT Auth</a></li>
+                    <ul class="kz-footer-links kz-footer-info">
+                        <li>Node.js + Express</li>
+                        <li>MongoDB + Mongoose</li>
+                        <li>Vanilla JS</li>
+                        <li>JWT Auth</li>
                     </ul>
                 </div>
             </div>

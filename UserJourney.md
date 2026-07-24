@@ -138,7 +138,7 @@ pattern_vault/
     ├── js/
     │   ├── landing.js            # Shared UI logic for public pages
     │   ├── leaderboard-page.js   # Fetches and renders rankings
-    │   ├── quiz-logic.js         # Cipher map + 300 Qs + Shuffler
+    │   ├── quiz-logic.js         # 300 Qs + shuffler
     │   ├── register.js           # Registration API handler
     │   └── main.js               # 🧠 CORE SPA LOGIC (Auth, Quiz flow, Vault, Editor)
     └── uploads/                  # User-uploaded photos
@@ -356,7 +356,7 @@ main.js                          pages.js                        MongoDB
 - **`leaderboard-page.js`**: Fetches the global top 50 users and renders the podium UI and list UI.
 
 ### `quiz-logic.js` (The Quiz Engine)
-- Contains the `Cipher.map` (QWERTY layout).
+- Uses the QWERTY mapping supplied by the shared cipher module.
 - Contains a massive `questionBank` (300 questions across 4 domains and 3 difficulties).
 - `getNewRound()` filters questions and uses the Fisher-Yates algorithm to randomize answer positions.
 
@@ -414,7 +414,7 @@ The brain of the SPA (`app.html`). Manages:
 
 ## 10. The QWERTY Cipher — How It Works
 
-The QWERTY Cipher converts any email address into a deterministic 5-character sequence using the physical layout of a QWERTY keyboard.
+The QWERTY Cipher converts any email address into a deterministic 5-character sequence using the physical layout of a QWERTY keyboard. Its rules are defined once in `shared/qwerty-cipher.js`: the server imports it directly, and browser pages load the same file from `/shared/qwerty-cipher.js`.
 
 ### The Algorithm
 
@@ -446,6 +446,8 @@ Step 4:  Result = ["B", "A", "C", "A", "B"]
 ```
 
 During the first 5 questions of the quiz, the application records which position (A, B, C, or D) the user clicks. If those 5 clicks match the expected cipher pattern, the vault unlocks.
+
+The browser may use the shared mapping for quiz tooling, but it is not trusted to grant access. `/api/auth/verify-pattern` requires authentication, derives the expected result from the stored email on the server, and accepts only a five-item A–D pattern before making the unlock decision.
 
 ---
 

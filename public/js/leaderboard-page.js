@@ -11,7 +11,7 @@
     try {
         const res = await fetch('/api/leaderboard', { credentials: 'include' });
         if (res.ok) {
-            players = await res.json();
+            players = (await res.json()).slice(0, 10);
         }
     } catch (err) {
         console.error('Failed to load leaderboard:', err);
@@ -84,15 +84,8 @@
     }
 
     // ============================================================
-    // 4. RENDER FULL LIST
+    // 4. RENDER TOP 10 LIST
     // ============================================================
-    let fullData = players;
-
-    window.applyLeaderboardFilter = function(filter) {
-        const data = filter === 'top10' ? players.slice(0, 10) : players;
-        renderList(data);
-    };
-
     function renderList(data) {
         const listEl = document.getElementById('lbList');
         if (!listEl) return;
@@ -150,7 +143,7 @@
         }).join('');
     }
 
-    renderList(fullData);
+    renderList(players);
 
     // ============================================================
     // 5. UTILITIES

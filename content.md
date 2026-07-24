@@ -109,7 +109,7 @@ pattern_vault/
 │   │   └── style.css            ← Vault UI dark theme
 │   ├── js/
 │   │   ├── main.js              ← Core SPA logic (1,406 lines)
-│   │   ├── quiz-logic.js        ← 300-question bank + QWERTY cipher + Fisher-Yates
+│   │   ├── quiz-logic.js        ← 300-question bank + Fisher-Yates
 │   │   ├── landing.js           ← Navbar, scroll animations, auth state
 │   │   ├── leaderboard-page.js  ← Leaderboard UI rendering
 │   │   ├── register.js          ← Registration form handler
@@ -161,10 +161,12 @@ POST /api/auth/verify-pattern { pattern: ["B","A","C","A","B"] }
 - **Auth middleware** that checks cookies first, falls back to `x-auth-token` header
 - **Session-based pattern failure lockout** — `patternFailed` flag in `sessionStorage` prevents brute-force attempts within a tab session
 
-### The QWERTY Cipher (Custom Algorithm)
+### The QWERTY Cipher (Shared Algorithm)
 - Deterministic mapping: email → 5-character pattern (A/B/C/D) based on QWERTY keyboard zones
-- Duplicated on both frontend (`quiz-logic.js` → `Cipher.map`) and backend (`auth.js` → `getPatternFromEmail()`)
-- Handles edge cases: strips non-letters, lowercases, pads strings shorter than 5 characters
+- **Single source of truth:** `shared/qwerty-cipher.js` exports the same immutable mapping and derivation functions to Node.js and the browser
+- The server imports that module directly; the browser loads that exact file from `/shared/qwerty-cipher.js`
+- Handles edge cases consistently: lowercases, strips non-letters, uses `abcde` when no letters remain, and repeats short values until five characters are available
+- The authenticated server derives and validates the expected pattern; it also rejects malformed payloads before comparison
 
 ### Quiz Engine
 - **300 hand-written trivia questions** across 4 domains (General Knowledge, Science, History, Entertainment) × 3 difficulty levels (Easy, Medium, Hard)
@@ -281,10 +283,10 @@ POST /api/auth/verify-pattern { pattern: ["B","A","C","A","B"] }
 
 ## 7. Notable Technical Decisions
 
-### 1. The QWERTY Cipher — Custom Deterministic Hashing
-**Where:** `src/routes/auth.js` (lines 11–33) and `public/js/quiz-logic.js` (lines 3–12)
+### 1. The QWERTY Cipher — Shared Deterministic Mapping
+**Where:** `shared/qwerty-cipher.js`, consumed by `src/routes/auth.js` and `/shared/qwerty-cipher.js` in the browser
 
-A bespoke algorithm that maps keyboard characters to 4 zones (A-D) based on their physical position on a QWERTY keyboard. This converts any email into a fixed 5-character pattern used as the secret unlock sequence. It's duplicated on both client and server — the client uses it to know which answers to click, and the server uses it to verify the pattern is correct. This is the central innovation of the project.
+A bespoke algorithm maps keyboard characters to four zones (A–D) based on their physical position on a QWERTY keyboard. It converts an email into a fixed five-character pattern used by the quiz unlock flow. The derivation rules live only in `shared/qwerty-cipher.js`, a browser-and-Node-compatible module, so the client, server, and decoder tool cannot drift apart. The server remains authoritative: it derives the expected value from the authenticated user's stored email and validates the submitted five-answer payload.
 
 ### 2. Optimistic Concurrency Control via Mongoose `__v`
 **Where:** `src/routes/pages.js` (lines 95–133)
@@ -355,9 +357,9 @@ A self-contained `UI` object providing `toast()`, `prompt()`, and `confirm()` �
 - **Files:** `src/routes/vault.js` (lines 11–31), `src/routes/groups.js` (lines 14–29), `src/routes/albums.js` (lines 12–22)
 - The Multer storage/filter configuration is copy-pasted across three separate route files. Should be extracted to a shared module.
 
-### 🟠 QWERTY Cipher Duplicated Between Frontend and Backend
-- **Files:** `public/js/quiz-logic.js` (lines 3–12) and `src/routes/auth.js` (lines 11–33)
-- The cipher map is manually duplicated. Any change to one must be mirrored to the other. This is error-prone.
+### ✅ QWERTY Cipher Single Source of Truth
+- **File:** `shared/qwerty-cipher.js`
+- The module is imported directly by the server and served unchanged to browser consumers at `/shared/qwerty-cipher.js`. This removes manual map duplication and keeps normalization, padding, mapping, and pattern-length validation consistent.
 
 ### 🟡 No Automated Tests
 - **File:** `package.json` (line 6)

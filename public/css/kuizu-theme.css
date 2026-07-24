@@ -308,32 +308,46 @@ body.kuizu-page {
 }
 
 /* ==========================================================================
-   MOBILE BACK BUTTON
+   BACK BUTTON & PAGE HERO (Desktop & Mobile)
    ========================================================================== */
+.page-hero {
+    padding: calc(var(--nav-height, 72px) + 20px) clamp(20px, 5vw, 80px) 40px !important;
+}
+
 .kz-back-btn {
-    display: inline-flex;
+    display: inline-flex !important;
     align-items: center;
     gap: 8px;
-    color: var(--text-secondary);
-    text-decoration: none;
+    padding: 8px 18px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 30px;
+    color: var(--text-primary, #ffffff) !important;
+    text-decoration: none !important;
     font-weight: 700;
-    margin-bottom: 20px;
-    transition: color 0.2s;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+    transition: all 0.25s ease;
     font-family: 'Nunito', sans-serif;
     align-self: flex-start;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
 }
 .kz-back-btn:hover {
-    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #ffffff !important;
+    transform: translateX(-4px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 .kz-back-btn span {
-    font-size: 1.2rem;
-    transition: transform 0.2s;
+    font-size: 1.1rem;
+    line-height: 1;
+    transition: transform 0.2s ease;
 }
 .kz-back-btn:hover span {
-    transform: translateX(-4px);
-}
-@media (min-width: 769px) {
-    .kz-back-btn { display: none; } /* Only show on mobile */
+    transform: translateX(-3px);
 }
 
 /* ==========================================================================
@@ -620,6 +634,12 @@ body.kuizu-page {
 
 .kz-footer-links a:hover {
     color: var(--primary);
+}
+
+.kz-footer-info {
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+    font-weight: 600;
 }
 
 .kz-footer-bottom {

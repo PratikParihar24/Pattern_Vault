@@ -5,32 +5,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const authMiddleware = require('../middleware/authMiddleware'); // <--- NEED THIS
 const User = require('../models/User'); // <--- NEED THIS
-
-// --- HELPER: The QWERTY Cipher Logic (Backend Side) ---
-// We repeat this logic here to verify the user isn't lying.
-const getPatternFromEmail = (email) => {
-    // 1. Clean email (lowercase, remove non-letters)
-    let cleanStr = email.toLowerCase().replace(/[^a-z]/g, '');
-    if (cleanStr.length === 0) cleanStr = 'abcde'; // Fallback if no letters
-
-    // 2. Pad to 5 characters by repeating if necessary
-    while (cleanStr.length < 5) {
-        cleanStr += cleanStr;
-    }
-
-    cleanStr = cleanStr.substring(0, 5);
-
-    // 2. The Map (Same as frontend)
-    const map = {
-        'q': 'A', 'w': 'A', 'e': 'A', 'r': 'A', 't': 'A',
-        'y': 'B', 'u': 'B', 'i': 'B', 'o': 'B', 'p': 'B',
-        'a': 'C', 's': 'C', 'd': 'C', 'f': 'C', 'g': 'C', 'z': 'C', 'x': 'C', 'c': 'C', 'v': 'C',
-        'h': 'D', 'j': 'D', 'k': 'D', 'l': 'D', 'b': 'D', 'n': 'D', 'm': 'D'
-    };
-
-    // 3. Convert
-    return cleanStr.split('').map(char => map[char] || 'A');
-};
+const QwertyCipher = require('../../shared/qwerty-cipher');
 
 // --- ROUTE 1: REGISTER (Sign Up) ---
 router.post('/register', async (req, res) => {
@@ -127,11 +102,11 @@ router.post('/verify-pattern', authMiddleware, async (req, res) => {
         const user = await User.findById(req.user.id);
         if (!user) return res.status(400).json({ msg: "User not found" });
 
-        const expectedPattern = getPatternFromEmail(user.email);
+        if (!QwertyCipher.isValidPattern(pattern)) {
+            return res.status(400).json({ msg: 'Pattern must contain exactly five A-D answers' });
+        }
 
-        console.log('Email:', user.email);
-        console.log('Expected pattern:', expectedPattern);
-        console.log('Received pattern:', pattern);
+        const expectedPattern = QwertyCipher.getPattern(user.email);
 
         if (JSON.stringify(expectedPattern) === JSON.stringify(pattern)) {
             return res.json({ unlocked: true });

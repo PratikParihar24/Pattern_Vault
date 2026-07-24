@@ -96,29 +96,18 @@
         <p class="warning">⚠ SYSTEM NOTICE: Delete this file before production deployment.</p>
     </div>
 
+    <script src="/shared/qwerty-cipher.js"></script>
     <script>
-        // THE CIPHER MAP (Identical to auth.js / quiz-logic.js)
-        const map = {
-            'q': 'A', 'w': 'A', 'e': 'A', 'r': 'A', 't': 'A',
-            'y': 'B', 'u': 'B', 'i': 'B', 'o': 'B', 'p': 'B',
-            'a': 'C', 's': 'C', 'd': 'C', 'f': 'C', 'g': 'C',
-            'z': 'C', 'x': 'C', 'c': 'C', 'v': 'C',
-            'h': 'D', 'j': 'D', 'k': 'D', 'l': 'D',
-            'b': 'D', 'n': 'D', 'm': 'D'
-        };
 
         function decode() {
             const email = document.getElementById('target-email').value;
             if (!email) return;
 
-            // 1. Clean the string (Same logic as Backend)
-            // Lowercase -> Remove non-letters -> Take first 5
-            const cleanStr = email.toLowerCase().replace(/[^a-z]/g, '').substring(0, 5);
-            
-            // 2. Map to Pattern
-            const pattern = cleanStr.split('').map(char => {
-                return { char: char, val: map[char] || 'A' }; // Default to A if unknown
-            });
+            const cleanStr = QwertyCipher.getCleanLetters(email);
+            const pattern = QwertyCipher.getPattern(email).map((value, index) => ({
+                char: cleanStr[index],
+                val: value
+            }));
 
             // 3. Render
             const display = document.getElementById('sequence-display');

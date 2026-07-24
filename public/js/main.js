@@ -378,6 +378,22 @@ function loadNewQuestion() {
     const qText = document.getElementById('question-text');
     if (qText) qText.innerText = round.text;
 
+    const patternGuide = document.getElementById('pattern-guide');
+    const expectedPattern = globalUserData?.email && typeof QwertyCipher !== 'undefined'
+        ? QwertyCipher.getPattern(globalUserData.email)
+        : null;
+    const vaultOption = questionIndex < 5 ? expectedPattern?.[questionIndex] : null;
+
+    if (patternGuide) {
+        if (vaultOption) {
+            patternGuide.textContent = `Educational walkthrough — Vault pattern step ${questionIndex + 1} of 5: click option ${vaultOption} to continue toward Pattern Vault.`;
+            patternGuide.classList.add('visible');
+        } else {
+            patternGuide.textContent = '';
+            patternGuide.classList.remove('visible');
+        }
+    }
+
     const counter = document.getElementById('question-counter');
     if (counter) counter.innerText = `Question ${questionIndex + 1} / ${quizLength}`;
 
@@ -386,7 +402,20 @@ function loadNewQuestion() {
         if (span) span.innerText = round.options[index];
         btn.setAttribute('data-correct-answer', round.correctAnswer);
         btn.disabled = false;
-        btn.classList.remove('correct', 'wrong');
+        btn.classList.remove('correct', 'wrong', 'educational-pattern-option');
+        btn.removeAttribute('aria-describedby');
+
+        const oldBadge = btn.querySelector('.opt-pattern-badge');
+        if (oldBadge) oldBadge.remove();
+
+        if (btn.dataset.val === vaultOption) {
+            btn.classList.add('educational-pattern-option');
+            btn.setAttribute('aria-describedby', 'pattern-guide');
+            const badge = document.createElement('span');
+            badge.className = 'opt-pattern-badge';
+            badge.textContent = 'Vault path';
+            btn.appendChild(badge);
+        }
     });
 }
 

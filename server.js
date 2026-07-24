@@ -28,6 +28,8 @@ app.use(express.json());
 // Serve the frontend files (HTML, CSS, JS)
 // Tell the server to serve files from the "public" folder
 app.use(express.static(path.join(__dirname, 'public')));
+// Deliberately expose only the browser-compatible shared cipher contract.
+app.use('/shared', express.static(path.join(__dirname, 'shared')));
 
 
 // USE THE ROUTE - This means any URL starting with /api/auth will go to that file

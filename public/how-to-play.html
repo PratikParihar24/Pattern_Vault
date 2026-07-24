@@ -8,10 +8,10 @@
     <link rel="stylesheet" href="css/kuizu-theme.css">
     <style>
         .page-hero {
-            min-height: 40vh;
+            min-height: auto;
             display: flex;
             align-items: center;
-            padding: calc(var(--nav-height) + 60px) clamp(20px,5vw,80px) 80px;
+            padding: calc(var(--nav-height) + 20px) clamp(20px,5vw,80px) 40px;
             text-align: center;
             position: relative;
             overflow: hidden;
@@ -117,58 +117,34 @@
         <a href="register.html" style="background:var(--gradient-primary);color:#fff;text-align:center;border-radius:var(--radius-pill);">Register Free</a>
     </div>
 
-    <!-- PAGE HERO -->
-    <section class="page-hero">
-        <div class="page-hero-inner" style="display: flex; flex-direction: column;">
-            <a href="javascript:history.back()" class="kz-back-btn"><span>←</span> Back</a>
-            <span class="kz-label kz-animate" style="display:inline-block;margin-bottom:16px;">Game Guide</span>
-            <h1 class="kz-h1 kz-animate kz-animate-delay-1">How to <span class="kz-gradient-text">Play</span></h1>
-            <p class="kz-body kz-animate kz-animate-delay-2" style="max-width:520px;margin:16px auto 0;">Everything you need to know to start playing, scoring, and climbing the global leaderboard.</p>
-        </div>
-    </section>
-
     <!-- STEPS SECTION -->
     <section class="kz-section">
         <div class="kz-container">
             <div class="kz-section-header">
-                <span class="kz-label">Step by Step</span>
-                <h2 class="kz-h2">Your path to <span class="kz-gradient-text">victory</span></h2>
+                <span class="kz-label">Vault Access</span>
+                <h2 class="kz-h2">How to open the <span class="kz-gradient-text">Pattern Vault</span></h2>
             </div>
 
             <div style="display:flex; flex-direction:column; gap:24px; max-width:700px; margin:0 auto;">
                 <div class="kz-step kz-animate">
                     <div class="kz-step-num">1</div>
                     <div class="kz-step-content">
-                        <h4>Create Your Account</h4>
-                        <p>Head to the Register page and enter your email, a secure password, and your display name. Your display name is what shows up on the global leaderboard — choose something memorable!</p>
+                        <h4>Sign In</h4>
+                        <p>Create an account or log in to your MindMaster account. The Pattern Vault is available only during an authenticated session.</p>
                     </div>
                 </div>
                 <div class="kz-step kz-animate kz-animate-delay-1">
                     <div class="kz-step-num">2</div>
                     <div class="kz-step-content">
-                        <h4>Login & Enter the Game</h4>
-                        <p>After logging in, you'll be presented with the quiz game. Click "Start Game" to begin your round of 5 questions from our shuffled question bank.</p>
+                        <h4>Open the Quiz</h4>
+                        <p>Go to the game screen. You can use the shortcut from the welcome screen or while a quiz round is open.</p>
                     </div>
                 </div>
                 <div class="kz-step kz-animate kz-animate-delay-2">
                     <div class="kz-step-num">3</div>
                     <div class="kz-step-content">
-                        <h4>Answer the Questions</h4>
-                        <p>Each round has 5 questions with 4 options each (A, B, C, D). Select the answer you think is correct. You get instant visual feedback — green for correct, red for wrong.</p>
-                    </div>
-                </div>
-                <div class="kz-step kz-animate kz-animate-delay-3">
-                    <div class="kz-step-num">4</div>
-                    <div class="kz-step-content">
-                        <h4>Score & Submit</h4>
-                        <p>Each correct answer earns you 10 points. After 5 questions, your score is calculated and automatically submitted to the global leaderboard if it's your personal best.</p>
-                    </div>
-                </div>
-                <div class="kz-step kz-animate kz-animate-delay-4">
-                    <div class="kz-step-num">5</div>
-                    <div class="kz-step-content">
-                        <h4>Replay & Rise</h4>
-                        <p>Click "Play Again" to start a new round with freshly shuffled questions. Keep playing to beat your high score and climb the global leaderboard rankings.</p>
+                        <h4>Use the Vault Shortcut</h4>
+                        <p>Press <kbd class="kz-kbd">Ctrl + Shift + X</kbd> to open the Pattern Vault instantly.</p>
                     </div>
                 </div>
             </div>
@@ -242,35 +218,6 @@
                             <p>There's no timer penalty. Take your time to answer correctly. Accuracy is what pushes your score up.</p>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- RULES -->
-    <section class="kz-section">
-        <div class="kz-container" style="max-width:800px;">
-            <div class="kz-section-header">
-                <span class="kz-label">The Rules</span>
-                <h2 class="kz-h2">Fair play <span class="kz-gradient-text">guidelines</span></h2>
-            </div>
-
-            <div class="rules-list">
-                <div class="rule-item kz-animate">
-                    <div class="rule-bullet">1</div>
-                    <p><strong>One account per person.</strong> Creating multiple accounts to farm the leaderboard is against the spirit of fair competition.</p>
-                </div>
-                <div class="rule-item kz-animate kz-animate-delay-1">
-                    <div class="rule-bullet">2</div>
-                    <p><strong>Each round is 5 questions.</strong> You must answer all 5 before your score is submitted. Closing the tab mid-game forfeits that round.</p>
-                </div>
-                <div class="rule-item kz-animate kz-animate-delay-2">
-                    <div class="rule-bullet">3</div>
-                    <p><strong>Scores are cumulative highs.</strong> Only your best single-round score is shown on the leaderboard — not your total across all games.</p>
-                </div>
-                <div class="rule-item kz-animate kz-animate-delay-3">
-                    <div class="rule-bullet">4</div>
-                    <p><strong>Display names must be appropriate.</strong> Offensive or impersonating display names will be removed without notice.</p>
                 </div>
             </div>
         </div>

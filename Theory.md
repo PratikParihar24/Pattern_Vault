@@ -138,7 +138,9 @@ Multer processes `multipart/form-data` (the encoding used for file uploads).
 When generating quiz questions, options must be randomized so the correct answer isn't always in the same spot. Fisher-Yates achieves this in $O(n)$ time by iterating backwards and swapping elements with random indices.
 
 ### The QWERTY Cipher
-A deterministic hashing algorithm that maps characters to fixed sets based on keyboard layout. It extracts 5 characters from an email, maps them to Zones (A, B, C, D), and generates the required pattern. Time complexity: $O(1)$ since the length is fixed at 5.
+A deterministic mapping that maps characters to fixed sets based on keyboard layout. It extracts five letters from an email, maps them to Zones (A, B, C, D), and generates the required pattern. Time complexity is $O(1)$ because the output length is fixed at five.
+
+The complete contract lives in `shared/qwerty-cipher.js`. Node.js imports this file directly, while the browser loads the same file from `/shared/qwerty-cipher.js`; therefore normalization, fallback handling, padding, and zone mapping have one source of truth. The server remains responsible for deriving the expected pattern from the authenticated user's stored email and for rejecting malformed submissions. Because browser code is inspectable, the cipher is an unlock-flow rule—not a replacement for authentication or a secret cryptographic key.
 
 ---
 
@@ -151,7 +153,7 @@ A deterministic hashing algorithm that maps characters to fixed sets based on ke
 > A: We implemented Optimistic Concurrency Control (OCC). Every page document has a version number (`__v`). When a client saves an edit, they include the version they were editing. The backend only allows the update if the database version matches the client's version. If it fails, the client is prompted to handle the conflict.
 
 **Q: Explain how the quiz disguise actually works from a technical perspective.**
-> A: The quiz tracks every button click (A, B, C, or D). After the 5th question, it sends the sequence to the `/verify-pattern` endpoint. The backend recalculates the expected pattern from the user's email using the QWERTY cipher. If it matches, the backend sends an unlock signal. If not, the frontend stores a `patternFailed` flag in `sessionStorage` and continues the quiz normally (if > 5 questions), keeping the user entirely unaware of the vault's existence.
+> A: The quiz tracks every button click (A, B, C, or D). After the fifth question, it sends the sequence to `/verify-pattern`. The authenticated backend derives the expected pattern from the user's stored email with the shared `qwerty-cipher` module and compares it only after validating that the request contains exactly five A–D values. If it matches, the backend sends an unlock signal. If not, the frontend stores a `patternFailed` flag in `sessionStorage` and continues the quiz normally (if > 5 questions), keeping the user entirely unaware of the vault's existence.
 
 **Q: Why use Multer? How are file collisions prevented?**
 > A: Express cannot natively parse `multipart/form-data`. Multer buffers the incoming file stream and writes it to disk. Collisions are prevented by modifying the filename using `Date.now()` and a random number generator before appending the original extension, guaranteeing uniqueness.

@@ -8,9 +8,9 @@
     <link rel="stylesheet" href="css/kuizu-theme.css">
     <style>
         .page-hero {
-            min-height: 35vh;
+            min-height: auto;
             display: flex; align-items: center;
-            padding: calc(var(--nav-height) + 40px) clamp(20px,5vw,80px) 60px;
+            padding: calc(var(--nav-height) + 20px) clamp(20px,5vw,80px) 40px;
             text-align: center;
             position: relative; overflow: hidden;
         }
@@ -50,27 +50,6 @@
         .my-rank-stat { text-align: center; }
         .my-rank-stat-num { font-family: 'Poppins', sans-serif; font-size: 1.4rem; font-weight: 900; color: var(--primary); line-height: 1; }
         .my-rank-stat-label { font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
-
-        /* Filter tabs */
-        .lb-filters {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-        }
-        .lb-filter-btn {
-            padding: 8px 20px;
-            border-radius: var(--radius-pill);
-            font-size: 0.85rem;
-            font-weight: 700;
-            cursor: pointer;
-            border: 1.5px solid var(--border-medium);
-            background: transparent;
-            color: var(--text-secondary);
-            transition: all 0.2s;
-        }
-        .lb-filter-btn:hover { border-color: var(--accent-gold); color: var(--accent-gold); }
-        .lb-filter-btn.active { background: rgba(245,158,11,0.1); border-color: var(--accent-gold); color: var(--accent-gold); }
 
         /* Rows */
         .lb-list { display: flex; flex-direction: column; gap: 8px; }
@@ -144,8 +123,6 @@
     <!-- MAIN CONTENT -->
     <section class="kz-section" style="padding-top:20px;">
         <div class="kz-container" style="max-width:860px; display: flex; flex-direction: column;">
-            <a href="javascript:history.back()" class="kz-back-btn"><span>←</span> Back</a>
-
             <!-- My rank banner (logged in users) -->
             <div class="my-rank-banner" id="myRankBanner" style="display:none;">
                 <div class="my-rank-left">
@@ -191,14 +168,7 @@
                 </div>
             </div>
 
-            <!-- FILTER -->
-            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
-                <h3 class="kz-h3" style="margin:0;">Full Rankings</h3>
-                <div class="lb-filters">
-                    <button class="lb-filter-btn active" onclick="setFilter(this,'all')">🌍 All Time</button>
-                    <button class="lb-filter-btn" onclick="setFilter(this,'top10')">🔥 Top 10</button>
-                </div>
-            </div>
+            <h3 class="kz-h3" style="margin:0 0 20px;">Top 10 Players</h3>
 
             <!-- LIST -->
             <div class="lb-list" id="lbList">

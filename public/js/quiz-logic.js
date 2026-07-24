@@ -1,15 +1,8 @@
 // public/js/quiz-logic.js
 
 const Cipher = {
-    // 1. KEEP THE SECRET MAP (Crucial for the "Secret Pattern")
-    map: {
-        'q': 'A', 'w': 'A', 'e': 'A', 'r': 'A', 't': 'A',
-        'y': 'B', 'u': 'B', 'i': 'B', 'o': 'B', 'p': 'B',
-        'a': 'C', 's': 'C', 'd': 'C', 'f': 'C', 'g': 'C',
-        'z': 'C', 'x': 'C', 'c': 'C', 'v': 'C',
-        'h': 'D', 'j': 'D', 'k': 'D', 'l': 'D',
-        'b': 'D', 'n': 'D', 'm': 'D'
-    },
+    // The mapping is shared with the server through /shared/qwerty-cipher.js.
+    map: QwertyCipher.map,
 
     // 2. EXPANDED DATABASE — 4 Domains × 3 Difficulties × 25 Questions = 300 Qs
     questionBank: [
