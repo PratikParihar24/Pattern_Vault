@@ -4,7 +4,7 @@
    ========================================================================== */
 
 /* --- Google Fonts --- */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Poppins:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700;800&family=Nunito:wght@400;600;700;800;900&family=Poppins:ital,wght@0,400;0,600;0,700;0,800;1,700;1,800&display=swap');
 
 /* --- Design Tokens --- */
 :root {
@@ -1077,4 +1077,219 @@ body.kuizu-page {
 @media (max-width: 480px) {
     .kz-footer-grid { grid-template-columns: 1fr; }
     .kz-leaderboard-row { padding: 14px 16px; }
+}
+
+/* ===========================================================================
+   ARCADE BLUEPRINT THEME — public quiz pages only
+   =========================================================================== */
+body.kuizu-page {
+    --bg-deep: #0a0a0f;
+    --bg-dark: #0f0f14;
+    --bg-surface: #131318;
+    --bg-card: #1c1c24;
+    --bg-card-hover: #24242e;
+    --primary: #ff3b5c;
+    --primary-dark: #db2546;
+    --primary-glow: rgba(255, 59, 92, 0.28);
+    --accent-green: #3be0a0;
+    --accent-gold: #f6c453;
+    --accent-blue: #73b6ff;
+    --accent-purple: #a855f7;
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b8;
+    --text-muted: #7b7b86;
+    --border-subtle: #2a2a33;
+    --border-medium: #3a3a45;
+    --gradient-primary: linear-gradient(100deg, #ff3b5c, #a855f7);
+    --gradient-text: linear-gradient(100deg, #ff3b5c, #c084fc);
+    --gradient-card: linear-gradient(145deg, #1c1c24, #131318);
+    background-color: var(--bg-deep);
+    background-image:
+        radial-gradient(ellipse 74% 62% at 50% 38%, transparent 15%, rgba(10,10,15,0.92) 100%),
+        linear-gradient(rgba(42,42,51,0.52) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(42,42,51,0.52) 1px, transparent 1px);
+    background-size: 100% 100%, 40px 40px, 40px 40px;
+}
+
+body.kuizu-page .kz-h1,
+body.kuizu-page .hero-title,
+body.kuizu-page .page-hero h1,
+body.kuizu-page .auth-logo h2,
+body.kuizu-page .profile-name {
+    font-family: 'Poppins', sans-serif;
+    font-style: italic;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+}
+body.kuizu-page .kz-label,
+body.kuizu-page .kz-label-text,
+body.kuizu-page .stat-label,
+body.kuizu-page .kz-result-stat-lbl,
+body.kuizu-page .kz-score-xp {
+    font-family: 'JetBrains Mono', 'Roboto Mono', Consolas, monospace;
+}
+
+body.kuizu-page .kz-navbar.scrolled,
+body.kuizu-page .kz-mobile-nav {
+    background: rgba(10,10,15,0.9) !important;
+    border-color: #2a2a33;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.03), 0 12px 36px rgba(0,0,0,0.4);
+}
+body.kuizu-page .kz-logo-icon {
+    border-radius: 10px;
+    background: var(--gradient-primary);
+}
+body.kuizu-page .kz-nav-links a {
+    border-radius: 8px;
+}
+body.kuizu-page .kz-nav-links a:hover,
+body.kuizu-page .kz-nav-links a.active {
+    background: rgba(255,59,92,0.1);
+    color: #ffffff;
+}
+body.kuizu-page .kz-back-btn {
+    background: #1c1c24;
+    border-color: #3a3a45;
+    border-radius: 8px;
+    color: #b0b0b8 !important;
+    font-family: 'JetBrains Mono', 'Roboto Mono', Consolas, monospace;
+    box-shadow: none;
+}
+body.kuizu-page .kz-back-btn:hover {
+    background: #24242e;
+    border-color: #ff3b5c;
+    color: #ffffff !important;
+}
+
+body.kuizu-page .kz-btn,
+body.kuizu-page .auth-submit {
+    border-radius: 10px;
+    font-family: 'Poppins', sans-serif;
+}
+body.kuizu-page .kz-btn-primary,
+body.kuizu-page .auth-submit {
+    background: var(--gradient-primary) !important;
+    box-shadow: 0 8px 22px rgba(255,59,92,0.24);
+}
+body.kuizu-page .kz-btn-primary:hover,
+body.kuizu-page .auth-submit:hover {
+    box-shadow: 0 12px 28px rgba(255,59,92,0.38);
+}
+body.kuizu-page .kz-btn-ghost {
+    border-color: #3a3a45;
+    color: #b0b0b8;
+}
+body.kuizu-page .kz-btn-ghost:hover {
+    border-color: #ff3b5c;
+    background: rgba(255,59,92,0.07);
+    color: #ffffff;
+}
+
+body.kuizu-page .kz-card,
+body.kuizu-page .auth-card,
+body.kuizu-page .profile-card,
+body.kuizu-page .kz-modal-content {
+    background: linear-gradient(145deg, rgba(28,28,36,0.98), rgba(19,19,24,0.98)) !important;
+    border-color: #2a2a33 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 20px 55px rgba(0,0,0,0.36), inset 0 1px 0 rgba(255,255,255,0.035) !important;
+}
+body.kuizu-page .kz-card::before {
+    background: radial-gradient(ellipse at 50% -20%, rgba(255,59,92,0.09), transparent 70%) !important;
+}
+body.kuizu-page .auth-card::before {
+    background: linear-gradient(90deg, #ff3b5c, #a855f7, #ff3b5c) !important;
+}
+body.kuizu-page .kz-card:hover {
+    border-color: rgba(255,59,92,0.45) !important;
+    box-shadow: 0 20px 42px rgba(0,0,0,0.38), 0 0 0 1px rgba(255,59,92,0.1) !important;
+}
+body.kuizu-page .kz-input {
+    background: #131318;
+    border-color: #3a3a45;
+    border-radius: 10px;
+    color: #ffffff;
+}
+body.kuizu-page .kz-input:focus {
+    border-color: #ff3b5c;
+    background: #1c1c24;
+    box-shadow: 0 0 0 3px rgba(255,59,92,0.15);
+}
+
+body.kuizu-page .auth-wrapper::before {
+    background: radial-gradient(ellipse 62% 56% at 50% 42%, rgba(255,59,92,0.11), transparent 68%) !important;
+}
+body.kuizu-page .auth-logo p,
+body.kuizu-page .auth-footer,
+body.kuizu-page .profile-email {
+    color: #b0b0b8 !important;
+}
+body.kuizu-page .auth-divider span { background: #1c1c24; }
+body.kuizu-page .perks,
+body.kuizu-page .stat-box {
+    background: #131318 !important;
+    border-color: #2a2a33 !important;
+    border-radius: 10px !important;
+}
+body.kuizu-page .stat-value,
+body.kuizu-page .kz-score-display {
+    font-family: 'JetBrains Mono', 'Roboto Mono', Consolas, monospace;
+}
+body.kuizu-page .logout-btn {
+    background: rgba(255,59,92,0.1) !important;
+    border-color: rgba(255,59,92,0.38) !important;
+    color: #ff8da0 !important;
+    border-radius: 10px !important;
+}
+
+body.kuizu-page .kz-leaderboard-row,
+body.kuizu-page .my-rank-banner,
+body.kuizu-page .kz-accordion-item {
+    background: rgba(28,28,36,0.95) !important;
+    border-color: #2a2a33 !important;
+    border-radius: 12px !important;
+}
+body.kuizu-page .kz-leaderboard-row:hover,
+body.kuizu-page .kz-accordion-item.open {
+    border-color: rgba(255,59,92,0.5) !important;
+    background: #24242e !important;
+}
+body.kuizu-page .kz-rank-num,
+body.kuizu-page .kz-score-display,
+body.kuizu-page .my-rank-stat-num {
+    font-family: 'JetBrains Mono', 'Roboto Mono', Consolas, monospace;
+}
+body.kuizu-page .kz-accordion-trigger {
+    color: #ffffff;
+}
+body.kuizu-page .kz-accordion-body-inner { color: #b0b0b8; }
+
+body.kuizu-page .kz-footer {
+    background: rgba(15,15,20,0.92);
+    border-color: #2a2a33;
+}
+body.kuizu-page .kz-footer-title,
+body.kuizu-page .kz-footer-bottom,
+body.kuizu-page .kz-footer-brand p {
+    color: #7b7b86;
+}
+body.kuizu-page .kz-footer-links a,
+body.kuizu-page .kz-footer-info { color: #b0b0b8; }
+body.kuizu-page .kz-footer-links a:hover { color: #ff8da0; }
+
+body.kuizu-page a:focus-visible,
+body.kuizu-page button:focus-visible,
+body.kuizu-page input:focus-visible {
+    outline: 2px solid #ff3b5c;
+    outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+    body.kuizu-page *,
+    body.kuizu-page *::before,
+    body.kuizu-page *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

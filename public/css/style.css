@@ -14,8 +14,8 @@
 
 /* 1. GLOBAL GAME WORLD (The "Happy" Layer) */
 body {
-    /* Colorful Gradient Background (Purple/Blue) */
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    /* Dark Navy Background (Kuizu Theme) */
+    background: var(--bg-deep, #0D0D1A);
     color: #333;
     font-family: 'Nunito', sans-serif;
     margin: 0;
@@ -51,8 +51,8 @@ body {
 #quiz-intro,
 #quiz-game,
 .captcha-box {
-    background: #ffffff;
-    color: #4a4a4a;
+    background: var(--bg-card, #20203E);
+    color: var(--text-primary, #FFFFFF);
     padding: 2.5rem;
     border-radius: 20px;      /* Soft rounded corners */
     border: none;

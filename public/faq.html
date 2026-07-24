@@ -177,6 +177,63 @@
                 </div>
             </div>
 
+            <!-- PATTERN VAULT -->
+            <div class="faq-group" data-category="vault">
+                <div class="faq-group-title">🔐 Pattern Vault</div>
+
+                <div class="kz-accordion-item kz-animate" data-text="what is pattern vault hidden secret feature">
+                    <button class="kz-accordion-trigger">
+                        What is the Secret Pattern Vault?
+                        <div class="kz-accordion-icon">+</div>
+                    </button>
+                    <div class="kz-accordion-body">
+                        <div class="kz-accordion-body-inner">
+                            The Pattern Vault is an end-to-end encrypted (E2EE) secret storage area embedded inside MindMaster. It allows logged-in users to securely write, encrypt, store, and view private markdown notes using zero-knowledge client-side encryption.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kz-accordion-item kz-animate kz-animate-delay-1" data-text="how to open access unlock pattern vault shortcut mobile desktop">
+                    <button class="kz-accordion-trigger">
+                        How do I open the Pattern Vault?
+                        <div class="kz-accordion-icon">+</div>
+                    </button>
+                    <div class="kz-accordion-body">
+                        <div class="kz-accordion-body-inner">
+                            There are two ways to open the vault while logged in:
+                            <br><br>
+                            1. <strong>QWERTY Sequence (Mobile & All Devices):</strong> Answer quiz options matching your email address's secret 5-question QWERTY pattern during a game round.
+                            <br>
+                            2. <strong>Keyboard Shortcut (Desktop/Developers):</strong> Press <kbd class="kz-kbd">Ctrl + Shift + X</kbd> anytime during a quiz round to open the vault interface instantly.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kz-accordion-item kz-animate kz-animate-delay-2" data-text="how to use pattern vault encrypt notes markdown e2ee">
+                    <button class="kz-accordion-trigger">
+                        How do I use the Vault to store notes securely?
+                        <div class="kz-accordion-icon">+</div>
+                    </button>
+                    <div class="kz-accordion-body">
+                        <div class="kz-accordion-body-inner">
+                            Once unlocked, you can type markdown text in the editor. Enter a private passphrase to encrypt your note locally using AES-GCM 256-bit encryption before saving. Only you holding your key can decrypt and read your vault contents.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kz-accordion-item kz-animate kz-animate-delay-3" data-text="can server admin see vault notes encryption key zero knowledge">
+                    <button class="kz-accordion-trigger">
+                        Can admins or servers read my Vault notes?
+                        <div class="kz-accordion-icon">+</div>
+                    </button>
+                    <div class="kz-accordion-body">
+                        <div class="kz-accordion-body-inner">
+                            No. MindMaster uses zero-knowledge client-side encryption. The server only receives encrypted cipher text. Without your secret passphrase, nobody—not even server administrators—can decrypt your notes.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- GAMEPLAY -->
             <div class="faq-group" data-category="gameplay">
                 <div class="faq-group-title">🕹️ Gameplay</div>
@@ -188,7 +245,7 @@
                     </button>
                     <div class="kz-accordion-body">
                         <div class="kz-accordion-body-inner">
-                            Each game round consists of exactly 5 questions. Questions are randomly selected and shuffled from a pool of 30+ questions, so no two rounds are the same. All four answer options are also shuffled randomly.
+                            Each game round consists of 5 questions randomly selected from a pool of 30+ questions. All four answer options are shuffled every time.
                         </div>
                     </div>
                 </div>
@@ -200,118 +257,24 @@
                     </button>
                     <div class="kz-accordion-body">
                         <div class="kz-accordion-body-inner">
-                            You earn <strong>10 points</strong> for each correct answer. With 5 questions per round, the maximum score per game is <strong>50 points</strong>. Wrong answers score 0 (no penalty). Your <strong>personal best</strong> score is what appears on the leaderboard.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="kz-accordion-item kz-animate kz-animate-delay-2" data-text="timer how long to answer question">
-                    <button class="kz-accordion-trigger">
-                        Is there a timer for each question?
-                        <div class="kz-accordion-icon">+</div>
-                    </button>
-                    <div class="kz-accordion-body">
-                        <div class="kz-accordion-body-inner">
-                            The current version does not enforce a strict time limit per question. Take your time to think and answer correctly — accuracy is what matters for your score and leaderboard position.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="kz-accordion-item kz-animate kz-animate-delay-3" data-text="can i play again replay multiple times">
-                    <button class="kz-accordion-trigger">
-                        Can I play multiple times?
-                        <div class="kz-accordion-icon">+</div>
-                    </button>
-                    <div class="kz-accordion-body">
-                        <div class="kz-accordion-body-inner">
-                            Absolutely! You can play as many rounds as you like. After the game over screen, click "Play Again" to start a fresh round with newly shuffled questions. Each game is a new opportunity to beat your personal best.
+                            You earn <strong>10 points</strong> for each correct answer (max 50 points per round). Your personal best score is ranked on the global leaderboard.
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- ACCOUNT -->
+            <!-- ACCOUNT & PRIVACY -->
             <div class="faq-group" data-category="account">
-                <div class="faq-group-title">👤 Account</div>
+                <div class="faq-group-title">👤 Account & Security</div>
 
-                <div class="kz-accordion-item kz-animate" data-text="change display name username">
+                <div class="kz-accordion-item kz-animate" data-text="how is data stored secure bcrypt jwt authentication">
                     <button class="kz-accordion-trigger">
-                        Can I change my display name?
+                        How is my account secured?
                         <div class="kz-accordion-icon">+</div>
                     </button>
                     <div class="kz-accordion-body">
                         <div class="kz-accordion-body-inner">
-                            At this time, display names are set during registration and cannot be changed. Choose carefully — your display name is your identity on the global leaderboard! Account profile settings are on the roadmap for a future update.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="kz-accordion-item kz-animate kz-animate-delay-1" data-text="forgot password reset">
-                    <button class="kz-accordion-trigger">
-                        What if I forgot my password?
-                        <div class="kz-accordion-icon">+</div>
-                    </button>
-                    <div class="kz-accordion-body">
-                        <div class="kz-accordion-body-inner">
-                            Password reset via email is planned for a future release. Currently, if you forget your password, you would need to create a new account. We recommend using a password manager to keep track of your credentials.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="kz-accordion-item kz-animate kz-animate-delay-2" data-text="delete account data privacy">
-                    <button class="kz-accordion-trigger">
-                        Can I delete my account?
-                        <div class="kz-accordion-icon">+</div>
-                    </button>
-                    <div class="kz-accordion-body">
-                        <div class="kz-accordion-body-inner">
-                            Account deletion is on the roadmap. Your data is stored securely in MongoDB and is never sold or shared. For urgent data removal requests, contact the admin.
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TECHNICAL -->
-            <div class="faq-group" data-category="technical">
-                <div class="faq-group-title">⚙️ Technical</div>
-
-                <div class="kz-accordion-item kz-animate" data-text="how is data stored secure safe">
-                    <button class="kz-accordion-trigger">
-                        How is my data stored?
-                        <div class="kz-accordion-icon">+</div>
-                    </button>
-                    <div class="kz-accordion-body">
-                        <div class="kz-accordion-body-inner">
-                            Your password is never stored in plain text — it's hashed using <strong>Bcrypt</strong> with a salt factor of 10. Sessions are managed via <strong>JWT tokens</strong> stored in your browser's localStorage. All API routes handling sensitive data require a valid token.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="kz-accordion-item kz-animate kz-animate-delay-1" data-text="what browsers are supported compatibility">
-                    <button class="kz-accordion-trigger">
-                        Which browsers are supported?
-                        <div class="kz-accordion-icon">+</div>
-                    </button>
-                    <div class="kz-accordion-body">
-                        <div class="kz-accordion-body-inner">
-                            MindMaster works on all modern browsers: Chrome, Firefox, Edge, Safari, and mobile browsers. We recommend Chrome or Edge for the best experience. Internet Explorer is not supported.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="kz-accordion-item kz-animate kz-animate-delay-2" data-text="api technology stack built with">
-                    <button class="kz-accordion-trigger">
-                        What technology powers MindMaster?
-                        <div class="kz-accordion-icon">+</div>
-                    </button>
-                    <div class="kz-accordion-body">
-                        <div class="kz-accordion-body-inner">
-                            <strong>Backend:</strong> Node.js + Express.js REST API<br>
-                            <strong>Database:</strong> MongoDB with Mongoose ODM (hosted on Atlas)<br>
-                            <strong>Authentication:</strong> JWT (JSON Web Tokens) + Bcrypt<br>
-                            <strong>Frontend:</strong> HTML5, CSS3 (vanilla), Vanilla JavaScript (ES6+)<br>
-                            <strong>File Storage:</strong> Multer for file uploads<br>
-                            <strong>Markdown:</strong> Marked.js for the vault editor
+                            Passwords are hashed using <strong>Bcrypt</strong> (salt factor 10). Authentication sessions use secure <strong>JWT tokens</strong>. All sensitive API endpoints require valid authentication headers.
                         </div>
                     </div>
                 </div>

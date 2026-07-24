@@ -860,6 +860,288 @@
            VAULT SCREEN — untouched dark theme
            Overrides are already in style.css
            ==================================================== */
+        /* ====================================================
+           ARCADE QUIZ THEME — applies only to quiz-flow screens
+           ==================================================== */
+        #loading-screen,
+        #captcha-screen,
+        #quiz-overlay.active {
+            color: #ffffff;
+            background-color: #0a0a0f !important;
+            background-image:
+                radial-gradient(ellipse 72% 66% at 50% 44%, transparent 18%, rgba(10,10,15,0.92) 100%),
+                linear-gradient(rgba(42,42,51,0.55) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(42,42,51,0.55) 1px, transparent 1px) !important;
+            background-size: 100% 100%, 40px 40px, 40px 40px !important;
+        }
+        #loading-screen *,
+        #captcha-screen *,
+        #quiz-overlay * { box-sizing: border-box; }
+
+        #loading-screen,
+        #captcha-screen,
+        #quiz-overlay { font-family: 'Poppins', sans-serif; }
+
+        .kz-loader-title,
+        .kz-intro-title,
+        #question-text,
+        .kz-result-title {
+            font-family: 'Poppins', sans-serif;
+            font-style: italic;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+        }
+        .kz-score-live,
+        .kz-question-badge,
+        .kz-score-ring .score-num,
+        .kz-result-stat-num,
+        .kz-high-score-pill,
+        .kz-rank-reveal .rank-text {
+            font-family: 'JetBrains Mono', 'Roboto Mono', 'SFMono-Regular', Consolas, monospace;
+        }
+
+        .kz-intro-card,
+        .kz-quiz-card,
+        .kz-result-card,
+        .kz-captcha-wrap {
+            background: linear-gradient(145deg, rgba(28,28,36,0.98), rgba(19,19,24,0.98)) !important;
+            border: 1px solid #2a2a33 !important;
+            border-radius: 18px !important;
+            box-shadow: 0 24px 70px rgba(0,0,0,0.56), inset 0 1px 0 rgba(255,255,255,0.035) !important;
+        }
+        .kz-intro-card::before,
+        .kz-quiz-card::before,
+        .kz-result-card::before {
+            height: 4px;
+            background: linear-gradient(90deg, #ff3b5c, #a855f7, #ff3b5c) !important;
+        }
+        .kz-intro-icon { filter: drop-shadow(0 0 18px rgba(255,59,92,0.42)); }
+        .kz-intro-title { font-size: clamp(1.7rem, 5vw, 2.35rem); }
+        .kz-intro-sub,
+        .kz-result-sub,
+        .kz-loader-sub { color: #b0b0b8; }
+
+        .kz-back-btn {
+            color: #b0b0b8;
+            font-family: 'JetBrains Mono', 'Roboto Mono', 'SFMono-Regular', Consolas, monospace;
+        }
+        .kz-back-btn:hover { color: #ffffff; }
+        .kz-high-score-pill {
+            border-radius: 8px;
+            background: rgba(255,59,92,0.08);
+            border-color: rgba(255,59,92,0.4);
+            color: #ffffff;
+            letter-spacing: 0.02em;
+        }
+        .kz-config-label {
+            color: #b0b0b8;
+            font-family: 'JetBrains Mono', 'Roboto Mono', 'SFMono-Regular', Consolas, monospace;
+        }
+        .kz-pill-group {
+            background: #131318;
+            border-color: #2a2a33;
+            border-radius: 10px;
+        }
+        .kz-pill {
+            border-radius: 7px;
+            color: #b0b0b8;
+            font-family: 'Poppins', sans-serif;
+        }
+        .kz-pill:hover { background: rgba(255,255,255,0.05); }
+        .kz-pill.active {
+            background: linear-gradient(135deg, #ff3b5c, #a855f7);
+            box-shadow: 0 5px 14px rgba(255,59,92,0.26);
+        }
+        .kz-recruiter-banner,
+        #quiz-game .kz-quiz-card > div[style*="margin-top: 24px"] {
+            background: rgba(19,19,24,0.88) !important;
+            border: 1px dashed #3a3a45 !important;
+            border-radius: 10px !important;
+            box-shadow: none !important;
+            color: #b0b0b8 !important;
+        }
+        .kz-kbd,
+        #quiz-game .kz-quiz-card kbd {
+            background: #0a0a0f !important;
+            border: 1px solid #3a3a45 !important;
+            border-radius: 4px !important;
+            box-shadow: none !important;
+            color: #ffffff !important;
+            font-family: 'JetBrains Mono', 'Roboto Mono', 'SFMono-Regular', Consolas, monospace !important;
+        }
+
+        #start-quiz-btn,
+        #restart-btn {
+            border-radius: 12px;
+            background: linear-gradient(100deg, #ff3b5c, #a855f7) !important;
+            box-shadow: 0 8px 22px rgba(255,59,92,0.24);
+            font-family: 'Poppins', sans-serif;
+            letter-spacing: 0.01em;
+        }
+        #start-quiz-btn:hover,
+        #restart-btn:hover {
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 12px 28px rgba(255,59,92,0.38);
+        }
+
+        .kz-quiz-header {
+            border-bottom: 1px solid #2a2a33;
+            padding-bottom: 16px;
+            margin-bottom: 18px;
+        }
+        .kz-question-badge { color: #b0b0b8; }
+        .kz-score-live {
+            color: #ffffff;
+            font-size: 0.88rem;
+            letter-spacing: 0.02em;
+        }
+        .kz-progress-dots {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(20px, 1fr));
+            gap: 6px;
+            width: 100%;
+        }
+        .kz-dot {
+            width: auto;
+            height: 6px;
+            border-radius: 2px;
+            background: #2a2a33;
+        }
+        .kz-dot.current {
+            background: linear-gradient(90deg, #ff3b5c, #a855f7);
+            transform: none;
+            box-shadow: 0 0 12px rgba(255,59,92,0.55);
+        }
+        .kz-dot.answered {
+            background: #3be0a0;
+            box-shadow: 0 0 10px rgba(59,224,160,0.32);
+        }
+        #question-text {
+            color: #ffffff;
+            font-size: clamp(1.2rem, 3vw, 1.55rem);
+            line-height: 1.38;
+        }
+        .kz-pattern-guide {
+            border-color: rgba(168,85,247,0.5);
+            background: rgba(168,85,247,0.1);
+            color: #ede9fe;
+        }
+
+        .opt-btn {
+            min-height: 76px;
+            background: #1c1c24 !important;
+            border: 1px solid #2a2a33 !important;
+            border-radius: 12px;
+            color: #b0b0b8 !important;
+            transition: transform 150ms cubic-bezier(0.68,-0.55,0.265,1.55), border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+        }
+        .opt-letter {
+            border: 1px solid #3a3a45;
+            border-radius: 7px;
+            color: #ffffff;
+            font-family: 'JetBrains Mono', 'Roboto Mono', 'SFMono-Regular', Consolas, monospace;
+        }
+        .opt-btn:hover:not(:disabled) {
+            transform: translateY(-2px) scale(1.015);
+            border-color: #ff3b5c !important;
+            background: #24242e !important;
+            box-shadow: 0 0 0 2px rgba(255,59,92,0.12), 0 10px 20px rgba(0,0,0,0.26);
+            color: #ffffff !important;
+        }
+        .opt-btn.correct {
+            background: rgba(59,224,160,0.1) !important;
+            border-color: #3be0a0 !important;
+            color: #d8fff0 !important;
+            animation: quiz-answer-correct 150ms ease-out both;
+            box-shadow: 0 0 0 2px rgba(59,224,160,0.14), 0 0 20px rgba(59,224,160,0.22);
+        }
+        .opt-btn.correct .opt-letter {
+            border-color: #3be0a0;
+            color: #3be0a0;
+        }
+        .opt-btn.wrong {
+            background: rgba(255,59,92,0.1) !important;
+            border-color: #ff3b5c !important;
+            color: #ffd7df !important;
+            animation: quiz-answer-wrong 210ms ease-out both;
+        }
+        .opt-btn.wrong .opt-letter {
+            border-color: #ff3b5c;
+            color: #ff3b5c;
+        }
+
+        .kz-score-ring {
+            border-color: #ff3b5c;
+            background: radial-gradient(circle, rgba(255,59,92,0.16), transparent 68%);
+            box-shadow: 0 0 0 8px rgba(255,59,92,0.05), 0 0 34px rgba(255,59,92,0.2);
+        }
+        .kz-score-ring .score-num { color: #ffffff; }
+        .kz-result-stat {
+            min-width: 120px;
+            background: #1c1c24;
+            border-color: #2a2a33;
+            border-radius: 10px;
+        }
+        .kz-result-stat-num { color: #ffffff; }
+        .kz-rank-reveal {
+            border-radius: 10px;
+            background: rgba(59,224,160,0.08);
+            border-color: rgba(59,224,160,0.38);
+        }
+        .kz-rank-reveal .rank-text { color: #3be0a0; }
+        .btn-leaderboard {
+            border-radius: 12px;
+            border-color: #3a3a45;
+            color: #b0b0b8;
+        }
+        .btn-leaderboard:hover {
+            border-color: #ff3b5c;
+            color: #ffffff;
+            background: rgba(255,59,92,0.07);
+        }
+        .kz-settings-btn {
+            background: #1c1c24;
+            border-color: #3a3a45;
+            color: #b0b0b8;
+        }
+        .kz-settings-menu {
+            background: #1c1c24;
+            border-color: #3a3a45;
+            border-radius: 10px;
+        }
+        .kz-settings-menu a:hover,
+        .kz-settings-menu button:hover { background: #292935; }
+
+        #quiz-overlay button:focus-visible,
+        #quiz-overlay a:focus-visible,
+        #captcha-screen input:focus-visible {
+            outline: 2px solid #ff3b5c;
+            outline-offset: 2px;
+        }
+        @keyframes quiz-answer-correct {
+            0% { transform: scale(1); }
+            55% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        @keyframes quiz-answer-wrong {
+            0%, 100% { transform: translateX(0); }
+            33% { transform: translateX(-4px); }
+            66% { transform: translateX(4px); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #quiz-overlay *, #loading-screen *, #captcha-screen * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+        @media (max-width: 600px) {
+            .kz-quiz-card { padding-top: 56px !important; }
+            .kz-progress-dots { grid-template-columns: repeat(auto-fit, minmax(14px, 1fr)); }
+            .opt-btn { min-height: 60px; }
+        }
+
         #vault-screen { font-family: 'Courier New', Courier, monospace; }
     </style>
 </head>
