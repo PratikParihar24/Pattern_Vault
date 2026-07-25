@@ -92,8 +92,8 @@ const CryptoHelper = {
             const decoder = new TextDecoder();
             return decoder.decode(decrypted);
         } catch (e) {
-            console.warn("Decryption failed, returning raw string:", e);
-            return encryptedStr; // Return raw if decryption fails (e.g. false positive formatted as text)
+            console.warn("Decryption failed (different user key), returning null:", e);
+            return null;
         }
     },
 

@@ -246,8 +246,9 @@ router.delete('/:id', authMiddleware, async (req, res) => {
             { $pull: { groups: groupId } }   // Remove the group ID
         );
 
-        // 3. Cleanup: Cascade delete all associated Pages and Albums
-        await Page.deleteMany({ group: groupId });
+        // 3. Cleanup: Cascade delete all associated Blocks (Pages & Content Blocks) and Albums
+        const Block = require('../models/Block');
+        await Block.deleteMany({ group: groupId });
         await Album.deleteMany({ group: groupId });
 
         // 4. Destroy the Group

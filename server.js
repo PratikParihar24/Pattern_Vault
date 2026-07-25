@@ -13,7 +13,8 @@ const groupsRoute = require('./src/routes/groups');
 const pagesRoute = require('./src/routes/pages');
 const albumsRoute = require('./src/routes/albums');
 const leaderboardRoute = require('./src/routes/leaderboard');
-
+const blocksRoute = require('./src/routes/blocks');
+const prefsRoute = require('./src/routes/prefs');
 
 // 2. Load the secret variables from your .env file
 // (We do this so we don't hardcode passwords in our code)
@@ -39,6 +40,8 @@ app.use('/api/groups', groupsRoute);
 app.use('/api/pages', pagesRoute);
 app.use('/api/albums', albumsRoute);
 app.use('/api/leaderboard', leaderboardRoute);
+app.use('/api/blocks', blocksRoute);
+app.use('/api/prefs', prefsRoute);
 
 // Serve landing.html as the root entry point
 app.get('/', (req, res) => {

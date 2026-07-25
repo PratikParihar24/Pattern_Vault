@@ -1229,8 +1229,6 @@
             <div class="kz-quiz-settings">
                 <button id="quiz-settings-btn" class="kz-settings-btn">⚙️</button>
                 <div id="quiz-settings-menu" class="kz-settings-menu hidden">
-                    <a href="profile.html">👤 Profile</a>
-                    <a href="leaderboard.html">🏆 Leaderboard</a>
                     <button id="quiz-sound-toggle">🔊 Sound: On</button>
                     <button id="quiz-quit-btn">🏠 Quit Game</button>
                 </div>
@@ -1330,37 +1328,42 @@
                     <div class="logo">
                         <h2>🔐 Vault</h2>
                     </div>
-                    <ul class="nav-static">
-                        <li id="personal-vault-btn" class="active">My Private Vault</li>
-                    </ul>
-                    <hr class="divider">
-                    <p class="section-label">SHARED GROUPS</p>
-                </div>
-                <ul class="nav-list" id="group-list"></ul>
-                <div class="sidebar-bottom">
-                    <input type="text" id="new-group-name" placeholder="New Group Name">
-                    <button id="create-group-btn">Create Group</button>
-                    <div class="join-zone">
-                        <input type="text" id="join-group-code" placeholder="Enter Code">
-                        <button id="join-group-btn">Join</button>
+
+                    <!-- Private Vault Dropdown Header -->
+                    <div class="ve-sidebar-card" id="private-vault-card">
+                        <div class="ve-sidebar-card-header" id="private-vault-toggle">
+                            <span>My Private Vault</span>
+                            <button id="create-page-btn-sidebar" class="ve-card-action-btn" title="New Page">+</button>
+                        </div>
+                        <div id="page-tree-root" class="ve-sidebar-card-body"></div>
                     </div>
-                    <button id="logout-btn" class="logout-btn">Logout</button>
+
+                    <!-- Shared Groups Dropdown Header -->
+                    <div class="ve-sidebar-card" id="shared-groups-card">
+                        <div class="ve-sidebar-card-header" id="shared-groups-toggle">
+                            <span>Shared Groups</span>
+                            <button id="open-group-modal-btn" class="ve-card-action-btn" title="Create or Join Group">+</button>
+                        </div>
+                        <div id="shared-groups-panel" class="ve-sidebar-card-body">
+                            <ul class="nav-list" id="group-list"></ul>
+                        </div>
+                    </div>
                 </div>
             </aside>
 
             <main class="content-area">
                 <header class="content-header">
-                    <div class="header-left">
-                        <h2 id="current-view-title">Personal Vault</h2>
-                        <div id="members-display" class="members-container hidden"></div>
+                    <div class="header-left" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                        <h2 id="current-view-title" style="margin: 0; font-size: 1.6rem; color: #fff;">Personal Vault</h2>
+                        <span id="group-code-display" class="code-badge hidden" style="font-family: monospace; padding: 4px 8px; background: rgba(0,229,255,0.1); border: 1px solid rgba(0,229,255,0.3); border-radius: 4px; color: #00e5ff; font-size: 0.85rem; font-weight: bold;">Code: ---</span>
+                        <div id="members-display" class="members-container hidden" style="font-size: 0.85rem; color: #888; font-family: monospace; display: flex; align-items: center; gap: 6px;"></div>
                     </div>
                     <div class="header-right" style="display: flex; align-items: center; gap: 15px;">
                         <div id="vault-user-profile" style="text-align: right; line-height: 1.2;">
                             <div id="vault-username" style="color: #fff; font-weight: bold; font-size: 1rem;">User</div>
-                            <div id="vault-userrank" style="color: #00e5ff; font-family: monospace; font-size: 0.85rem;">Rank: ---</div>
+                            <div id="vault-userrank" style="color: #00e5ff; font-family: monospace; font-size: 0.85rem;">user@gmail.com</div>
                         </div>
-                        <span id="group-code-display" class="code-badge hidden">Code: ---</span>
-                        <button id="danger-btn" class="danger-btn hidden">Leave Group</button>
+                        <button id="logout-btn" class="logout-btn" style="margin: 0 !important; padding: 6px 14px !important;">Logout</button>
                     </div>
                 </header>
 
@@ -1411,7 +1414,54 @@
     <script src="js/crypto-helper.js"></script>
     <script src="/shared/qwerty-cipher.js"></script>
     <script src="js/quiz-logic.js"></script>
+    <!-- Create / Join Group Modal -->
+    <div id="group-modal" class="ve-search-overlay hidden">
+        <div class="ve-search-modal" style="padding: 24px; width: 440px; max-width: 90vw; border-radius: 12px; background: #151515; border: 1px solid #2a2a2a; box-shadow: 0 16px 40px rgba(0,0,0,0.9);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                <h3 style="color: #fff; margin: 0; font-size: 1.2rem; white-space: nowrap;">Shared Groups</h3>
+                <button id="modal-close-group-btn" style="background: transparent !important; border: none !important; color: #888 !important; font-size: 1.5rem !important; cursor: pointer !important; padding: 0 6px !important; margin: 0 !important; width: auto !important; height: auto !important; box-shadow: none !important; line-height: 1 !important;">&times;</button>
+            </div>
+            
+            <!-- Create Group Section -->
+            <div style="margin-bottom: 24px;">
+                <label style="color: #00e5ff; font-weight: bold; font-size: 0.8rem; display: block; margin-bottom: 8px; font-family: monospace;">CREATE NEW GROUP</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="text" id="modal-group-name" placeholder="Enter Group Name" style="flex-grow: 1; height: 40px; padding: 0 12px; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 6px; font-family: monospace; font-size: 0.85rem; box-sizing: border-box; outline: none;">
+                    <button id="modal-create-group-btn" style="height: 40px; min-width: 90px; padding: 0 16px; background: #00e5ff; color: #000; border: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem; font-family: monospace; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;">Create</button>
+                </div>
+            </div>
+
+            <!-- Join Group Section -->
+            <div style="border-top: 1px solid #2a2a2a; padding-top: 20px;">
+                <label style="color: #00ff41; font-weight: bold; font-size: 0.8rem; display: block; margin-bottom: 8px; font-family: monospace;">JOIN WITH INVITE CODE</label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="text" id="modal-group-code" placeholder="Enter Code" style="flex-grow: 1; height: 40px; padding: 0 12px; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 6px; font-family: monospace; font-size: 0.85rem; box-sizing: border-box; outline: none;">
+                    <button id="modal-join-group-btn" style="height: 40px; min-width: 90px; padding: 0 16px; background: #00ff41; color: #000; border: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem; font-family: monospace; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;">Join</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="js/ui.js"></script>
+
+    <!-- Block Workspace Modules -->
+    <link rel="stylesheet" href="css/vault-editor.css">
+    <script src="js/block-store.js"></script>
+    <script src="js/sync-engine.js"></script>
+    <script src="js/session-manager.js"></script>
+    <script src="js/block-renderer.js"></script>
+    <script src="js/slash-menu.js"></script>
+    <script src="js/md-shortcuts.js"></script>
+    <script src="js/drag-drop.js"></script>
+    <script src="js/page-menu.js"></script>
+    <script src="js/page-tree.js"></script>
+    <script src="js/search-engine.js"></script>
+    <script src="js/breadcrumb.js"></script>
+    <script src="js/emoji-picker.js"></script>
+    <script src="js/export-engine.js"></script>
+    <script src="js/settings-panel.js"></script>
+    <script src="js/block-editor.js"></script>
+
     <script src="js/main.js" defer></script>
 </body>
 </html>

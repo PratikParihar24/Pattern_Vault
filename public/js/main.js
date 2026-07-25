@@ -19,7 +19,7 @@ const decImageCache = {};
 
 async function getCryptoKey() {
     if (activeCryptoKey) return activeCryptoKey;
-    let b64Key = localStorage.getItem('vaultKey');
+    let b64Key = typeof SessionManager !== 'undefined' ? await SessionManager.getVaultKey() : localStorage.getItem('vaultKey');
     if (b64Key) {
         activeCryptoKey = await CryptoHelper.importKey(b64Key);
         return activeCryptoKey;
@@ -541,11 +541,97 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Setup Other Buttons
+    const createPrivatePageBtn = document.getElementById('create-page-btn-sidebar');
+    if (createPrivatePageBtn) {
+        createPrivatePageBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            currentContext = { type: 'personal', id: null };
+            await createNewBlockPage(null, 'personal', null);
+        });
+    }
+
     const createGroupBtn = document.getElementById('create-group-btn');
     if (createGroupBtn) createGroupBtn.addEventListener('click', handleCreateGroup);
 
     const joinGroupBtn = document.getElementById('join-group-btn');
     if (joinGroupBtn) joinGroupBtn.addEventListener('click', handleJoinGroup);
+
+    // Shared Groups Accordion / Modal
+    const openGroupModalBtn = document.getElementById('open-group-modal-btn');
+    const groupModal = document.getElementById('group-modal');
+    const closeGroupModalBtn = document.getElementById('modal-close-group-btn');
+    const modalCreateBtn = document.getElementById('modal-create-group-btn');
+    const modalJoinBtn = document.getElementById('modal-join-group-btn');
+
+    if (openGroupModalBtn && groupModal) {
+        openGroupModalBtn.onclick = (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            groupModal.classList.remove('hidden');
+        };
+    }
+
+    if (closeGroupModalBtn && groupModal) {
+        closeGroupModalBtn.onclick = () => groupModal.classList.add('hidden');
+    }
+
+    if (groupModal) {
+        groupModal.onclick = (e) => {
+            if (e.target === groupModal) groupModal.classList.add('hidden');
+        };
+    }
+
+    if (modalCreateBtn) {
+        modalCreateBtn.onclick = async (e) => {
+            if (e) e.preventDefault();
+            const input = document.getElementById('modal-group-name');
+            if (input && input.value.trim()) {
+                const res = await fetch('/api/groups/create', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: input.value.trim() })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (typeof UI !== 'undefined' && UI.toast) UI.toast(`Group "${data.name}" created!`, "success");
+                    input.value = '';
+                    if (groupModal) groupModal.classList.add('hidden');
+                    currentContext = { type: 'group', id: data._id };
+                    await loadVaultData();
+                } else {
+                    const errData = await res.json().catch(() => ({}));
+                    if (typeof UI !== 'undefined' && UI.toast) UI.toast(errData.msg || "Failed to create group", "error");
+                }
+            }
+        };
+    }
+
+    if (modalJoinBtn) {
+        modalJoinBtn.onclick = async (e) => {
+            if (e) e.preventDefault();
+            const input = document.getElementById('modal-group-code');
+            if (input && input.value.trim()) {
+                const res = await fetch('/api/groups/join', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inviteCode: input.value.trim() })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    if (typeof UI !== 'undefined' && UI.toast) UI.toast(`Joined ${data.group?.name || 'group'}!`, "success");
+                    input.value = '';
+                    if (groupModal) groupModal.classList.add('hidden');
+                    currentContext = { type: 'group', id: data.group?._id || data.group };
+                    await loadVaultData();
+                } else {
+                    if (typeof UI !== 'undefined' && UI.toast) UI.toast(data.msg || "Invalid invite code", "error");
+                }
+            }
+        };
+    }
 
     // --- LOGOUT LOGIC ---
     const logoutBtn = document.getElementById('logout-btn');
@@ -577,7 +663,7 @@ async function loadVaultData() {
         const key = await getCryptoKey();
         if (!key) return;
 
-        renderSidebarGroups(userData.groups || []);
+        await renderSidebarGroups(userData.groups || []);
 
         const photoCard = document.querySelector('#photo-grid');
         const viewTitle = document.getElementById('current-view-title');
@@ -598,15 +684,28 @@ async function loadVaultData() {
             `;
         }
 
+        // Always populate My Private Vault sidebar tree with private pages
+        const privatePages = await SyncEngine.fetchRemotePages(null);
+        const treeContainer = document.getElementById('page-tree-root');
+        if (treeContainer) {
+            PageTree.init(treeContainer, (pageId) => {
+                currentContext = { type: 'personal', id: null };
+                loadPageIntoEditor({ _id: pageId });
+            }, async (parentPageId) => {
+                await createNewBlockPage(parentPageId, 'personal', null);
+            });
+            PageTree.setPages(privatePages);
+        }
+
         if (currentContext.type === 'personal') {
             const existingDash = document.querySelector('.group-dashboard');
             if (existingDash) existingDash.remove();
 
             if (viewTitle) viewTitle.innerText = "My Private Vault";
+            if (codeBadge) codeBadge.classList.add('hidden');
+            if (membersDiv) membersDiv.classList.add('hidden');
 
-            const pageRes = await fetch('/api/pages/personal', { credentials: "include" });
-            const pages = await pageRes.json();
-            renderNotionView(pages, 'personal', null);
+            renderNotionView(privatePages, 'personal', null);
 
             if (photoCard) {
                 photoCard.style.display = 'block';
@@ -619,48 +718,21 @@ async function loadVaultData() {
             const groupData = await groupRes.json();
 
             if (viewTitle) viewTitle.innerText = groupData.name;
+            if (codeBadge) {
+                codeBadge.innerText = `CODE: ${groupData.inviteCode}`;
+                codeBadge.classList.remove('hidden');
+            }
+            if (membersDiv) {
+                membersDiv.innerText = `👥 ${groupData.members.length} Members`;
+                membersDiv.classList.remove('hidden');
+            }
 
-            const container = document.getElementById('vault-content');
-            
-            // Clear previous dashboard if any
+            // Remove horizontal bar if it exists
             const existingDash = document.querySelector('.group-dashboard');
             if (existingDash) existingDash.remove();
 
-            const myId = userData._id;
-            const adminId = (groupData.admin && groupData.admin._id) ? groupData.admin._id : groupData.admin;
-            const isAdmin = (myId === adminId);
-
-            const btnText = isAdmin ? "Delete Group" : "Leave Group";
-            const btnClass = isAdmin ? "btn-danger" : "btn-warning";
-            const btnAction = isAdmin ? `deleteGroup('${currentContext.id}')` : `leaveGroup('${currentContext.id}')`;
-
-            const dashboardHTML = `
-                <div class="group-dashboard">
-                    <div class="group-info-row">
-                        <span class="group-code-badge">CODE: ${groupData.inviteCode}</span>
-                        <span class="member-count">👥 ${groupData.members.length} Members</span>
-                    </div>
-                    <div class="group-action-row">
-                        <button onclick="${btnAction}" class="btn-block ${btnClass}">
-                            ${btnText}
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            const pageRes = await fetch(`/api/pages/group/${currentContext.id}`, { credentials: "include" });
-            const pages = await pageRes.json();
-
-            renderNotionView(pages, 'group', currentContext.id);
-
-            
-            const tabsContainer = document.getElementById('vault-tabs');
-            if (tabsContainer) {
-                tabsContainer.insertAdjacentHTML('beforebegin', dashboardHTML);
-            } else if (container) {
-                container.insertAdjacentHTML('afterbegin', dashboardHTML);
-            }
-
+            const groupPages = await SyncEngine.fetchRemotePages(currentContext.id);
+            renderNotionView(groupPages, 'group', currentContext.id);
 
             if (photoCard) {
                 photoCard.style.display = 'block';
@@ -672,506 +744,503 @@ async function loadVaultData() {
     }
 }
 
+// --- GROUP SIDEBAR MENU ---
+const GroupMenu = {
+    element: null,
+    currentGroup: null,
+
+    init: function () {
+        if (this.element) return;
+        const menu = document.createElement('div');
+        menu.className = 've-page-menu hidden';
+        menu.id = 've-group-menu';
+        document.body.appendChild(menu);
+        this.element = menu;
+
+        document.addEventListener('click', (e) => {
+            if (this.element && !this.element.contains(e.target) && !e.target.classList.contains('group-more-btn')) {
+                this.hide();
+            }
+        });
+    },
+
+    show: function (triggerBtnEl, group, isAdmin) {
+        this.init();
+        this.currentGroup = group;
+
+        const actionText = isAdmin ? '🗑️ Delete Group' : '🚪 Leave Group';
+        const actionName = isAdmin ? 'delete' : 'leave';
+
+        this.element.innerHTML = `
+            <div class="ve-menu-header" style="font-size: 0.75rem; color: #666; padding: 4px 8px; font-weight: bold;">Group: ${group.name}</div>
+            <div class="ve-menu-group">
+                <div class="ve-menu-item" data-action="copycode" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                    <span>📋 Copy Invite Code</span>
+                    <span class="ve-menu-shortcut" style="color:#00e5ff; font-family:monospace; font-size:0.75rem;">${group.inviteCode || ''}</span>
+                </div>
+            </div>
+            <div class="ve-menu-divider"></div>
+            <div class="ve-menu-group">
+                <div class="ve-menu-item danger" data-action="${actionName}" style="display:flex; align-items:center; justify-content:space-between; color: #ff4444;">
+                    <span>${actionText}</span>
+                </div>
+            </div>
+        `;
+
+        const rect = triggerBtnEl.getBoundingClientRect();
+        this.element.style.top = `${rect.bottom + 4}px`;
+        this.element.style.left = `${Math.min(rect.left, window.innerWidth - 220)}px`;
+        this.element.classList.remove('hidden');
+
+        this.element.querySelectorAll('.ve-menu-item').forEach(item => {
+            item.onclick = async (e) => {
+                const action = item.dataset.action;
+                this.hide();
+                if (action === 'copycode') {
+                    navigator.clipboard.writeText(group.inviteCode);
+                    if (typeof UI !== 'undefined' && UI.toast) UI.toast("Invite code copied to clipboard!", "success");
+                } else if (action === 'delete') {
+                    deleteGroup(group._id);
+                } else if (action === 'leave') {
+                    leaveGroup(group._id);
+                }
+            };
+        });
+    },
+
+    hide: function () {
+        if (this.element) this.element.classList.add('hidden');
+    }
+};
+
 // --- RENDER SIDEBAR LIST ---
-function renderSidebarGroups(groups) {
+async function renderSidebarGroups(groups) {
     const list = document.getElementById('group-list');
     if (!list) return;
     list.innerHTML = "";
 
-    groups.forEach(group => {
+    for (const group of groups) {
         const li = document.createElement('li');
-        li.innerText = group.name;
+        li.className = 'group-item';
+        li.style.display = 'flex';
+        li.style.flexDirection = 'column';
+        li.style.alignItems = 'stretch';
+        li.style.padding = '4px 6px';
 
-        if (currentContext.type === 'group' && currentContext.id === group._id) {
-            li.classList.add('active');
-        }
+        const isCurrentGroup = currentContext.type === 'group' && currentContext.id === group._id;
 
-        li.addEventListener('click', () => {
+        const myId = globalUserData ? globalUserData._id : null;
+        const adminId = (group.admin && group.admin._id) ? group.admin._id : group.admin;
+        const isAdmin = (myId === adminId);
+
+        const headerDiv = document.createElement('div');
+        headerDiv.style.display = 'flex';
+        headerDiv.style.alignItems = 'center';
+        headerDiv.style.justifyContent = 'space-between';
+        headerDiv.style.width = '100%';
+        headerDiv.style.cursor = 'pointer';
+        if (isCurrentGroup) headerDiv.classList.add('active');
+
+        headerDiv.innerHTML = `
+            <span class="group-name-text" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex-grow:1;">👥 ${group.name}</span>
+            <div class="group-item-actions" style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+                <span class="group-more-btn" title="Group options" style="cursor:pointer; padding:0 4px; color:#888; font-size:0.8rem;">•••</span>
+                <span class="group-add-btn" title="Create Page in Group" style="cursor:pointer; padding:0 4px; color:#888; font-size:0.9rem;">+</span>
+            </div>
+        `;
+
+        headerDiv.onclick = async (e) => {
+            if (e.target.classList.contains('group-more-btn')) {
+                e.stopPropagation();
+                GroupMenu.show(e.target, group, isAdmin);
+                return;
+            }
+
+            if (e.target.classList.contains('group-add-btn')) {
+                e.stopPropagation();
+                currentContext = { type: 'group', id: group._id };
+                await createNewBlockPage(null, 'group', group._id);
+                return;
+            }
+
             currentContext = { type: 'group', id: group._id };
-            loadVaultData();
+            await loadVaultData();
 
-            document.querySelectorAll('.nav-list li, .nav-static li').forEach(el => el.classList.remove('active'));
-            li.classList.add('active');
-
-            // Close Mobile Menu
             const sidebar = document.querySelector('.sidebar');
             const overlay = document.getElementById('sidebar-overlay');
             if (window.innerWidth <= 768 && sidebar) {
                 sidebar.classList.remove('active');
                 if (overlay) overlay.classList.remove('active');
             }
-        });
+        };
+
+        headerDiv.oncontextmenu = (e) => {
+            e.preventDefault();
+            GroupMenu.show(headerDiv, group, isAdmin);
+        };
+
+        li.appendChild(headerDiv);
+
+        // Fetch & render group page tree using PageTree
+        try {
+            const groupPages = await SyncEngine.fetchRemotePages(group._id);
+            if (groupPages && groupPages.length > 0) {
+                const groupTreeContainer = document.createElement('div');
+                groupTreeContainer.className = 'group-pages-tree';
+                groupTreeContainer.style.paddingLeft = '8px';
+                groupTreeContainer.style.marginTop = '4px';
+
+                const activePageId = (currentContext.type === 'group' && currentContext.id === group._id)
+                    ? (activeBlockEditorInstance?.pageId)
+                    : null;
+
+                await PageTree.renderTree(
+                    groupTreeContainer,
+                    groupPages,
+                    activePageId,
+                    (pageId) => {
+                        currentContext = { type: 'group', id: group._id };
+                        loadPageIntoEditor(pageId);
+                    },
+                    async (parentPageId) => {
+                        await createNewBlockPage(parentPageId, 'group', group._id);
+                    }
+                );
+
+                li.appendChild(groupTreeContainer);
+            }
+        } catch (err) {
+            console.warn("Failed to load group pages for sidebar:", err);
+        }
+
         list.appendChild(li);
-    });
+    }
 }
 
 // ==========================================
 // 4. EDITOR VIEW
 // ==========================================
+// 4. BLOCK EDITOR WORKSPACE INTEGRATION
+// ==========================================
+let activeBlockEditorInstance = null;
+
 async function renderNotionView(pages, contextType, contextId) {
     const container = document.getElementById('vault-content');
     if (!container) return;
 
     container.innerHTML = `
-        <div class="vault-split-view" id="split-view-container">
-            <div class="page-sidebar">
-                <button id="create-page-btn" class="small-btn" style="width:100%">+ New Page</button>
-                <ul class="page-list" id="page-list-ul"></ul>
-            </div>
-
-            <div class="editor-container" id="editor-wrapper">
-                <button id="mobile-back-btn" class="mobile-back-btn">← Back</button>
-                <div id="editor-content-area" style="height: 100%; display: flex; flex-direction: column;">
-                    <div class="editor-placeholder">Select a page...</div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    const splitView = document.getElementById('split-view-container');
-    const backBtn = document.getElementById('mobile-back-btn');
-    if (backBtn) {
-        backBtn.onclick = () => {
-            splitView.classList.remove('show-editor');
-        };
-    }
-
-    const key = await getCryptoKey();
-    const list = document.getElementById('page-list-ul');
-    for (const page of pages) {
-        const decryptedTitle = await CryptoHelper.decryptText(page.title, key);
-        const li = document.createElement('li');
-        li.className = 'page-item';
-        li.innerText = decryptedTitle || "Untitled Page";
-        li.id = `page-link-${page._id}`;
-
-        li.onclick = () => {
-            document.querySelectorAll('.page-item').forEach(el => el.classList.remove('active-page'));
-            li.classList.add('active-page');
-            loadPageIntoEditor(page, decryptedTitle);
-            splitView.classList.add('show-editor');
-        };
-        list.appendChild(li);
-    }
-
-    document.getElementById('create-page-btn').onclick = async () => {
-        const title = await UI.prompt("New Page Title", "e.g., Operation Blackout");
-        if (!title) return;
-
-        const key = await getCryptoKey();
-        const encryptedTitle = await CryptoHelper.encryptText(title, key);
-
-        const url = contextType === 'personal' ? '/api/pages/personal' : `/api/pages/group/${contextId}`;
-        try {
-            await fetch(url, { credentials: 'include', 
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title: encryptedTitle })
-            });
-            loadVaultData();
-        } catch (err) { console.error(err); }
-    };
-}
-
-// --- PRO EDITOR (Toolbar + Markdown + AutoSave + Undo/Redo + Interactive Checkboxes) ---
-async function loadPageIntoEditor(page, decryptedTitlePre) {
-    const editorArea = document.getElementById('editor-content-area');
-    let autoSaveTimer;
-    let isAutoSaveOn = true; 
-    let currentDocumentVersion = page.__v || 0; 
-    
-    const key = await getCryptoKey();
-    const decryptedTitle = decryptedTitlePre || await CryptoHelper.decryptText(page.title, key);
-    const decryptedContent = await CryptoHelper.decryptText(page.content, key);
-
-    let history = [decryptedContent || ''];
-    let historyIndex = 0;
-
-    editorArea.innerHTML = `
-        <div class="editor-header">
-            <div class="page-identity-section">
-                <div class="page-icon-wrapper" id="page-icon-btn" title="Change Icon">📄</div>
-                <input type="text" id="page-title-input" value="${decryptedTitle}" placeholder="Untitled Page">
-            </div>
-            
-            <div class="editor-tools" style="align-items: center; gap: 10px;">
-                <div style="position: relative; display: inline-block;">
-                    <button id="page-info-btn" class="text-btn" style="border-radius: 50%; padding: 4px 10px; font-style: italic; font-family: serif; color: #888;" title="Page Info">i</button>
-                    <div id="page-info-popup" style="display: none; position: absolute; right: 0; top: 120%; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 15px; min-width: 160px; z-index: 1000; box-shadow: 0 4px 15px rgba(0,0,0,0.8);">
-                        <div style="color: #888; font-size: 0.8rem; text-align: left; line-height: 1.6;">
-                            <div style="margin-bottom: 8px;">Created by:<br><span style="color: #00e5ff; font-weight: bold; font-size: 0.9rem;">${page.user?.username || 'Unknown'}</span></div>
-                            <div>Edited:<br><span style="color: #fff; font-size: 0.9rem;">${new Date(page.lastEdited || Date.now()).toLocaleDateString()}</span></div>
-                        </div>
+        <div class="editor-container" id="editor-wrapper" style="border: 1px solid #2a2a2a; border-radius: 8px; overflow: hidden; background: #0d0d0d;">
+            <div id="editor-header-bar" style="display:flex; flex-direction:column; gap:8px; padding:12px 20px; border-bottom:1px solid #2a2a2a; background:#121212;">
+                <div class="ve-breadcrumb-bar" id="ve-breadcrumb-bar" style="display:none; padding:0; border:none; background:transparent; font-size:0.85rem; color:#888;"></div>
+                <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+                    <div style="display:flex; align-items:center; gap:10px; flex-grow: 1;">
+                        <span id="page-icon-display" style="font-size:1.5rem; cursor:pointer;" title="Change Icon">📄</span>
+                        <input type="text" id="active-page-title-input" value="Select a page..." style="background:none; border:none; color:#fff; font-family:'Courier New', monospace; font-size:1.3rem; font-weight:bold; outline:none; width: 100%;">
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px; flex-shrink: 0;">
+                        <span id="sync-status-indicator" style="font-size:0.75rem; color:#00ff41; font-family:monospace;">Synced</span>
+                        <button id="ve-page-menu-trigger" style="background:none; border:none; color:#888; font-size:1.3rem; cursor:pointer; padding:2px 6px;">⋮</button>
                     </div>
                 </div>
-                <div class="tool-separator"></div>
-                <button id="download-pdf-btn" class="text-btn" style="color: #00e5ff;" title="Download as PDF">PDF</button>
-                <div class="tool-separator"></div>
-                <button id="save-page-btn" class="text-btn">Save</button>
-                <div class="tool-separator"></div>
-                <button id="delete-page-btn" class="text-btn danger">Delete</button>
             </div>
-        </div>
-
-        <div id="slash-menu" style="display:none;">
-            <div class="slash-item" data-cmd="header"><span class="slash-icon">H1</span> Big Heading</div>
-            <div class="slash-item" data-cmd="subheader"><span class="slash-icon">H2</span> Medium Heading</div>
-            <div class="slash-item" data-cmd="list"><span class="slash-icon">≡</span> Bullet List</div>
-            <div class="slash-item" data-cmd="code"><span class="slash-icon">{}</span> Code Block</div>
-            <div class="slash-item" data-cmd="callout"><span class="slash-icon">💡</span> Callout Box</div>
-            <div class="slash-item" data-cmd="quote"><span class="slash-icon">❞</span> Quote</div>
-            <div class="slash-item" data-cmd="divider"><span class="slash-icon">—</span> Divider</div>
-            <div class="slash-item" data-cmd="highlight"><span class="slash-icon">🖍</span> Highlight</div>
-        </div>
-
-        <div class="markdown-toolbar" id="toolbar">
-            <button class="tool-btn" data-type="undo" title="Undo">↩</button>
-            <button class="tool-btn" data-type="redo" title="Redo">↪</button>
-            <div style="width:1px; background:#444; margin:0 5px;"></div>
-
-            <button class="tool-btn" data-type="bold" title="Bold">B</button>
-            <button class="tool-btn" data-type="italic" title="Italic">I</button>
-            <button class="tool-btn" data-type="header" title="Header">H</button>
-            <button class="tool-btn" data-type="list" title="List">≡</button>
-            
-            <div style="flex-grow: 1;"></div>
-            <label class="toggle-switch" title="Toggle Auto-Save">
-                <input type="checkbox" id="autosave-toggle" class="toggle-checkbox" checked>
-                <span class="status-icon">⚡</span>
-            </label>
-        </div>
-        
-        <div style="position: relative; flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; padding: 20px;">
-            <div id="page-editor" class="notion-editor" contenteditable="true" placeholder="Start typing with '/' for commands...">${decryptedContent || ''}</div>
+            <div id="editor-content-area" class="ve-editor-wrapper" style="min-height: 450px; padding: 25px 35px;">
+                <div class="editor-placeholder" style="color:#555; text-align:center; margin-top:50px; font-family:monospace;">Select a page from the left sidebar or click "+ New Page" to begin writing...</div>
+            </div>
         </div>
     `;
 
-    const titleInput = document.getElementById('page-title-input');
-    const pageEditor = document.getElementById('page-editor');
-    const saveBtn = document.getElementById('save-page-btn');
-    const toolbar = document.getElementById('toolbar');
-    const slashMenu = document.getElementById('slash-menu');
-    const undoBtn = toolbar.querySelector('[data-type="undo"]');
-    const redoBtn = toolbar.querySelector('[data-type="redo"]');
-    const autoSaveToggle = document.getElementById('autosave-toggle');
-    const pageIconBtn = document.getElementById('page-icon-btn');
-    const downloadPdfBtn = document.getElementById('download-pdf-btn');
-    const pageInfoBtn = document.getElementById('page-info-btn');
-    const pageInfoPopup = document.getElementById('page-info-popup');
+    const breadcrumbContainer = document.getElementById('ve-breadcrumb-bar');
+    const searchBtnSidebar = document.getElementById('search-vault-btn-sidebar');
 
-    if (pageInfoBtn && pageInfoPopup) {
-        pageInfoBtn.onclick = (e) => {
-            e.stopPropagation();
-            const isVisible = pageInfoPopup.style.display === 'block';
-            pageInfoPopup.style.display = isVisible ? 'none' : 'block';
-        };
-        document.addEventListener('click', (e) => {
-            if (!pageInfoPopup.contains(e.target) && e.target !== pageInfoBtn) {
-                pageInfoPopup.style.display = 'none';
+    // Initialize modules
+    if (breadcrumbContainer) {
+        BreadcrumbBar.init(breadcrumbContainer, (pageId) => {
+            if (pageId) {
+                loadPageIntoEditor({ _id: pageId });
             }
         });
     }
 
-    // --- PDF EXPORT LOGIC ---
-    downloadPdfBtn.onclick = () => {
-        const editorHtml = pageEditor.innerHTML;
-        const title = titleInput.value || 'Untitled';
-        
-        // Use a simple print window to save as PDF
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`
-            <html>
-                <head>
-                    <title>${title}</title>
-                    <style>
-                        body { font-family: 'Merriweather', serif; padding: 40px; color: #000; line-height: 1.8; }
-                        h1 { font-family: 'Courier New', Courier, monospace; font-size: 2.2rem; border-bottom: 1px solid #ccc; padding-bottom: 10px; margin-top: 1.5em; margin-bottom: 0.5em; }
-                        h2 { font-family: 'Courier New', Courier, monospace; font-size: 1.6rem; margin-top: 1.2em; margin-bottom: 0.5em; }
-                        p, div { margin-bottom: 0.7em; }
-                        pre { background: #f4f4f4; padding: 15px; border-radius: 8px; font-family: monospace; border: 1px solid #ddd; }
-                        blockquote { border-left: 4px solid #6c5ce7; padding-left: 15px; color: #555; background: #f9f9fc; margin: 15px 0; padding-top: 10px; padding-bottom: 10px; }
-                        hr { border: none; border-top: 1px solid #ddd; margin: 30px 0; }
-                        mark { background-color: rgba(0, 229, 255, 0.3); color: #000; padding: 2px 4px; }
-                        ul { padding-left: 25px; margin-bottom: 1em; }
-                        li { margin-bottom: 8px; }
-                    </style>
-                </head>
-                <body>
-                    <h1>${title}</h1>
-                    ${editorHtml}
-                </body>
-            </html>
-        `);
-        printWindow.document.close();
-        
-        // Wait for styles to load, then print
-        setTimeout(() => {
-            printWindow.print();
-        }, 250);
-    };
-
-    // --- ICON LOGIC ---
-    const icons = ['📄', '🔥', '💡', '🚀', '⭐', '💻', '🔒', '👽', '💀'];
-    let currentIconIndex = 0;
-    pageIconBtn.addEventListener('click', () => {
-        currentIconIndex = (currentIconIndex + 1) % icons.length;
-        pageIconBtn.innerText = icons[currentIconIndex];
-        if (isAutoSaveOn) triggerAutoSave();
+    SearchEngine.init((pageId) => {
+        loadPageIntoEditor({ _id: pageId });
     });
 
-    const updateIconBtn = () => {
-        const match = titleInput.value.match(/^(©|®|[ -㌀]|�[퀀-�]|�[퀀-�]|�[퀀-�])/);
-        if (match) {
-            pageIconBtn.innerText = match[0];
-            titleInput.value = titleInput.value.replace(match[0], '').trim();
+    if (searchBtnSidebar) {
+        searchBtnSidebar.onclick = () => SearchEngine.show();
+    }
+
+    // Auto-open first page if available
+    if (pages && pages.length > 0) {
+        loadPageIntoEditor(pages[0]);
+    }
+}
+
+async function createNewBlockPage(parentPageId = null, contextType = 'personal', contextId = null) {
+    const title = await UI.prompt("New Page Title", "e.g., Operation Blackout");
+    if (!title) return;
+
+    const key = await getCryptoKey();
+    const groupId = contextType === 'group' ? contextId : null;
+    const contentToSave = groupId ? title : (key ? await CryptoHelper.encryptText(title, key) : title);
+
+    try {
+        const res = await fetch('/api/blocks', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: 'page',
+                pageId: parentPageId || null,
+                content: contentToSave,
+                group: groupId
+            })
+        });
+
+        if (res.ok) {
+            const newPage = await res.json();
+            await BlockStore.saveBlock(newPage);
+            currentContext = { type: contextType, id: contextId };
+            await loadVaultData();
+            await loadPageIntoEditor(newPage);
         }
-    };
-    updateIconBtn();
-    titleInput.addEventListener('input', updateIconBtn);
+    } catch (err) {
+        console.error("Failed to create page block:", err);
+    }
+}
 
-    // --- HISTORY LOGIC ---
-    const saveToHistory = () => {
-        const current = pageEditor.innerHTML;
-        if (current !== history[historyIndex]) {
-            history = history.slice(0, historyIndex + 1);
-            history.push(current);
-            historyIndex++;
-        }
-    };
+// --- BLOCK EDITOR PAGE LOADER ---
+async function loadPageIntoEditor(pageParam, decryptedTitlePre) {
+    const editorArea = document.getElementById('editor-content-area');
+    const titleInput = document.getElementById('active-page-title-input');
+    const pageIconBtn = document.getElementById('page-icon-display');
+    const menuTriggerBtn = document.getElementById('ve-page-menu-trigger');
+    const syncStatus = document.getElementById('sync-status-indicator');
 
-    undoBtn.onclick = () => {
-        if (historyIndex > 0) {
-            historyIndex--;
-            pageEditor.innerHTML = history[historyIndex];
-            if (isAutoSaveOn) triggerAutoSave();
-        }
-    };
+    if (!editorArea || !pageParam) return;
 
-    redoBtn.onclick = () => {
-        if (historyIndex < history.length - 1) {
-            historyIndex++;
-            pageEditor.innerHTML = history[historyIndex];
-            if (isAutoSaveOn) triggerAutoSave();
-        }
-    };
+    const pageIdStr = typeof pageParam === 'string' ? pageParam : (pageParam._id || pageParam.id);
 
-    let historyDebounce;
-    pageEditor.addEventListener('input', () => {
-        clearTimeout(historyDebounce);
-        historyDebounce = setTimeout(saveToHistory, 800); 
-    });
-
-    // --- SAVE LOGIC ---
-    autoSaveToggle.onchange = (e) => {
-        isAutoSaveOn = e.target.checked;
-        if (!isAutoSaveOn) {
-            saveBtn.innerText = "Save";
-            saveBtn.style.color = "";
-            clearTimeout(autoSaveTimer);
-        }
-    };
-
-    const performSave = async (silent = false) => {
-        const titleVal = titleInput.value;
-        const contentVal = pageEditor.innerHTML;
-
-        if (!silent) saveBtn.innerText = "Saving...";
-
-        const key = await getCryptoKey();
-        const encryptedTitle = await CryptoHelper.encryptText(titleVal, key);
-        const encryptedContent = await CryptoHelper.encryptText(contentVal, key);
-
+    // 1. Fetch full page target first from BlockStore / PageTree / pageParam
+    let fullPage = (PageTree.allPages || []).find(p => String(p._id || p.id) === String(pageIdStr));
+    if (!fullPage && typeof BlockStore !== 'undefined' && typeof BlockStore.getBlock === 'function') {
         try {
-            const res = await fetch(`/api/pages/${page._id}`, { credentials: 'include', 
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    title: encryptedTitle, 
-                    content: encryptedContent,
-                    version: currentDocumentVersion
-                })
-            });
+            fullPage = await BlockStore.getBlock(pageIdStr);
+        } catch (e) {}
+    }
+    if (!fullPage || typeof fullPage !== 'object') {
+        fullPage = typeof pageParam === 'object' ? pageParam : { _id: pageIdStr, pageId: null };
+    }
 
-            if (res.status === 409) {
-                isAutoSaveOn = false; 
-                if (autoSaveToggle) autoSaveToggle.checked = false;
-                clearTimeout(autoSaveTimer);
-                saveBtn.innerText = "Sync Conflict";
-                saveBtn.style.color = "#ff4d4d"; 
-                alert("Conflict: This document was modified by another user. Auto-save has been disabled to prevent overwriting their work.");
-                return;
-            }
+    const page = fullPage;
+    if (!page._id) page._id = pageIdStr;
 
-            if (res.ok) {
-                const updatedPage = await res.json();
-                currentDocumentVersion = updatedPage.__v;
+    // 2. Resolve true group context of this page & update header state
+    const targetGroupId = (page && page.group) ? String(page.group) : (typeof pageParam === 'object' && pageParam.group ? pageParam.group : (currentContext.type === 'group' ? currentContext.id : null));
 
-                page.title = titleVal;
-                page.content = contentVal;
-                page.__v = updatedPage.__v;
-                
-                const sidebarItem = document.getElementById(`page-link-${page._id}`);
-                if (sidebarItem) sidebarItem.innerText = titleVal || "Untitled Page";
+    const viewTitle = document.getElementById('current-view-title');
+    const codeBadge = document.getElementById('group-code-display');
+    const membersDiv = document.getElementById('members-display');
 
-                if (!silent) {
-                    saveBtn.innerText = "Saved";
-                    saveBtn.style.color = "#00ff00";
-                    setTimeout(() => {
-                        saveBtn.innerText = "Save";
-                        saveBtn.style.color = "#888";
-                    }, 1500);
+    if (targetGroupId) {
+        currentContext = { type: 'group', id: targetGroupId };
+        try {
+            const groupRes = await fetch(`/api/groups/${targetGroupId}`, { credentials: "include" });
+            if (groupRes.ok) {
+                const groupData = await groupRes.json();
+                if (viewTitle) viewTitle.innerText = groupData.name;
+                if (codeBadge) {
+                    codeBadge.innerText = `CODE: ${groupData.inviteCode}`;
+                    codeBadge.classList.remove('hidden');
                 }
-            } else {
-                saveBtn.innerText = "Error";
-                saveBtn.style.color = "#ff4d4d";
+                if (membersDiv) {
+                    membersDiv.innerText = `👥 ${groupData.members ? groupData.members.length : 1} Members`;
+                    membersDiv.classList.remove('hidden');
+                }
             }
-        } catch (err) { 
-            saveBtn.innerText = "Error"; 
-            saveBtn.style.color = "#ff4d4d";
+        } catch (e) {}
+    } else {
+        currentContext = { type: 'personal', id: null };
+        if (viewTitle) viewTitle.innerText = "My Private Vault";
+        if (codeBadge) codeBadge.classList.add('hidden');
+        if (membersDiv) membersDiv.classList.add('hidden');
+    }
+
+    // 3. Fetch all pages belonging to this context for breadcrumb chain resolution
+    let contextPages = await SyncEngine.fetchRemotePages(targetGroupId);
+    if (!Array.isArray(contextPages)) contextPages = [];
+
+    // Ensure active page is included in contextPages
+    if (!contextPages.some(p => String(p._id || p.id) === String(page._id))) {
+        contextPages.push(page);
+    }
+
+    const key = await getCryptoKey();
+    for (const p of contextPages) {
+        if (!p.rawTitle && p.content) {
+            try {
+                p.rawTitle = key ? await CryptoHelper.decryptText(p.content, key) : p.content;
+            } catch (e) {}
         }
-    };
+    }
 
-    const triggerAutoSave = () => {
-        if (!isAutoSaveOn) return; 
-        saveBtn.innerText = "Typing...";
-        saveBtn.style.color = "#ffff00";
-        clearTimeout(autoSaveTimer);
-        autoSaveTimer = setTimeout(() => performSave(false), 2000);
-    };
+    const rootLabel = (page.group || (currentContext && currentContext.type === 'group')) ? "👥 Group Vault" : "🔐 Vault";
 
-    titleInput.addEventListener('input', triggerAutoSave);
-    pageEditor.addEventListener('input', triggerAutoSave);
-    saveBtn.onclick = () => performSave(false);
+    // Clear active class from all sidebar page nodes
+    document.querySelectorAll('.ve-tree-node').forEach(el => el.classList.remove('active-page'));
+    const activeEl = document.querySelector(`.ve-tree-node[data-id="${page._id}"]`);
+    if (activeEl) activeEl.classList.add('active-page');
 
-    // --- TOOLBAR LOGIC (WYSIWYG) ---
-    toolbar.addEventListener('mousedown', (e) => {
-        if (e.target.tagName !== 'BUTTON') return;
-        e.preventDefault(); // Keep focus on editor
-        
-        const type = e.target.dataset.type;
-        if (type === 'undo') { undoBtn.click(); return; }
-        if (type === 'redo') { redoBtn.click(); return; }
+    // Render Breadcrumbs
+    const liveBreadcrumbEl = document.getElementById('ve-breadcrumb-bar');
+    if (liveBreadcrumbEl && BreadcrumbBar && page._id) {
+        BreadcrumbBar.init(liveBreadcrumbEl, (navPageId) => {
+            if (navPageId) loadPageIntoEditor({ _id: navPageId });
+        });
+        await BreadcrumbBar.renderPath(page._id, contextPages, rootLabel, page);
+    }
 
-        switch (type) {
-            case 'bold': document.execCommand('bold', false, null); break;
-            case 'italic': document.execCommand('italic', false, null); break;
-            case 'header': document.execCommand('formatBlock', false, 'H2'); break;
-            case 'list': document.execCommand('insertUnorderedList', false, null); break;
+    const isGroupPage = Boolean(page.group || (currentContext && currentContext.type === 'group'));
+    let titleText = decryptedTitlePre || page.rawTitle;
+    if (!titleText && page.content) {
+        if (isGroupPage) {
+            titleText = page.content;
+        } else {
+            try {
+                titleText = key ? await CryptoHelper.decryptText(page.content, key) : page.content;
+            } catch (e) {}
         }
-        pageEditor.focus();
-        saveToHistory();
-        triggerAutoSave();
-    });
+    }
 
-    // --- SLASH MENU LOGIC ---
-    let slashMenuVisible = false;
+    const b64Regex = /^[A-Za-z0-9+/=]+\.[A-Za-z0-9+/=]+$/;
+    if (!titleText || b64Regex.test(titleText)) {
+        titleText = 'Untitled Page';
+    }
 
-    const showSlashMenu = () => {
-        slashMenuVisible = true;
-        
-        // Get precise caret position using Selection API
-        const selection = window.getSelection();
-        if (selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            const rect = range.getBoundingClientRect();
-            // Position relative to editor Area
-            const editorRect = pageEditor.getBoundingClientRect();
-            
-            slashMenu.style.display = 'flex';
-            slashMenu.style.top = (rect.bottom - editorRect.top + 40) + 'px'; 
-            slashMenu.style.left = (rect.left - editorRect.left + 20) + 'px';
-        }
-    };
-
-    const hideSlashMenu = () => {
-        slashMenuVisible = false;
-        slashMenu.style.display = 'none';
-    };
-
-    pageEditor.addEventListener('keydown', (e) => {
-        if (e.key === '/') {
-            setTimeout(showSlashMenu, 10);
-        } else if (slashMenuVisible && (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter' || e.key === 'Backspace')) {
-            hideSlashMenu();
-        }
-        
-        // Block Enter behavior to make sure it creates clean divs/paragraphs
-        if (e.key === 'Enter') {
-            // Let the browser handle standard contenteditable enters (usually adds <div> or <p>)
-            setTimeout(() => { triggerAutoSave(); saveToHistory(); }, 10);
-        }
-    });
-
-    pageEditor.addEventListener('mousedown', hideSlashMenu);
-
-    slashMenu.querySelectorAll('.slash-item').forEach(item => {
-        item.onmousedown = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const cmd = item.getAttribute('data-cmd');
-            
-            // Remove the '/' that triggered it
-            document.execCommand('delete', false, null);
-
-            switch (cmd) {
-                case 'header': document.execCommand('formatBlock', false, 'H1'); break;
-                case 'subheader': document.execCommand('formatBlock', false, 'H2'); break;
-                case 'list': document.execCommand('insertUnorderedList', false, null); break;
-                case 'code': 
-                    const pre = document.createElement('pre');
-                    pre.style.background = '#1e1e1e';
-                    pre.style.padding = '15px';
-                    pre.style.borderRadius = '8px';
-                    pre.innerHTML = '<code>// code here...</code>';
-                    window.getSelection().getRangeAt(0).insertNode(pre);
-                    break;
-                case 'callout': 
-                    const bq = document.createElement('blockquote');
-                    bq.innerHTML = '💡 Callout text...';
-                    window.getSelection().getRangeAt(0).insertNode(bq);
-                    break;
-                case 'quote':
-                    const quote = document.createElement('blockquote');
-                    quote.style.borderLeft = '4px solid #888';
-                    quote.style.background = 'transparent';
-                    quote.innerHTML = '<i>Quote...</i>';
-                    window.getSelection().getRangeAt(0).insertNode(quote);
-                    break;
-                case 'divider':
-                    const hr = document.createElement('hr');
-                    window.getSelection().getRangeAt(0).insertNode(hr);
-                    break;
-                case 'highlight':
-                    const mark = document.createElement('mark');
-                    mark.innerHTML = 'Highlighted Text';
-                    window.getSelection().getRangeAt(0).insertNode(mark);
-                    break;
+    if (titleInput) {
+        titleInput.value = titleText || 'Untitled Page';
+        titleInput.oninput = async () => {
+            const newTitle = titleInput.value.trim() || 'Untitled Page';
+            page.rawTitle = newTitle;
+            if (PageTree && !page.group) {
+                PageTree.decryptedTitles[String(page._id)] = newTitle;
+                PageTree.render();
+            }
+            if (BreadcrumbBar) {
+                BreadcrumbBar.renderPath(page._id, contextPages, rootLabel, page);
             }
 
-            hideSlashMenu();
-            saveToHistory();
-            triggerAutoSave();
+            // Schedule autosave of page title
+            const isGroupPage = Boolean(page.group || (typeof currentContext !== 'undefined' && currentContext.type === 'group'));
+            const encTitle = isGroupPage ? newTitle : (key ? await CryptoHelper.encryptText(newTitle, key) : newTitle);
+            page.content = encTitle;
+            page.isDirty = true;
+            await BlockStore.saveBlock(page);
+            SyncEngine.scheduleAutosave(1500);
         };
-    });
+    }
 
-    // --- DELETE LOGIC ---
-    document.getElementById('delete-page-btn').onclick = async () => {
-        if (typeof UI !== 'undefined') {
-            if (!(await UI.confirm("Delete Page?", "Gone forever."))) return;
-        } else if (!confirm("Delete?")) return;
-        try {
-            const res = await fetch(`/api/pages/${page._id}`, {
-                method: 'DELETE',
-                credentials: "include"
-            });
-            if (res.ok) {
-                const splitView = document.getElementById('split-view-container');
-                if (splitView) splitView.classList.remove('show-editor');
+    if (pageIconBtn) {
+        pageIconBtn.innerText = page.properties?.icon || '📄';
+        pageIconBtn.onclick = (e) => {
+            EmojiPicker.show(pageIconBtn, async (emoji) => {
+                pageIconBtn.innerText = emoji;
+                page.properties = page.properties || {};
+                page.properties.icon = emoji;
+                await fetch(`/api/blocks/${page._id}`, {
+                    method: 'PUT',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ properties: page.properties })
+                });
                 loadVaultData();
-            }
-        } catch (err) { console.error(err); }
+            });
+        };
+    }
+
+    // Sync Status Callback
+    SyncEngine.onSyncStatusChange = (status, msg) => {
+        if (syncStatus) {
+            syncStatus.innerText = msg || status;
+            syncStatus.style.color = status === 'error' ? '#ff4444' : status === 'saving' ? '#ffff00' : '#888';
+        }
     };
+
+    // Bind Page Action Menu
+    if (menuTriggerBtn) {
+        menuTriggerBtn.onclick = () => {
+            PageMenu.show(menuTriggerBtn, page, async (action) => {
+                page.properties = page.properties || {};
+                if (action === 'rename') {
+                    if (titleInput) {
+                        titleInput.focus();
+                        titleInput.select();
+                    }
+                } else if (action === 'icon') {
+                    if (pageIconBtn) pageIconBtn.click();
+                } else if (action === 'favorite') {
+                    page.properties.favorite = !page.properties.favorite;
+                    await fetch(`/api/blocks/${page._id}`, {
+                        method: 'PUT',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ properties: page.properties })
+                    });
+                    loadVaultData();
+                } else if (action === 'duplicate') {
+                    const res = await fetch(`/api/blocks/${page._id}/duplicate`, { method: 'POST', credentials: 'include' });
+                    if (res.ok) {
+                        loadVaultData();
+                        if (typeof UI !== 'undefined' && UI.toast) UI.toast("Page duplicated successfully", "success");
+                    }
+                } else if (action === 'lock') {
+                    page.properties.locked = !page.properties.locked;
+                    await fetch(`/api/blocks/${page._id}`, {
+                        method: 'PUT',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ properties: page.properties })
+                    });
+                    loadPageIntoEditor(page);
+                } else if (action === 'smallText') {
+                    page.properties.smallText = !page.properties.smallText;
+                    await fetch(`/api/blocks/${page._id}`, {
+                        method: 'PUT',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ properties: page.properties })
+                    });
+                    const wrapper = document.getElementById('editor-wrapper');
+                    if (wrapper) wrapper.classList.toggle('ve-small-text', page.properties.smallText);
+                } else if (action === 'fullWidth') {
+                    page.properties.fullWidth = !page.properties.fullWidth;
+                    await fetch(`/api/blocks/${page._id}`, {
+                        method: 'PUT',
+                        credentials: 'include',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ properties: page.properties })
+                    });
+                    const wrapper = document.getElementById('editor-wrapper');
+                    if (wrapper) wrapper.classList.toggle('ve-full-width', page.properties.fullWidth);
+                } else if (action === 'copylink') {
+                    navigator.clipboard.writeText(`${window.location.origin}/app.html#/page/${page._id}`);
+                    if (typeof UI !== 'undefined' && UI.toast) UI.toast("Link copied to clipboard", "success");
+                } else if (action === 'export') {
+                    const pageBlocks = await SyncEngine.fetchRemotePageBlocks(page._id);
+                    ExportEngine.exportPageAsMarkdown(page, pageBlocks, activeBlockEditorInstance?.decryptedMap);
+                } else if (action === 'trash') {
+                    if (await UI.confirm("Move Page to Trash?", "You can restore this page later.")) {
+                        await fetch(`/api/blocks/${page._id}/trash`, { method: 'PUT', credentials: 'include' });
+                        await BlockStore.deleteBlock(page._id);
+                        await loadVaultData();
+                        if (typeof UI !== 'undefined' && UI.toast) UI.toast("Page moved to trash", "success");
+                    }
+                }
+            });
+        };
+    }
+
+    // Initialize BlockEditor Instance
+    activeBlockEditorInstance = new BlockEditor(editorArea, page._id, page);
 }
 
 // ==========================================
@@ -1384,17 +1453,31 @@ window.closeLightbox = function () {
 window.leaveGroup = async function (groupId) {
     const yes = await UI.confirm("Leave Group?", "You will lose access to these files.");
     if (!yes) return;
-    const isAuth = document.cookie.includes('isAuthenticated=true');
-    await fetch(`/api/groups/${groupId}/leave`, { method: 'POST', credentials: "include" });
-    location.reload();
+    try {
+        const res = await fetch(`/api/groups/${groupId}/leave`, { method: 'POST', credentials: "include" });
+        if (res.ok) {
+            if (typeof UI !== 'undefined' && UI.toast) UI.toast("Left group successfully", "success");
+            currentContext = { type: 'personal', id: null };
+            await loadVaultData();
+        }
+    } catch (e) {
+        console.error("Leave Group Error:", e);
+    }
 };
 
 window.deleteGroup = async function (groupId) {
     const yes = await UI.confirm("Delete Group?", "⚠️ WARNING: This wipes all data for everyone.");
     if (!yes) return;
-    const isAuth = document.cookie.includes('isAuthenticated=true');
-    await fetch(`/api/groups/${groupId}`, { method: 'DELETE', credentials: "include" });
-    location.reload();
+    try {
+        const res = await fetch(`/api/groups/${groupId}`, { method: 'DELETE', credentials: "include" });
+        if (res.ok) {
+            if (typeof UI !== 'undefined' && UI.toast) UI.toast("Group deleted permanently", "success");
+            currentContext = { type: 'personal', id: null };
+            await loadVaultData();
+        }
+    } catch (e) {
+        console.error("Delete Group Error:", e);
+    }
 };
 
 // --- GAME OVER LOGIC ---
@@ -1505,7 +1588,7 @@ if (restartBtn) {
 }
 
 // ==========================================
-// 6. VAULT TABS LOGIC
+// 6. VAULT TABS & SIDEBAR LOGIC
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     const tabs = document.querySelectorAll('.vault-tabs .tab-btn');
@@ -1531,6 +1614,36 @@ document.addEventListener('DOMContentLoaded', () => {
                     targetPanel.classList.add('active');
                 }
             });
+        });
+    }
+
+    // Sidebar card dropdown toggles
+    const pVaultToggle = document.getElementById('private-vault-toggle');
+    const pVaultCard = document.getElementById('private-vault-card');
+    const pVaultBody = document.getElementById('page-tree-root');
+
+    if (pVaultToggle) {
+        pVaultToggle.addEventListener('click', (e) => {
+            if (e.target.closest('#create-page-btn-sidebar')) return;
+            if (pVaultCard) pVaultCard.classList.toggle('collapsed');
+            if (pVaultBody) pVaultBody.classList.toggle('collapsed');
+
+            if (currentContext.type !== 'personal') {
+                currentContext = { type: 'personal', id: null };
+                loadVaultData();
+            }
+        });
+    }
+
+    const sGroupsToggle = document.getElementById('shared-groups-toggle');
+    const sGroupsCard = document.getElementById('shared-groups-card');
+    const sGroupsBody = document.getElementById('shared-groups-panel');
+
+    if (sGroupsToggle) {
+        sGroupsToggle.addEventListener('click', (e) => {
+            if (e.target.closest('#open-group-modal-btn')) return;
+            if (sGroupsCard) sGroupsCard.classList.toggle('collapsed');
+            if (sGroupsBody) sGroupsBody.classList.toggle('collapsed');
         });
     }
 });
