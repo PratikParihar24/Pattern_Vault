@@ -158,6 +158,30 @@ class BlockEditor {
     }
 
     setupKeyListeners() {
+        // Global document Undo/Redo listener (Notion style: works even when not focused on a specific contenteditable line)
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
+                // If focus is inside a plain input/textarea outside editor, allow default browser undo
+                const active = document.activeElement;
+                if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') && !active.classList.contains('ve-content')) {
+                    return;
+                }
+                e.preventDefault();
+                this.undo();
+                return;
+            }
+
+            if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) {
+                const active = document.activeElement;
+                if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') && !active.classList.contains('ve-content')) {
+                    return;
+                }
+                e.preventDefault();
+                this.redo();
+                return;
+            }
+        });
+
         this.container.addEventListener('keydown', (e) => {
             const contentEl = e.target.closest('.ve-content');
             if (!contentEl) return;
@@ -165,20 +189,6 @@ class BlockEditor {
             const blockEl = contentEl.closest('.ve-block');
             const blockId = blockEl.dataset.id;
             const block = this.blocks.find(b => b._id === blockId);
-
-            // Undo: Ctrl+Z
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey) {
-                e.preventDefault();
-                this.undo();
-                return;
-            }
-
-            // Redo: Ctrl+Y or Ctrl+Shift+Z
-            if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase() === 'z' && e.shiftKey))) {
-                e.preventDefault();
-                this.redo();
-                return;
-            }
 
             // Multi-block Ctrl+A selection
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
@@ -262,31 +272,61 @@ class BlockEditor {
                 }
             }
 
-            // Enter key: split line at caret position
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                this.pushUndoSnapshot();
+            // Enter key handling (Notion style)
+            if (e.key === 'Enter') {
+                if (block && block.type === 'code' && e.shiftKey) {
+                    return;
+                }
 
-                const caretPos = getCaretOffset(contentEl);
-                const fullText = (this.decryptedMap[block._id] !== undefined ? this.decryptedMap[block._id] : contentEl.innerText) || '';
+                if (!e.shiftKey) {
+                    e.preventDefault();
+                    this.pushUndoSnapshot();
 
-                const textBefore = fullText.slice(0, caretPos);
-                const textAfter = fullText.slice(caretPos);
+                    const caretPos = getCaretOffset(contentEl);
+                    const fullText = (this.decryptedMap[block._id] !== undefined ? this.decryptedMap[block._id] : contentEl.innerText) || '';
 
-                this.decryptedMap[block._id] = textBefore;
-                block.rawContent = textBefore;
-                block.isDirty = true;
-                contentEl.innerText = textBefore;
-                BlockStore.saveBlock(block);
+                    // Notion behavior: If on an empty list item (bullet/todo) and pressing Enter -> convert current block to paragraph
+                    if ((block.type === 'bullet' || block.type === 'todo') && fullText.trim().length === 0) {
+                        this.changeBlockType(blockEl, 'paragraph');
+                        return;
+                    }
 
-                this.createNewBlock('paragraph', blockEl, textAfter);
-                return;
+                    // Notion behavior: If on Heading 1, 2, or 3, pressing Enter always creates a new empty paragraph block below without moving/splitting heading text
+                    const isHeading = (block.type === 'heading1' || block.type === 'heading2' || block.type === 'heading3');
+                    if (isHeading && caretPos >= fullText.length) {
+                        this.createNewBlock('paragraph', blockEl, '');
+                        return;
+                    }
+
+                    const textBefore = fullText.slice(0, caretPos);
+                    const textAfter = fullText.slice(caretPos);
+
+                    this.decryptedMap[block._id] = textBefore;
+                    block.rawContent = textBefore;
+                    block.isDirty = true;
+                    contentEl.innerText = textBefore;
+                    BlockStore.saveBlock(block);
+
+                    // Maintain list type for bullet/todo/quote when splitting non-empty list item
+                    const listTypes = ['bullet', 'todo', 'quote'];
+                    const nextType = listTypes.includes(block.type) ? block.type : 'paragraph';
+                    this.createNewBlock(nextType, blockEl, textAfter);
+                    return;
+                }
             }
 
-            // Backspace key: merge line into line above if caret is at start (position 0)
+            // Backspace key handling (Notion style: erase empty lines and shift content upwards)
             if (e.key === 'Backspace') {
                 const caretPos = getCaretOffset(contentEl);
                 if (caretPos === 0) {
+                    // If block is a list/heading/quote/code and has text or non-paragraph formatting, convert to normal paragraph first
+                    if (block && block.type !== 'paragraph' && contentEl.innerText.trim().length > 0) {
+                        e.preventDefault();
+                        this.pushUndoSnapshot();
+                        this.changeBlockType(blockEl, 'paragraph');
+                        return;
+                    }
+
                     const prevEl = blockEl.previousElementSibling;
                     if (prevEl) {
                         e.preventDefault();
@@ -323,10 +363,6 @@ class BlockEditor {
                         }
                         SyncEngine.scheduleAutosave();
                         return;
-                    } else if (contentEl.innerText.replace(/[\r\n\t\u200B\uFEFF]/g, '') === '') {
-                        e.preventDefault();
-                        this.deleteBlock(blockEl);
-                        return;
                     }
                 }
             }
@@ -358,7 +394,8 @@ class BlockEditor {
             }
         });
 
-        // Input event for autosave triggering & live model update
+        // Input event for autosave triggering & live model update with debounced Undo snapshot
+        let typingUndoTimer = null;
         this.container.addEventListener('input', (e) => {
             const contentEl = e.target.closest('.ve-content');
             if (!contentEl) return;
@@ -368,6 +405,14 @@ class BlockEditor {
             const block = this.blocks.find(b => b._id === blockId);
 
             if (block) {
+                if (!typingUndoTimer) {
+                    this.pushUndoSnapshot();
+                }
+                clearTimeout(typingUndoTimer);
+                typingUndoTimer = setTimeout(() => {
+                    typingUndoTimer = null;
+                }, 1200);
+
                 const text = contentEl.innerText;
                 this.decryptedMap[block._id] = text;
                 block.rawContent = text;

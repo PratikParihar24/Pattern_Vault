@@ -35,6 +35,14 @@ const UI = {
         });
     },
 
+    // 4. CUSTOM ALERT
+    // Usage: await UI.alert("Title", "Message");
+    alert: function(title, message) {
+        return new Promise((resolve) => {
+            this._showModal(title, message, false, "", () => resolve(true), () => resolve(true));
+        });
+    },
+
     // INTERNAL HELPER (Draws the box)
     _showModal: function(title, message, hasInput, placeholder, onConfirm, onCancel) {
         const overlay = document.getElementById('custom-modal-overlay');

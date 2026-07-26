@@ -128,7 +128,7 @@
             background: transparent !important;
             box-shadow: none !important;
             padding: 0 !important;
-            margin: auto 0 !important;
+            margin: auto !important;
             border: none !important;
             max-width: 100% !important;
             position: static !important;
@@ -136,39 +136,50 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            justify-content: center;
+            max-height: 100%;
         }
 
         #quiz-overlay { background: transparent; }
         #quiz-overlay.active {
             background: rgba(15, 15, 26, 0.95);
+            height: 100vh !important;
+            min-height: 100vh !important;
+            max-height: 100vh !important;
+            overflow: hidden !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 12px !important;
+            box-sizing: border-box !important;
         }
 
         .kz-quiz-wrapper {
             width: 92%;
-            max-width: 480px;
+            max-width: 440px;
             margin: 0 auto;
             display: flex;
             flex-direction: column;
             align-items: flex-start;
             position: relative;
+            max-height: 100%;
         }
         .kz-top-bar {
             width: 100%;
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            margin-bottom: 12px;
+            margin-bottom: 8px;
         }
         .kz-back-btn {
-            display: inline-flex !important;
+            display: inline-flex;
             align-items: center;
             gap: 6px;
             color: rgba(255,255,255,0.85);
             text-decoration: none;
             font-weight: 700;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             transition: all 0.2s ease;
-            position: static !important;
             z-index: 10;
         }
         .kz-back-btn:hover {
@@ -176,22 +187,22 @@
             transform: translateX(-3px);
         }
         .kz-recruiter-banner {
-            margin-top: 18px;
-            margin-bottom: 24px;
-            padding: 12px 14px;
+            margin-top: 10px;
+            margin-bottom: 16px;
+            padding: 8px 12px;
             background: linear-gradient(135deg, rgba(233,69,96,0.14) 0%, rgba(168,85,247,0.14) 100%);
             border: 1px solid rgba(255,255,255,0.15);
-            border-radius: 14px;
+            border-radius: 10px;
             text-align: center;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 6px;
-            font-size: 0.88rem;
+            gap: 4px;
+            font-size: 0.82rem;
             color: #ffffff;
             font-weight: 600;
-            line-height: 1.4;
+            line-height: 1.3;
         }
         .kz-kbd {
             background: #ffffff;
@@ -210,15 +221,14 @@
         .kz-intro-card {
             background: #1e2235;
             border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 24px;
-            padding: 40px 32px;
+            border-radius: 18px;
+            padding: 16px 20px 22px 20px;
             width: 100%;
             max-width: 100%;
             text-align: center;
             box-shadow: 0 20px 40px rgba(0,0,0,0.6);
             animation: kz-scale-in 0.4s var(--ease-bounce);
             position: relative;
-            overflow: hidden;
             margin: 0 auto;
             box-sizing: border-box;
         }
@@ -229,50 +239,71 @@
             background: var(--gradient-primary);
         }
         .kz-intro-icon {
-            font-size: 3.5rem;
+            font-size: 1.7rem;
             display: block;
-            margin-bottom: 16px;
+            margin-bottom: 2px;
             animation: kz-float 3s ease-in-out infinite;
         }
         .kz-intro-title {
             font-family: 'Poppins', sans-serif;
-            font-size: 1.6rem;
+            font-size: 1.25rem;
             font-weight: 800;
             color: var(--text-primary);
-            margin-bottom: 10px;
+            margin-bottom: 2px;
         }
         .kz-intro-sub {
             color: var(--text-secondary);
-            font-size: 0.95rem;
-            margin-bottom: 28px;
-            line-height: 1.6;
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+            line-height: 1.2;
         }
         .kz-high-score-pill {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             background: rgba(245,158,11,0.1);
             border: 1px solid rgba(245,158,11,0.25);
             color: var(--accent-gold);
-            padding: 8px 18px;
+            padding: 4px 12px;
             border-radius: var(--radius-pill);
             font-weight: 800;
-            font-size: 0.9rem;
-            margin-bottom: 28px;
+            font-size: 0.78rem;
+            margin-bottom: 8px;
+        }
+        .kz-recruiter-banner {
+            margin-top: 6px;
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            background: linear-gradient(135deg, rgba(233,69,96,0.14) 0%, rgba(168,85,247,0.14) 100%);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            font-size: 0.78rem;
+            color: #ffffff;
+            font-weight: 600;
+            line-height: 1.2;
         }
         #start-quiz-btn {
             width: 100%;
-            padding: 16px;
+            margin-top: 8px;
+            margin-bottom: 0;
+            padding: 10px 14px;
             border-radius: var(--radius-pill);
             background: var(--gradient-primary);
             color: #fff;
             border: none;
             font-family: 'Nunito', sans-serif;
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             font-weight: 800;
             cursor: pointer;
             transition: all 0.25s;
             box-shadow: 0 6px 20px var(--primary-glow);
+            display: block;
         }
         #start-quiz-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 28px rgba(233,69,96,0.45); }
         #start-quiz-btn:active { transform: scale(0.98); }
@@ -283,15 +314,16 @@
         .kz-quiz-card {
             background: #1e2235;
             border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 24px;
-            padding: 36px 32px;
-            width: 90%;
-            max-width: 460px;
+            border-radius: 20px;
+            padding: 20px 24px;
+            width: 92%;
+            max-width: 440px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.6);
             animation: kz-scale-in 0.35s var(--ease-bounce);
             position: relative;
             overflow: hidden;
             margin: 0 auto;
+            box-sizing: border-box;
         }
         .kz-quiz-card::before {
             content: '';
@@ -446,17 +478,30 @@
             color: #e9d5ff;
         }
         .opt-pattern-badge {
-            display: inline-block;
-            margin-left: auto;
-            padding: 3px 7px;
+            position: absolute;
+            top: -7px;
+            right: 8px;
+            padding: 2px 7px;
             border-radius: 999px;
-            background: #7e22ce;
+            background: linear-gradient(135deg, #7e22ce, #a855f7);
             color: #ffffff;
-            font-size: 0.68rem;
+            font-size: 0.6rem;
             font-weight: 900;
             letter-spacing: 0.03em;
             text-transform: uppercase;
             white-space: nowrap;
+            z-index: 5;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+        .opt-text {
+            flex: 1;
+            min-width: 0;
+            word-break: normal;
+            overflow-wrap: break-word;
+            white-space: normal;
+            font-size: 0.86rem;
+            line-height: 1.25;
         }
 
         /* Options grid */
@@ -468,6 +513,7 @@
         }
 
         .opt-btn {
+            position: relative;
             background: #2a2f4c;
             border: 1px solid rgba(255,255,255,0.05);
             border-radius: 16px;
@@ -566,47 +612,48 @@
            ==================================================== */
         @media (max-width: 600px) {
             .screen.active {
-                padding: 16px 12px;
+                padding: 8px;
             }
             .kz-intro-card, .kz-quiz-card, .kz-result-card {
-                padding: 24px 16px;
+                padding: 16px;
                 width: 100%;
                 max-width: 100%;
-                border-radius: 20px;
+                border-radius: 16px;
                 box-sizing: border-box;
             }
             .kz-intro-title {
-                font-size: 1.35rem;
+                font-size: 1.25rem;
             }
             .kz-intro-sub {
-                font-size: 0.88rem;
-                margin-bottom: 20px;
+                font-size: 0.82rem;
+                margin-bottom: 12px;
             }
             .kz-pill-group {
                 min-width: 100%;
                 width: 100%;
             }
             .kz-pill {
-                padding: 8px 10px;
-                font-size: 0.78rem;
+                padding: 6px 8px;
+                font-size: 0.75rem;
             }
             #question-text {
                 font-size: 1.05rem;
-                margin-bottom: 18px;
+                margin-bottom: 12px;
             }
             .kz-options-grid {
-                grid-template-columns: 1fr; /* Stack options on mobile */
-                gap: 10px;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
             }
             .opt-btn {
-                padding: 14px 12px;
-                font-size: 0.88rem;
+                padding: 8px 10px;
+                min-height: 44px;
+                font-size: 0.82rem;
                 word-break: break-word;
             }
             .opt-letter {
-                width: 24px;
-                height: 24px;
-                font-size: 0.8rem;
+                width: 22px;
+                height: 22px;
+                font-size: 0.75rem;
             }
             .kz-score-ring {
                 width: 110px;
@@ -960,6 +1007,8 @@
             border-radius: 10px !important;
             box-shadow: none !important;
             color: #b0b0b8 !important;
+            margin-top: 12px !important;
+            padding: 8px 12px !important;
         }
         .kz-kbd,
         #quiz-game .kz-quiz-card kbd {
@@ -987,8 +1036,8 @@
 
         .kz-quiz-header {
             border-bottom: 1px solid #2a2a33;
-            padding-bottom: 16px;
-            margin-bottom: 18px;
+            padding-bottom: 10px;
+            margin-bottom: 12px;
         }
         .kz-question-badge { color: #b0b0b8; }
         .kz-score-live {
@@ -1001,6 +1050,7 @@
             grid-template-columns: repeat(auto-fit, minmax(20px, 1fr));
             gap: 6px;
             width: 100%;
+            margin-bottom: 12px;
         }
         .kz-dot {
             width: auto;
@@ -1019,8 +1069,10 @@
         }
         #question-text {
             color: #ffffff;
-            font-size: clamp(1.2rem, 3vw, 1.55rem);
-            line-height: 1.38;
+            font-size: clamp(1.05rem, 2.5vw, 1.25rem);
+            line-height: 1.35;
+            margin-bottom: 14px;
+            min-height: auto;
         }
         .kz-pattern-guide {
             border-color: rgba(168,85,247,0.5);
@@ -1029,10 +1081,13 @@
         }
 
         .opt-btn {
-            min-height: 76px;
+            position: relative;
+            overflow: visible;
+            min-height: 48px;
+            padding: 8px 12px;
             background: #1c1c24 !important;
             border: 1px solid #2a2a33 !important;
-            border-radius: 12px;
+            border-radius: 10px;
             color: #b0b0b8 !important;
             transition: transform 150ms cubic-bezier(0.68,-0.55,0.265,1.55), border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
         }
@@ -1137,9 +1192,9 @@
             }
         }
         @media (max-width: 600px) {
-            .kz-quiz-card { padding-top: 56px !important; }
+            .kz-quiz-card { padding-top: 24px !important; }
             .kz-progress-dots { grid-template-columns: repeat(auto-fit, minmax(14px, 1fr)); }
-            .opt-btn { min-height: 60px; }
+            .opt-btn { min-height: 44px; }
         }
 
         #vault-screen { font-family: 'Courier New', Courier, monospace; }
@@ -1181,13 +1236,11 @@
         <!-- INTRO -->
         <div id="quiz-intro">
             <div class="kz-quiz-wrapper">
-                <div class="kz-top-bar">
-                    <a href="javascript:history.back()" class="kz-back-btn"><span>←</span> Back</a>
-                </div>
                 <div class="kz-intro-card">
+                    <a href="javascript:history.back()" class="kz-back-btn" style="position: absolute !important; top: 14px !important; left: 16px !important; margin: 0 !important;"><span>←</span> Back</a>
                     <span class="kz-intro-icon">🎮</span>
                     <h1 class="kz-intro-title">Daily Brain Teaser</h1>
-                    <p class="kz-intro-sub">Configure your challenge and prove your intelligence. Every correct answer earns you <strong>10 points</strong>.</p>
+                    <p class="kz-intro-sub">Configure your challenge. Each correct answer earns <strong>10 points</strong>.</p>
 
                     <div class="kz-high-score-pill">
                         🏆 High Score: <span id="high-score-display">0</span> pts
@@ -1249,7 +1302,6 @@
 
                 <!-- Question -->
                 <p id="question-text">Loading question...</p>
-                <div id="pattern-guide" class="kz-pattern-guide" role="status" aria-live="polite"></div>
 
                 <!-- Options -->
                 <div class="kz-options-grid">
@@ -1353,8 +1405,8 @@
 
             <main class="content-area">
                 <header class="content-header">
-                    <div class="header-left" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                        <h2 id="current-view-title" style="margin: 0; font-size: 1.6rem; color: #fff;">Personal Vault</h2>
+                    <div class="header-left">
+                        <h2 id="current-view-title">Personal Vault</h2>
                         <span id="group-code-display" class="code-badge hidden" style="font-family: monospace; padding: 4px 8px; background: rgba(0,229,255,0.1); border: 1px solid rgba(0,229,255,0.3); border-radius: 4px; color: #00e5ff; font-size: 0.85rem; font-weight: bold;">Code: ---</span>
                         <div id="members-display" class="members-container hidden" style="font-size: 0.85rem; color: #888; font-family: monospace; display: flex; align-items: center; gap: 6px;"></div>
                     </div>
@@ -1363,14 +1415,13 @@
                             <div id="vault-username" style="color: #fff; font-weight: bold; font-size: 1rem;">User</div>
                             <div id="vault-userrank" style="color: #00e5ff; font-family: monospace; font-size: 0.85rem;">user@gmail.com</div>
                         </div>
-                        <button id="logout-btn" class="logout-btn" style="margin: 0 !important; padding: 6px 14px !important;">Logout</button>
+                        <button id="logout-btn" class="logout-btn"><span>🚪</span> Logout</button>
+                    </div>
+                    <div class="vault-tabs" id="vault-tabs">
+                        <button class="tab-btn active" data-target="editor-view">📝 Notes</button>
+                        <button class="tab-btn" data-target="gallery-view">🖼️ Gallery</button>
                     </div>
                 </header>
-
-                <div class="vault-tabs" id="vault-tabs">
-                    <button class="tab-btn active" data-target="editor-view">📝 Notes</button>
-                    <button class="tab-btn" data-target="gallery-view">🖼️ Gallery</button>
-                </div>
 
                 <div id="editor-view" class="view-panel active" style="display:block;">
                     <div id="vault-content" class="vault-container"></div>
@@ -1385,13 +1436,27 @@
         </div>
     </div>
 
-    <!-- Lightbox -->
+    <!-- Lightbox Modal -->
     <div id="lightbox" class="hidden">
-        <span class="lb-close" onclick="closeLightbox()">&times;</span>
-        <img id="lightbox-img" src="">
-        <div class="lightbox-controls">
-            <a id="lb-download" href="#" download class="lb-btn">Download Original</a>
-            <button class="lb-btn" onclick="closeLightbox()">Close</button>
+        <div style="position: absolute; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: 18px 24px; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); border-bottom: 1px solid rgba(255,255,255,0.1); z-index: 100001; box-sizing: border-box;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 1.1rem;">🖼️</span>
+                <span style="color: #fff; font-weight: bold; font-family: monospace; font-size: 0.95rem; letter-spacing: 0.5px;">IMAGE PREVIEW</span>
+            </div>
+            <button onclick="closeLightbox()" style="background: transparent !important; border: none !important; color: #aaa !important; font-size: 1.6rem !important; cursor: pointer !important; padding: 0 8px !important; margin: 0 !important; width: auto !important; height: auto !important; box-shadow: none !important; line-height: 1 !important;">&times;</button>
+        </div>
+        
+        <div style="max-width: 80vw; max-height: 70vh; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 12px; box-shadow: 0 25px 60px rgba(0,0,0,0.95); border: 1px solid #2a2a2a; background: #000; margin-top: 40px; margin-bottom: 80px;">
+            <img id="lightbox-img" src="" style="max-width: 80vw; max-height: 70vh; object-fit: contain; display: block;">
+        </div>
+
+        <div style="position: absolute; bottom: 25px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; z-index: 100001; background: rgba(20, 20, 20, 0.9); padding: 8px 16px; border-radius: 50px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.8);">
+            <a id="lb-download" href="#" download="vault-image.png" style="background: #00e5ff !important; color: #000 !important; padding: 8px 18px !important; border-radius: 20px !important; font-weight: bold !important; font-family: monospace !important; font-size: 0.8rem !important; text-decoration: none !important; display: inline-flex !important; align-items: center !important; gap: 6px !important; margin: 0 !important; width: auto !important; transition: opacity 0.2s;">
+                <span>⬇</span> Download
+            </a>
+            <button onclick="closeLightbox()" style="background: #2a2a2a !important; color: #fff !important; border: 1px solid #444 !important; padding: 8px 18px !important; border-radius: 20px !important; font-weight: bold !important; font-family: monospace !important; font-size: 0.8rem !important; cursor: pointer !important; display: inline-flex !important; align-items: center !important; gap: 6px !important; margin: 0 !important; width: auto !important;">
+                Close
+            </button>
         </div>
     </div>
 
@@ -1425,19 +1490,47 @@
             <!-- Create Group Section -->
             <div style="margin-bottom: 24px;">
                 <label style="color: #00e5ff; font-weight: bold; font-size: 0.8rem; display: block; margin-bottom: 8px; font-family: monospace;">CREATE NEW GROUP</label>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <input type="text" id="modal-group-name" placeholder="Enter Group Name" style="flex-grow: 1; height: 40px; padding: 0 12px; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 6px; font-family: monospace; font-size: 0.85rem; box-sizing: border-box; outline: none;">
-                    <button id="modal-create-group-btn" style="height: 40px; min-width: 90px; padding: 0 16px; background: #00e5ff; color: #000; border: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem; font-family: monospace; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;">Create</button>
+                <div style="display: flex; gap: 10px; align-items: center; width: 100%;">
+                    <input type="text" id="modal-group-name" placeholder="Enter Group Name" style="flex: 1; height: 42px; padding: 0 14px; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 8px; font-family: monospace; font-size: 0.85rem; box-sizing: border-box; outline: none; margin: 0;">
+                    <button id="modal-create-group-btn" style="height: 42px; min-width: 100px; padding: 0 18px; background: #00e5ff; color: #000; border: none; border-radius: 8px; font-weight: bold; font-size: 0.85rem; font-family: monospace; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; margin: 0; box-shadow: none; width: auto;">Create</button>
                 </div>
             </div>
 
             <!-- Join Group Section -->
             <div style="border-top: 1px solid #2a2a2a; padding-top: 20px;">
                 <label style="color: #00ff41; font-weight: bold; font-size: 0.8rem; display: block; margin-bottom: 8px; font-family: monospace;">JOIN WITH INVITE CODE</label>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <input type="text" id="modal-group-code" placeholder="Enter Code" style="flex-grow: 1; height: 40px; padding: 0 12px; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 6px; font-family: monospace; font-size: 0.85rem; box-sizing: border-box; outline: none;">
-                    <button id="modal-join-group-btn" style="height: 40px; min-width: 90px; padding: 0 16px; background: #00ff41; color: #000; border: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem; font-family: monospace; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;">Join</button>
+                <div style="display: flex; gap: 10px; align-items: center; width: 100%;">
+                    <input type="text" id="modal-group-code" placeholder="Enter Code" style="flex: 1; height: 42px; padding: 0 14px; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 8px; font-family: monospace; font-size: 0.85rem; box-sizing: border-box; outline: none; margin: 0;">
+                    <button id="modal-join-group-btn" style="height: 42px; min-width: 100px; padding: 0 18px; background: #00ff41; color: #000; border: none; border-radius: 8px; font-weight: bold; font-size: 0.85rem; font-family: monospace; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; margin: 0; box-shadow: none; width: auto;">Join</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Group Info & Members Modal -->
+    <div id="group-info-modal" class="ve-search-overlay hidden">
+        <div class="ve-search-modal" style="padding: 24px; width: 440px; max-width: 90vw; border-radius: 14px; background: #121212; border: 1px solid #2a2a2a; box-shadow: 0 20px 50px rgba(0,0,0,0.95); font-family: monospace;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; border-bottom: 1px solid #222; padding-bottom: 12px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:1.3rem;">👥</span>
+                    <h3 id="group-info-title" style="color: #fff; margin: 0; font-size: 1.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: bold;">Group Info</h3>
+                </div>
+                <button id="group-info-close-btn" style="background: transparent !important; border: none !important; color: #888 !important; font-size: 1.4rem !important; cursor: pointer !important; padding: 0 4px !important; margin: 0 !important; width: auto !important; height: auto !important; box-shadow: none !important; line-height: 1 !important;">&times;</button>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="color: #00e5ff; font-size: 0.75rem; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 8px; letter-spacing: 0.5px;">INVITE CODE</label>
+                <div style="display: flex; gap: 10px; align-items: center; width: 100%;">
+                    <div style="flex: 1; height: 42px; display: flex; align-items: center; padding: 0 14px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; box-sizing: border-box;">
+                        <span id="group-info-code" style="color: #00e5ff; font-weight: bold; font-size: 1.05rem; font-family: monospace; letter-spacing: 1.5px;">---</span>
+                    </div>
+                    <button id="group-info-copy-code-btn" style="height: 42px; min-width: 110px; padding: 0 16px; background: #00e5ff; color: #000; border: none; border-radius: 8px; font-weight: bold; font-size: 0.85rem; font-family: monospace; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; margin: 0; box-shadow: none; width: auto;">Copy Code</button>
+                </div>
+            </div>
+
+            <div>
+                <label style="color: #888; font-size: 0.75rem; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 8px; letter-spacing: 0.5px;">GROUP MEMBERS</label>
+                <ul id="group-info-members-list" style="list-style: none; padding: 0; margin: 0; max-height: 220px; overflow-y: auto; background: #1a1a1a; border: 1px solid #2e2e2e; border-radius: 8px;"></ul>
             </div>
         </div>
     </div>

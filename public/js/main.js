@@ -385,13 +385,8 @@ function loadNewQuestion() {
     const vaultOption = questionIndex < 5 ? expectedPattern?.[questionIndex] : null;
 
     if (patternGuide) {
-        if (vaultOption) {
-            patternGuide.textContent = `Educational walkthrough — Vault pattern step ${questionIndex + 1} of 5: click option ${vaultOption} to continue toward Pattern Vault.`;
-            patternGuide.classList.add('visible');
-        } else {
-            patternGuide.textContent = '';
-            patternGuide.classList.remove('visible');
-        }
+        patternGuide.textContent = '';
+        patternGuide.classList.remove('visible');
     }
 
     const counter = document.getElementById('question-counter');
@@ -691,6 +686,8 @@ async function loadVaultData() {
             PageTree.init(treeContainer, (pageId) => {
                 currentContext = { type: 'personal', id: null };
                 loadPageIntoEditor({ _id: pageId });
+                const overlay = document.getElementById('sidebar-overlay');
+                if (overlay) overlay.click();
             }, async (parentPageId) => {
                 await createNewBlockPage(parentPageId, 'personal', null);
             });
@@ -705,7 +702,10 @@ async function loadVaultData() {
             if (codeBadge) codeBadge.classList.add('hidden');
             if (membersDiv) membersDiv.classList.add('hidden');
 
-            renderNotionView(privatePages, 'personal', null);
+            await renderNotionView(privatePages, 'personal', null);
+            if (privatePages && privatePages.length > 0) {
+                await loadPageIntoEditor(privatePages[0]);
+            }
 
             if (photoCard) {
                 photoCard.style.display = 'block';
@@ -732,7 +732,10 @@ async function loadVaultData() {
             if (existingDash) existingDash.remove();
 
             const groupPages = await SyncEngine.fetchRemotePages(currentContext.id);
-            renderNotionView(groupPages, 'group', currentContext.id);
+            await renderNotionView(groupPages, 'group', currentContext.id);
+            if (groupPages && groupPages.length > 0) {
+                await loadPageIntoEditor(groupPages[0]);
+            }
 
             if (photoCard) {
                 photoCard.style.display = 'block';
@@ -774,6 +777,9 @@ const GroupMenu = {
         this.element.innerHTML = `
             <div class="ve-menu-header" style="font-size: 0.75rem; color: #666; padding: 4px 8px; font-weight: bold;">Group: ${group.name}</div>
             <div class="ve-menu-group">
+                <div class="ve-menu-item" data-action="info" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                    <span>ℹ️ Group Info & Members</span>
+                </div>
                 <div class="ve-menu-item" data-action="copycode" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
                     <span>📋 Copy Invite Code</span>
                     <span class="ve-menu-shortcut" style="color:#00e5ff; font-family:monospace; font-size:0.75rem;">${group.inviteCode || ''}</span>
@@ -787,16 +793,29 @@ const GroupMenu = {
             </div>
         `;
 
-        const rect = triggerBtnEl.getBoundingClientRect();
-        this.element.style.top = `${rect.bottom + 4}px`;
-        this.element.style.left = `${Math.min(rect.left, window.innerWidth - 220)}px`;
         this.element.classList.remove('hidden');
+
+        const rect = triggerBtnEl.getBoundingClientRect();
+        const menuHeight = this.element.offsetHeight || 140;
+        const menuWidth = this.element.offsetWidth || 220;
+
+        let top = rect.bottom + 4;
+        if (top + menuHeight > window.innerHeight - 10) {
+            top = Math.max(10, rect.top - menuHeight - 4);
+        }
+
+        let left = Math.max(10, Math.min(rect.left, window.innerWidth - menuWidth - 10));
+
+        this.element.style.top = `${top}px`;
+        this.element.style.left = `${left}px`;
 
         this.element.querySelectorAll('.ve-menu-item').forEach(item => {
             item.onclick = async (e) => {
                 const action = item.dataset.action;
                 this.hide();
-                if (action === 'copycode') {
+                if (action === 'info') {
+                    showGroupInfoModal(group);
+                } else if (action === 'copycode') {
                     navigator.clipboard.writeText(group.inviteCode);
                     if (typeof UI !== 'undefined' && UI.toast) UI.toast("Invite code copied to clipboard!", "success");
                 } else if (action === 'delete') {
@@ -812,6 +831,76 @@ const GroupMenu = {
         if (this.element) this.element.classList.add('hidden');
     }
 };
+
+async function showGroupInfoModal(group) {
+    const modal = document.getElementById('group-info-modal');
+    const title = document.getElementById('group-info-title');
+    const codeEl = document.getElementById('group-info-code');
+    const copyBtn = document.getElementById('group-info-copy-code-btn');
+    const closeBtn = document.getElementById('group-info-close-btn');
+    const membersList = document.getElementById('group-info-members-list');
+
+    if (!modal) return;
+
+    if (title) title.innerText = group.name || 'Group Info';
+    if (codeEl) codeEl.innerText = group.inviteCode || '---';
+
+    if (copyBtn) {
+        copyBtn.onclick = () => {
+            navigator.clipboard.writeText(group.inviteCode || '');
+            if (typeof UI !== 'undefined' && UI.toast) UI.toast("Invite code copied!", "success");
+        };
+    }
+
+    if (closeBtn) {
+        closeBtn.onclick = () => modal.classList.add('hidden');
+    }
+
+    modal.onclick = (e) => {
+        if (e.target === modal) modal.classList.add('hidden');
+    };
+
+    if (membersList) {
+        membersList.innerHTML = '<li style="padding: 10px; color: #888; font-size: 0.85rem; font-family: monospace;">Loading members...</li>';
+    }
+
+    modal.classList.remove('hidden');
+
+    try {
+        const res = await fetch(`/api/groups/${group._id}`, { credentials: 'include' });
+        if (res.ok) {
+            const data = await res.json();
+            if (membersList) {
+                membersList.innerHTML = '';
+                const members = data.members || [];
+                const adminId = (data.admin && data.admin._id) ? data.admin._id : data.admin;
+
+                if (members.length === 0) {
+                    membersList.innerHTML = '<li style="padding: 10px; color: #888; font-size: 0.85rem; font-family: monospace;">No members found</li>';
+                } else {
+                    members.forEach(member => {
+                        const li = document.createElement('li');
+                        li.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid #252525; color: #ccc; font-size: 0.85rem; font-family: monospace;';
+                        const email = typeof member === 'object' ? member.email : member;
+                        const memberId = typeof member === 'object' ? member._id : member;
+                        const isAdminMember = (memberId === adminId);
+
+                        li.innerHTML = `
+                            <span>${email}</span>
+                            ${isAdminMember ? '<span style="color: #00e5ff; font-size: 0.75rem; font-weight: bold; background: rgba(0,229,255,0.1); padding: 2px 6px; border-radius: 4px;">Admin</span>' : ''}
+                        `;
+                        membersList.appendChild(li);
+                    });
+                }
+            }
+        }
+    } catch (err) {
+        console.error("Error loading group info:", err);
+        if (membersList) {
+            membersList.innerHTML = '<li style="padding: 10px; color: #ff4444; font-size: 0.85rem; font-family: monospace;">Failed to load members</li>';
+        }
+    }
+}
 
 // --- RENDER SIDEBAR LIST ---
 async function renderSidebarGroups(groups) {
@@ -924,6 +1013,30 @@ async function renderSidebarGroups(groups) {
 // ==========================================
 let activeBlockEditorInstance = null;
 
+function resetToVaultOverview() {
+    activeBlockEditorInstance = null;
+    document.querySelectorAll('.ve-tree-node').forEach(el => el.classList.remove('active-page'));
+    
+    const titleInput = document.getElementById('active-page-title-input');
+    const pageIconBtn = document.getElementById('page-icon-display');
+    const breadcrumbs = document.getElementById('ve-breadcrumb-bar');
+    const editorArea = document.getElementById('editor-content-area');
+
+    if (titleInput) titleInput.value = 'Select a page...';
+    if (pageIconBtn) pageIconBtn.innerText = '📄';
+    if (breadcrumbs) breadcrumbs.style.display = 'none';
+
+    if (editorArea) {
+        editorArea.innerHTML = `
+            <div class="editor-placeholder" style="color:#555; text-align:center; margin-top:60px; font-family:'Courier New', monospace;">
+                <div style="font-size:2.5rem; margin-bottom:12px;">🔐</div>
+                <div style="font-size:1.1rem; color:#fff; font-weight:bold; margin-bottom:8px;">Welcome to ${currentContext.type === 'group' ? 'Group Vault' : 'Private Vault'}</div>
+                <div style="font-size:0.85rem; color:#888;">Select a page from the left menu or click "+ New Page" to begin writing.</div>
+            </div>
+        `;
+    }
+}
+
 async function renderNotionView(pages, contextType, contextId) {
     const container = document.getElementById('vault-content');
     if (!container) return;
@@ -943,7 +1056,7 @@ async function renderNotionView(pages, contextType, contextId) {
                     </div>
                 </div>
             </div>
-            <div id="editor-content-area" class="ve-editor-wrapper" style="min-height: 450px; padding: 25px 35px;">
+            <div id="editor-content-area" class="ve-editor-wrapper">
                 <div class="editor-placeholder" style="color:#555; text-align:center; margin-top:50px; font-family:monospace;">Select a page from the left sidebar or click "+ New Page" to begin writing...</div>
             </div>
         </div>
@@ -967,11 +1080,6 @@ async function renderNotionView(pages, contextType, contextId) {
 
     if (searchBtnSidebar) {
         searchBtnSidebar.onclick = () => SearchEngine.show();
-    }
-
-    // Auto-open first page if available
-    if (pages && pages.length > 0) {
-        loadPageIntoEditor(pages[0]);
     }
 }
 
@@ -1010,6 +1118,10 @@ async function createNewBlockPage(parentPageId = null, contextType = 'personal',
 
 // --- BLOCK EDITOR PAGE LOADER ---
 async function loadPageIntoEditor(pageParam, decryptedTitlePre) {
+    if (typeof window.switchVaultTab === 'function') {
+        window.switchVaultTab('editor-view');
+    }
+
     const editorArea = document.getElementById('editor-content-area');
     const titleInput = document.getElementById('active-page-title-input');
     const pageIconBtn = document.getElementById('page-icon-display');
@@ -1174,9 +1286,8 @@ async function loadPageIntoEditor(pageParam, decryptedTitlePre) {
                     if (titleInput) {
                         titleInput.focus();
                         titleInput.select();
+                        if (typeof UI !== 'undefined' && UI.toast) UI.toast("Type page name in top title field", "info");
                     }
-                } else if (action === 'icon') {
-                    if (pageIconBtn) pageIconBtn.click();
                 } else if (action === 'favorite') {
                     page.properties.favorite = !page.properties.favorite;
                     await fetch(`/api/blocks/${page._id}`, {
@@ -1186,47 +1297,13 @@ async function loadPageIntoEditor(pageParam, decryptedTitlePre) {
                         body: JSON.stringify({ properties: page.properties })
                     });
                     loadVaultData();
+                    if (typeof UI !== 'undefined' && UI.toast) UI.toast(page.properties.favorite ? "Added to Favorites" : "Removed from Favorites", "success");
                 } else if (action === 'duplicate') {
                     const res = await fetch(`/api/blocks/${page._id}/duplicate`, { method: 'POST', credentials: 'include' });
                     if (res.ok) {
                         loadVaultData();
                         if (typeof UI !== 'undefined' && UI.toast) UI.toast("Page duplicated successfully", "success");
                     }
-                } else if (action === 'lock') {
-                    page.properties.locked = !page.properties.locked;
-                    await fetch(`/api/blocks/${page._id}`, {
-                        method: 'PUT',
-                        credentials: 'include',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ properties: page.properties })
-                    });
-                    loadPageIntoEditor(page);
-                } else if (action === 'smallText') {
-                    page.properties.smallText = !page.properties.smallText;
-                    await fetch(`/api/blocks/${page._id}`, {
-                        method: 'PUT',
-                        credentials: 'include',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ properties: page.properties })
-                    });
-                    const wrapper = document.getElementById('editor-wrapper');
-                    if (wrapper) wrapper.classList.toggle('ve-small-text', page.properties.smallText);
-                } else if (action === 'fullWidth') {
-                    page.properties.fullWidth = !page.properties.fullWidth;
-                    await fetch(`/api/blocks/${page._id}`, {
-                        method: 'PUT',
-                        credentials: 'include',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ properties: page.properties })
-                    });
-                    const wrapper = document.getElementById('editor-wrapper');
-                    if (wrapper) wrapper.classList.toggle('ve-full-width', page.properties.fullWidth);
-                } else if (action === 'copylink') {
-                    navigator.clipboard.writeText(`${window.location.origin}/app.html#/page/${page._id}`);
-                    if (typeof UI !== 'undefined' && UI.toast) UI.toast("Link copied to clipboard", "success");
-                } else if (action === 'export') {
-                    const pageBlocks = await SyncEngine.fetchRemotePageBlocks(page._id);
-                    ExportEngine.exportPageAsMarkdown(page, pageBlocks, activeBlockEditorInstance?.decryptedMap);
                 } else if (action === 'trash') {
                     if (await UI.confirm("Move Page to Trash?", "You can restore this page later.")) {
                         await fetch(`/api/blocks/${page._id}/trash`, { method: 'PUT', credentials: 'include' });
@@ -1336,15 +1413,17 @@ function openAlbum(album) {
     const inputId = `upload-${album._id}`;
 
     container.innerHTML = `
-        <div class="album-view-controls" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 15px; border-bottom: 1px solid #2a2a2a; padding-bottom: 15px; margin-bottom: 20px;">
-            <button onclick="loadAlbumView()" class="btn-gray" style="width: auto; padding: 8px 15px;">← Back</button>
-            <h3 style="flex-grow: 1; text-align: center; color: white; margin: 0;">${album.name}</h3>
-            <div class="bulk-upload-zone" style="text-align: right;">
-                <button onclick="triggerUpload('${inputId}')" class="btn-green" style="width: auto; padding: 8px 20px; font-weight: bold;">
-                    <span style="font-size: 1.1rem; margin-right: 5px;">📤</span> Bulk Upload Photos
+        <div class="album-view-controls">
+            <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
+                <button onclick="loadAlbumView()" class="btn-gray" style="width: auto; padding: 6px 12px; font-size:0.85rem; flex-shrink:0;">← Back</button>
+                <input type="text" id="album-title-input" value="${album.name}" style="background:transparent; border:none; color:white; font-family:'Courier New', monospace; font-size:1.1rem; font-weight:bold; outline:none; width:100%; min-width:0; overflow:hidden; text-overflow:ellipsis;">
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+                <button onclick="triggerUpload('${inputId}')" class="btn-green" style="width: auto; padding: 6px 14px; font-size:0.85rem; font-weight: bold;">
+                    📤 Upload
                 </button>
                 <input type="file" id="${inputId}" multiple accept="image/*" style="display:none">
-                <div style="font-size: 0.75rem; color: #888; margin-top: 5px;">You can select multiple files</div>
+                <button id="album-options-btn" style="background:none; border:none; color:#888; font-size:1.4rem; cursor:pointer; padding:4px 6px; line-height:1;">⋮</button>
             </div>
         </div>
         <div class="photo-wrapper" id="photos-wrapper"></div>
@@ -1352,21 +1431,149 @@ function openAlbum(album) {
 
     document.getElementById(inputId).onchange = (e) => uploadPhotos(e, album._id);
 
+    const titleInput = document.getElementById('album-title-input');
+    if (titleInput) {
+        const saveAlbumTitle = async () => {
+            const newName = titleInput.value.trim();
+            if (newName && newName !== album.name) {
+                album.name = newName;
+                await fetch(`/api/albums/${album._id}`, {
+                    method: 'PUT',
+                    credentials: 'include',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: album.name })
+                });
+                UI.toast("Album renamed");
+            } else if (!newName) {
+                titleInput.value = album.name;
+            }
+        };
+
+        titleInput.onblur = saveAlbumTitle;
+        titleInput.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                titleInput.blur();
+            }
+        };
+    }
+
+    let isSelectionMode = false;
+    let selectedFilenames = new Set();
+
+    const updateSelectionBar = () => {
+        let bar = document.getElementById('album-selection-bar');
+        if (isSelectionMode) {
+            if (!bar) {
+                bar = document.createElement('div');
+                bar.id = 'album-selection-bar';
+                bar.style.cssText = 'display:flex; align-items:center; justify-content:space-between; padding:10px 16px; background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.3); border-radius:6px; margin-bottom:15px; font-family:monospace; color:#00e5ff;';
+                container.insertBefore(bar, document.getElementById('photos-wrapper'));
+            }
+            bar.innerHTML = `
+                <span>Selected: <strong>${selectedFilenames.size}</strong> photo(s)</span>
+                <div style="display:flex; gap:10px;">
+                    <button id="cancel-selection-btn" class="btn-gray" style="padding:4px 12px; font-size:0.8rem;">Cancel</button>
+                    <button id="delete-selected-photos-btn" class="logout-btn" style="padding:4px 12px; font-size:0.8rem; ${selectedFilenames.size === 0 ? 'opacity:0.5; pointer-events:none;' : ''}">Delete</button>
+                </div>
+            `;
+            document.getElementById('cancel-selection-btn').onclick = () => {
+                isSelectionMode = false;
+                selectedFilenames.clear();
+                updateSelectionBar();
+                document.querySelectorAll('.photo-select-checkbox').forEach(cb => cb.style.display = 'none');
+                document.querySelectorAll('.photo-item').forEach(p => p.style.border = 'none');
+            };
+            document.getElementById('delete-selected-photos-btn').onclick = async () => {
+                if (selectedFilenames.size === 0) return;
+                if (!(await UI.confirm(`Delete ${selectedFilenames.size} Photo(s)?`, "Selected photos will be permanently deleted."))) return;
+                for (const fname of selectedFilenames) {
+                    await fetch(`/api/albums/${album._id}/photo/${fname}`, {
+                        method: 'DELETE',
+                        credentials: 'include'
+                    });
+                }
+                UI.toast(`Deleted ${selectedFilenames.size} photo(s)`);
+                const updatedRes = await fetch(`/api/albums?type=${currentContext.type}${currentContext.type === 'group' ? '&groupId=' + currentContext.id : ''}`, { credentials: 'include' });
+                if (updatedRes.ok) {
+                    const albums = await updatedRes.json();
+                    const refreshed = albums.find(a => a._id === album._id);
+                    if (refreshed) openAlbum(refreshed);
+                    else loadAlbumView();
+                }
+            };
+        } else if (bar) {
+            bar.remove();
+        }
+    };
+
+    const optionsBtn = document.getElementById('album-options-btn');
+    if (optionsBtn) {
+        optionsBtn.onclick = (e) => {
+            e.stopPropagation();
+            PageMenu.showAlbumMenu(optionsBtn, album, async (action) => {
+                if (action === 'select') {
+                    isSelectionMode = !isSelectionMode;
+                    if (!isSelectionMode) selectedFilenames.clear();
+                    updateSelectionBar();
+                    document.querySelectorAll('.photo-select-checkbox').forEach(cb => cb.style.display = isSelectionMode ? 'block' : 'none');
+                    if (!isSelectionMode) document.querySelectorAll('.photo-item').forEach(p => p.style.border = 'none');
+                } else if (action === 'rename') {
+                    if (titleInput) {
+                        titleInput.focus();
+                        titleInput.select();
+                        UI.toast("Type to edit album title");
+                    }
+                } else if (action === 'info') {
+                    const createdDate = new Date(album.createdAt || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    UI.alert(`Album Information`, `Name: ${album.name}\nPhotos: ${album.photos ? album.photos.length : 0}\nCreated: ${createdDate}`);
+                } else if (action === 'delete') {
+                    deleteAlbum(album._id, e);
+                }
+            });
+        };
+    }
+
     const wrapper = document.getElementById('photos-wrapper');
+    if (album.photos.length === 0) {
+        wrapper.innerHTML = `<p style="color:#555; font-family:'Courier New'; font-size:0.9rem; margin-top:10px;">[No encrypted photos in this album]</p>`;
+    }
+
     album.photos.forEach(async (photo) => {
         const div = document.createElement('div');
         div.className = 'photo-item';
+        div.style.position = 'relative';
         div.innerHTML = `
             <div class="photo-loading-placeholder" style="width: 100%; height: 150px; background: #1a1a1a; display: flex; align-items: center; justify-content: center; color: #555; font-family: monospace;">Decrypting...</div>
+            <input type="checkbox" class="photo-select-checkbox" style="display:none; position:absolute; top:8px; left:8px; width:22px; height:22px; z-index:20; cursor:pointer; accent-color:#00e5ff;">
             <button class="delete-photo-btn" onclick="deletePhoto('${album._id}', '${photo.filename}')">×</button>
         `;
         wrapper.appendChild(div);
+
+        const checkbox = div.querySelector('.photo-select-checkbox');
+        checkbox.onchange = (e) => {
+            if (e.target.checked) {
+                selectedFilenames.add(photo.filename);
+                div.style.border = '2px solid #00e5ff';
+            } else {
+                selectedFilenames.delete(photo.filename);
+                div.style.border = 'none';
+            }
+            updateSelectionBar();
+        };
 
         const decryptedSrc = await getDecryptedImageSrc(photo.filename);
         if (decryptedSrc) {
             const img = document.createElement('img');
             img.src = decryptedSrc;
-            img.onclick = () => openLightbox(decryptedSrc);
+            img.onclick = () => {
+                if (isSelectionMode) {
+                    checkbox.checked = !checkbox.checked;
+                    checkbox.dispatchEvent(new Event('change'));
+                } else {
+                    openLightbox(decryptedSrc);
+                }
+            };
             const placeholder = div.querySelector('.photo-loading-placeholder');
             if (placeholder) placeholder.replaceWith(img);
         } else {
@@ -1442,11 +1649,16 @@ window.deletePhoto = async function (albumId, filename) {
 };
 window.openLightbox = function (src) {
     const box = document.getElementById('lightbox');
-    document.getElementById('lightbox-img').src = src;
-    box.classList.remove('hidden');
+    const img = document.getElementById('lightbox-img');
+    const downloadBtn = document.getElementById('lb-download');
+
+    if (img) img.src = src;
+    if (downloadBtn) downloadBtn.href = src;
+    if (box) box.classList.remove('hidden');
 };
 window.closeLightbox = function () {
-    document.getElementById('lightbox').classList.add('hidden');
+    const box = document.getElementById('lightbox');
+    if (box) box.classList.add('hidden');
 };
 
 // --- GLOBAL GROUP ACTIONS ---
@@ -1612,10 +1824,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (targetPanel) {
                     targetPanel.style.display = 'block';
                     targetPanel.classList.add('active');
+                    if (targetId === 'editor-view') {
+                        const vaultContent = document.getElementById('vault-content');
+                        if (vaultContent) vaultContent.style.display = 'block';
+                    }
                 }
             });
         });
     }
+
+    // Helper: Programmatically activate tab by target ID
+    window.switchVaultTab = function(targetId) {
+        const targetTab = document.querySelector(`.vault-tabs .tab-btn[data-target="${targetId}"]`);
+        if (targetTab) {
+            targetTab.click();
+        }
+    };
 
     // Sidebar card dropdown toggles
     const pVaultToggle = document.getElementById('private-vault-toggle');
@@ -1632,6 +1856,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentContext = { type: 'personal', id: null };
                 loadVaultData();
             }
+            
+            // Close mobile drawer on selection
+            const overlay = document.getElementById('sidebar-overlay');
+            if (overlay) overlay.click();
         });
     }
 

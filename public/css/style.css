@@ -327,8 +327,30 @@ button:active {
 #create-group-btn { color: #00ff41; border-color: rgba(0,255,65,0.3); }
 #create-group-btn:hover { background: rgba(0,255,65,0.05); border-color: #00ff41; }
 
-.logout-btn { color: #ff4444 !important; border-color: rgba(255,68,68,0.3) !important; margin-top: 10px !important; }
-.logout-btn:hover { background: rgba(255,68,68,0.05) !important; border-color: #ff4444 !important; }
+.logout-btn {
+    color: #ff4444 !important;
+    background: rgba(255, 68, 68, 0.08) !important;
+    border: 1px solid rgba(255, 68, 68, 0.35) !important;
+    border-radius: 6px !important;
+    padding: 6px 14px !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 0.82rem !important;
+    font-weight: bold !important;
+    letter-spacing: 0.5px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease-in-out !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+}
+.logout-btn:hover {
+    background: rgba(255, 68, 68, 0.2) !important;
+    border-color: #ff4444 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 12px rgba(255, 68, 68, 0.3) !important;
+}
 
 .join-zone { display: flex; gap: 5px; margin-top: 10px !important; }
 #join-group-btn { color: #00e5ff; border-color: rgba(0,229,255,0.3); width: auto; }
@@ -346,26 +368,38 @@ button:active {
 /* Header */
 .content-header {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 18px;
-    border-bottom: 1px solid #2a2a2a;
-    padding-bottom: 14px;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.content-header > .vault-tabs {
+    width: 100%;
+    order: 3;
 }
 
 .header-left {
     display: flex !important;
     align-items: center !important;
-    gap: 14px !important;
-    flex-wrap: wrap !important;
+    gap: 12px !important;
+    max-width: 60% !important;
+    overflow: hidden !important;
 }
 
 #current-view-title {
     color: #fff;
     margin: 0;
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     line-height: 1.2;
     font-family: 'Courier New', Courier, monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 320px;
+    flex-shrink: 1;
 }
 
 .code-badge {
@@ -400,21 +434,27 @@ button:active {
     padding-bottom: 4px;
 }
 .tab-btn {
-    background: transparent;
-    border: none;
-    color: #888;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 0.95rem;
-    font-weight: bold;
-    padding: 8px 16px;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-    border-radius: 0;
-    box-shadow: none;
+    background: transparent !important;
+    border: none !important;
+    color: #888 !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 0.95rem !important;
+    font-weight: bold !important;
+    padding: 10px 18px !important;
+    cursor: pointer !important;
+    border-bottom: 3px solid transparent !important;
+    transition: all 0.2s ease-in-out !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    position: relative !important;
+    margin: 0 !important;
 }
-.tab-btn:hover { color: #fff; }
-.tab-btn.active { color: #fff; border-bottom-color: #00e5ff; }
+.tab-btn:hover { color: #fff !important; }
+.tab-btn.active { 
+    color: #00e5ff !important; 
+    border-bottom: 3px solid #00e5ff !important;
+    box-shadow: 0 4px 12px rgba(0, 229, 255, 0.25) !important;
+}
 
 /* --- A. NOTION SPLIT VIEW --- */
 .vault-split-view {
@@ -618,12 +658,17 @@ button:active {
 .notion-editor hr { border: none; border-top: 1px solid #444; margin: 30px 0; }
 .notion-editor mark { background-color: rgba(0, 229, 255, 0.3); color: #fff; padding: 2px 4px; border-radius: 4px; }
 
-/* --- B. ALBUMS & PHOTOS --- */
 .album-view-controls {
-    display: grid; grid-template-columns: 100px 1fr 150px;
-    align-items: center; gap: 10px; padding-bottom: 15px; border-bottom: 1px solid #2a2a2a; margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #2a2a2a;
+    margin-bottom: 20px;
 }
-.album-view-controls h3 { text-align: center; color: white; margin: 0; }
+.album-view-controls h3 { text-align: left; color: white; margin: 0; }
 
 .album-grid {
     display: flex; flex-wrap: wrap; gap: 20px; width: 100%;
@@ -665,23 +710,43 @@ button:active {
 .btn-gray { background: transparent; color: #888; border: 1px solid #444; border-radius: 4px; transition: all 0.2s; }
 .btn-gray:hover { background: rgba(255,255,255,0.05); color: #fff; border-color: #888; }
 .album-delete-btn, .delete-photo-btn {
-    position: absolute; top: 5px; right: 5px; background: rgba(220, 53, 69, 0.9);
-    color: white; border: none; border-radius: 50%; width: 24px; height: 24px;
-    cursor: pointer; display: none; align-items: center; justify-content: center; font-size: 14px;
+    position: absolute; top: 8px; right: 8px; 
+    background: rgba(255, 68, 68, 0.9);
+    color: white; border: none; border-radius: 50%; 
+    width: 28px; height: 28px;
+    cursor: pointer; display: none; align-items: center; justify-content: center; 
+    font-size: 16px; font-weight: bold; line-height: 1;
+    z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+    transition: transform 0.2s, background 0.2s;
+}
+.album-delete-btn:hover, .delete-photo-btn:hover {
+    background: #ff2222;
+    transform: scale(1.1);
 }
 .album-card:hover .album-delete-btn, .photo-item:hover .delete-photo-btn { display: flex; }
 
 /* Lightbox */
 #lightbox {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.95); z-index: 10000;
-    display: flex; justify-content: center; align-items: center;
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(10, 10, 10, 0.95);
+    backdrop-filter: blur(8px);
+    z-index: 99999;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
 }
-#lightbox.hidden { display: none; }
-#lightbox-img { max-width: 90%; max-height: 90%; border: 2px solid #333; }
-.lightbox-controls { position: absolute; bottom: 30px; display: flex; gap: 20px; }
-.lb-btn { background: #333; color: white; padding: 10px 20px; text-decoration: none; border: 1px solid #555; }
-.lb-close { position: absolute; top: 20px; right: 30px; font-size: 3rem; color: #fff; cursor: pointer; }
+#lightbox.hidden { display: none !important; }
+#lightbox button {
+    width: auto !important;
+    margin-top: 0 !important;
+    box-shadow: none !important;
+    border-radius: 8px !important;
+    font-size: 0.85rem !important;
+}
+#lightbox a {
+    width: auto !important;
+    margin-top: 0 !important;
+    box-shadow: none !important;
+    text-decoration: none !important;
+}
 
 
 /* =========================================
@@ -694,6 +759,12 @@ button:active {
    📱 MOBILE RESPONSIVENESS (The Sticky Header Fix)
    ========================================= */
 @media (max-width: 768px) {
+
+    /* 0. FIX VAULT-SCREEN CLIPPING */
+    #vault-screen {
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+    }
     
     /* 1. RESET LAYOUT */
     .dashboard-container {
@@ -701,76 +772,130 @@ button:active {
         position: relative;
     }
 
-    /* 2. CREATE THE STICKY APP BAR */
-    /* We reuse the existing .content-header but pin it to the top */
+    /* 2. CREATE THE STICKY APP BAR WITH TABS */
     .content-header {
-        position: fixed;
-        top: 0; left: 0; right: 0;
-        height: 60px;
-        background: #0d0d0d; /* Match body bg */
-        border-bottom: 1px solid #2a2a2a;
-        z-index: 900; /* Below the menu button, above content */
-        
-        display: flex;
-        align-items: center;
-        justify-content: center; /* Center the Title */
-        padding: 0;
-        margin: 0;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        position: fixed !important;
+        top: 0 !important; left: 0 !important; right: 0 !important;
+        height: auto !important;
+        background: #0d0d0d !important;
+        border-bottom: 1px solid #2a2a2a !important;
+        z-index: 2500 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        padding: 8px 12px 0 12px !important;
+        margin: 0 !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.8) !important;
+        box-sizing: border-box !important;
+    }
+
+    .header-left {
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
+        width: 100% !important;
+        overflow: hidden !important;
+        padding-left: 45px !important;
+        min-height: 38px !important;
     }
 
     /* 3. STYLE THE TITLE INSIDE THE BAR */
     #current-view-title {
-        font-size: 1.1rem !important;
-        margin: 0;
-        color: #fff;
-        text-align: center;
-        /* Ensure it doesn't overlap the button */
-        padding-left: 40px; 
-        padding-right: 40px; 
+        font-size: 1rem !important;
+        margin: 0 !important;
+        color: #ffffff !important;
+        text-align: left !important;
+        padding: 0 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        font-weight: bold !important;
+        display: block !important;
+        font-family: 'Courier New', Courier, monospace !important;
+        max-width: 140px !important;
+        flex-shrink: 1 !important;
+        mask-image: linear-gradient(to right, black 80%, transparent 100%);
     }
 
-    /* 4. HAMBURGER BUTTON (Aligned inside bar) */
-    /* 4. HAMBURGER BUTTON (Forced Position) */
+    #group-code-display {
+        font-size: 0.68rem !important;
+        padding: 2px 5px !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+    }
+
+    .members-container {
+        font-size: 0.68rem !important;
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+    }
+
+    /* 4. HAMBURGER BUTTON (Fixed Top Left) */
     #mobile-menu-btn {
-        display: block !important;
-        position: fixed !important; /* Force it to stick to the screen */
-        top: 12px !important;       /* Vertically center in the 60px header */
-        left: 15px !important;      /* Pin to the left */
-        z-index: 2000 !important;   /* Sit on top of the black header */
-        
-        /* Reset any conflicting styles */
-        background: transparent !important;
-        color: white !important;
-        border: none !important;
-        font-size: 1.8rem !important;
-        width: auto !important;
-        height: auto !important;
+        display: flex !important;
+        position: absolute !important;
+        top: 8px !important;
+        left: 10px !important;
+        z-index: 4000 !important;
+        background: rgba(20, 20, 20, 0.95) !important;
+        color: #00e5ff !important;
+        border: 1px solid #333 !important;
+        border-radius: 6px !important;
+        font-size: 1.3rem !important;
+        width: 36px !important;
+        height: 36px !important;
         padding: 0 !important;
         margin: 0 !important;
+        cursor: pointer !important;
+        align-items: center !important;
+        justify-content: center !important;
+        line-height: 1 !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.7) !important;
     }
 
-    /* 5. PUSH CONTENT DOWN */
+    /* 5. PUSH CONTENT DOWN & FIT MOBILE VIEWPORT */
     .content-area {
-        padding: 20px;
-        padding-top: 80px; /* 60px Header + 20px Gap */
-        height: 100dvh;
+        padding: 10px !important;
+        padding-top: 105px !important;
         min-height: 100dvh;
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
-        overflow: hidden; /* Prevent page-level scroll */
+        overflow-y: auto;
     }
 
     #editor-view, #vault-content {
         display: flex;
         flex-direction: column;
         flex-grow: 1;
-        min-height: 0; /* Important to allow internal scrolling */
+        width: 100%;
+        min-height: calc(100vh - 140px);
     }
 
-    .vault-tabs, .group-dashboard {
-        flex-shrink: 0; /* Don't shrink the tabs or dashboard */
+    .editor-container {
+        width: 100% !important;
+        flex-grow: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        box-sizing: border-box !important;
+    }
+
+    .ve-editor-wrapper {
+        padding: 15px 12px !important;
+        flex-grow: 1 !important;
+        min-height: 350px !important;
+    }
+
+    .vault-tabs {
+        display: flex !important;
+        position: static !important;
+        background: transparent !important;
+        padding: 6px 0 4px 0 !important;
+        margin: 4px 0 0 0 !important;
+        flex-shrink: 0 !important;
+        width: 100% !important;
+        border-bottom: none !important;
+        border-top: 1px solid #222 !important;
+        box-sizing: border-box !important;
     }
 
     /* 6. HIDE DESKTOP ELEMENTS IN HEADER */
@@ -787,13 +912,13 @@ button:active {
         transform: translateX(-100%);
         transition: transform 0.3s ease-in-out;
         box-shadow: 2px 0 15px rgba(0,0,0,0.8);
-        z-index: 2000;
+        z-index: 3500;
     }
     .sidebar.active { transform: translateX(0); }
     
     .sidebar-overlay {
         position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(0,0,0,0.8); z-index: 1500; display: none;
+        background: rgba(0,0,0,0.8); z-index: 3000; display: none;
     }
     .sidebar-overlay.active { display: block; }
 

@@ -26,20 +26,19 @@ const PageTree = {
         for (const p of this.allPages) {
             let title = p.rawTitle || '';
             const isGroup = Boolean(p.group);
+            const b64Regex = /^[A-Za-z0-9+/=]+\.[A-Za-z0-9+/=]+$/;
 
-            if (!title && p.content) {
+            if ((!title || b64Regex.test(title)) && p.content) {
                 if (isGroup) {
                     title = p.content;
                 } else if (key) {
                     try {
                         const dec = await CryptoHelper.decryptText(p.content, key);
-                        title = dec || '';
+                        if (dec) title = dec;
                     } catch (err) {}
                 }
             }
 
-            // Check if title is still raw base64 ciphertext (iv.cipher)
-            const b64Regex = /^[A-Za-z0-9+/=]+\.[A-Za-z0-9+/=]+$/;
             if (!title || b64Regex.test(title)) {
                 title = 'Untitled Page';
             }
@@ -97,8 +96,9 @@ const PageTree = {
             this.containerEl.appendChild(favSection);
         }
 
-        // ROOT PAGES (No section title tag)
+        // ROOT PAGES (Exclude favorites so they don't repeat in the main tree)
         const isRoot = (p) => {
+            if (p.properties?.favorite) return false;
             if (!p.pageId || p.pageId === 'null' || p.pageId === 'undefined') return true;
             return !this.allPages.some(parent => String(parent._id) === String(p.pageId));
         };
@@ -130,9 +130,10 @@ const PageTree = {
         const isExpanded = Boolean(this.expandedMap[String(page._id)]);
 
         const node = document.createElement('div');
-        node.className = `ve-tree-node ${isActive ? 'active-page' : ''}`;
+        node.className = `ve-tree-node ${isActive ? 'active-page' : ''} ${page.properties?.favorite ? 'is-favorite' : ''}`;
         node.dataset.id = String(page._id);
 
+        const isFavorite = Boolean(page.properties?.favorite);
         const icon = page.properties?.icon || '📄';
         const title = this.decryptedTitles[String(page._id)] || page.rawTitle || 'Untitled Page';
 
@@ -140,11 +141,14 @@ const PageTree = {
             ? `<span class="ve-tree-arrow ${isExpanded ? 'expanded' : ''}" style="cursor:pointer; padding-right:4px;">▶</span>`
             : `<span style="width:12px; display:inline-block;"></span>`;
 
+        const favStar = isFavorite ? `<span class="ve-fav-star" title="Favorite" style="color: #ffd700; font-size: 0.8rem; margin-right: 2px;">⭐</span>` : '';
+
         node.innerHTML = `
             <div class="ve-tree-node-left" style="display:flex; align-items:center; gap:6px; overflow:hidden;">
                 ${arrowHTML}
                 <span>${icon}</span>
-                <span class="ve-tree-node-title" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${title}</span>
+                <span class="ve-tree-node-title" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; ${isFavorite ? 'color:#ffe87c;' : ''}">${title}</span>
+                ${favStar}
             </div>
             <div class="ve-tree-node-actions" style="display:flex; align-items:center; gap:4px;">
                 <span class="ve-tree-more-btn" title="Page options">•••</span>
@@ -165,6 +169,7 @@ const PageTree = {
                 e.stopPropagation();
                 if (typeof PageMenu !== 'undefined') {
                     PageMenu.show(e.target, page, async (action) => {
+                        page.properties = page.properties || {};
                         if (action === 'trash') {
                             if (await UI.confirm("Move Page to Trash?", "You can restore this page later.")) {
                                 await fetch(`/api/blocks/${page._id}/trash`, { method: 'PUT', credentials: 'include' });
@@ -172,16 +177,34 @@ const PageTree = {
                                 await loadVaultData();
                                 if (typeof UI !== 'undefined' && UI.toast) UI.toast("Page moved to trash", "success");
                             }
-                        } else if (action === 'copylink') {
-                            navigator.clipboard.writeText(`${window.location.origin}/app.html#/page/${page._id}`);
-                            if (typeof UI !== 'undefined' && UI.toast) UI.toast("Link copied to clipboard", "success");
+                        } else if (action === 'favorite') {
+                            page.properties.favorite = !page.properties.favorite;
+                            await fetch(`/api/blocks/${page._id}`, {
+                                method: 'PUT',
+                                credentials: 'include',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ properties: page.properties })
+                            });
+                            await loadVaultData();
+                            if (typeof UI !== 'undefined' && UI.toast) UI.toast(page.properties.favorite ? "Added to Favorites" : "Removed from Favorites", "success");
                         } else if (action === 'duplicate') {
                             await fetch(`/api/blocks/${page._id}/duplicate`, { method: 'POST', credentials: 'include' });
                             loadVaultData();
-                        } else if (action === 'opennew') {
-                            window.open(`${window.location.origin}/app.html#/page/${page._id}`, '_blank');
-                        } else if (typeof this.onSelectPageCallback === 'function') {
-                            this.onSelectPageCallback(page._id);
+                            if (typeof UI !== 'undefined' && UI.toast) UI.toast("Page duplicated successfully", "success");
+                        } else if (action === 'rename') {
+                            if (typeof this.onSelectPageCallback === 'function') {
+                                await this.onSelectPageCallback(page._id);
+                            }
+                            setTimeout(() => {
+                                const titleInput = document.getElementById('page-title-input');
+                                if (titleInput) {
+                                    titleInput.focus();
+                                    titleInput.select();
+                                    if (typeof UI !== 'undefined' && UI.toast) {
+                                        UI.toast("Type page name in top title field", "info");
+                                    }
+                                }
+                            }, 100);
                         }
                     });
                 }
@@ -208,9 +231,33 @@ const PageTree = {
         node.oncontextmenu = (e) => {
             e.preventDefault();
             if (typeof PageMenu !== 'undefined') {
-                PageMenu.show(node, page, (action) => {
-                    if (action === 'rename' && typeof this.onSelectPageCallback === 'function') {
-                        this.onSelectPageCallback(page._id);
+                PageMenu.show(node, page, async (action) => {
+                    page.properties = page.properties || {};
+                    if (action === 'trash') {
+                        if (await UI.confirm("Move Page to Trash?", "You can restore this page later.")) {
+                            await fetch(`/api/blocks/${page._id}/trash`, { method: 'PUT', credentials: 'include' });
+                            await BlockStore.deleteBlock(page._id);
+                            await loadVaultData();
+                            if (typeof UI !== 'undefined' && UI.toast) UI.toast("Page moved to trash", "success");
+                        }
+                    } else if (action === 'favorite') {
+                        page.properties.favorite = !page.properties.favorite;
+                        await fetch(`/api/blocks/${page._id}`, {
+                            method: 'PUT',
+                            credentials: 'include',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ properties: page.properties })
+                        });
+                        await loadVaultData();
+                        if (typeof UI !== 'undefined' && UI.toast) UI.toast(page.properties.favorite ? "Added to Favorites" : "Removed from Favorites", "success");
+                    } else if (action === 'duplicate') {
+                        await fetch(`/api/blocks/${page._id}/duplicate`, { method: 'POST', credentials: 'include' });
+                        loadVaultData();
+                        if (typeof UI !== 'undefined' && UI.toast) UI.toast("Page duplicated successfully", "success");
+                    } else if (action === 'rename') {
+                        if (typeof this.onSelectPageCallback === 'function') {
+                            this.onSelectPageCallback(page._id);
+                        }
                     }
                 });
             }

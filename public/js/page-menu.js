@@ -44,9 +44,6 @@ const PageMenu = {
             </div>
             <div class="ve-menu-divider"></div>
             <div class="ve-menu-group">
-                <div class="ve-menu-item" data-action="copylink" style="display:flex; align-items:center; justify-content:space-between;">
-                    <span>🔗 Copy link</span>
-                </div>
                 <div class="ve-menu-item" data-action="duplicate" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
                     <span>📋 Duplicate</span>
                     <span class="ve-menu-shortcut" style="color:#666; font-size:0.75rem;">Ctrl+D</span>
@@ -59,24 +56,78 @@ const PageMenu = {
                     <span>🗑️ Move to Trash</span>
                 </div>
             </div>
-            <div class="ve-menu-divider"></div>
+        `;
+
+        this.element.classList.remove('hidden');
+
+        const rect = triggerBtnEl.getBoundingClientRect();
+        const menuHeight = this.element.offsetHeight || 180;
+        const menuWidth = this.element.offsetWidth || 220;
+
+        let top = rect.bottom + 6;
+        if (top + menuHeight > window.innerHeight - 10) {
+            top = Math.max(10, rect.top - menuHeight - 6);
+        }
+
+        let left = Math.max(10, Math.min(rect.left, window.innerWidth - menuWidth - 10));
+
+        this.element.style.top = `${top}px`;
+        this.element.style.left = `${left}px`;
+
+        // Bind clicks
+        this.element.querySelectorAll('.ve-menu-item').forEach(item => {
+            item.onclick = (e) => {
+                const action = item.dataset.action;
+                if (typeof this.onActionCallback === 'function') {
+                    this.onActionCallback(action, this.currentPage);
+                }
+                this.hide();
+            };
+        });
+    },
+
+    showAlbumMenu: function (triggerBtnEl, albumObject, onAction) {
+        this.init();
+        this.currentPage = albumObject;
+        this.onActionCallback = onAction;
+
+        this.element.innerHTML = `
+            <div class="ve-menu-header" style="font-size: 0.75rem; color: #666; padding: 4px 8px; font-weight: bold;">Album Options</div>
             <div class="ve-menu-group">
-                <div class="ve-menu-item" data-action="opennew" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
-                    <span>↗️ Open in new tab</span>
-                    <span class="ve-menu-shortcut" style="color:#666; font-size:0.75rem;">Ctrl+Shift+↵</span>
+                <div class="ve-menu-item" data-action="select" style="display:flex; align-items:center; justify-content:space-between;">
+                    <span>☑️ Select Photos</span>
+                </div>
+                <div class="ve-menu-item" data-action="rename" style="display:flex; align-items:center; justify-content:space-between;">
+                    <span>✏️ Rename</span>
+                </div>
+                <div class="ve-menu-item" data-action="info" style="display:flex; align-items:center; justify-content:space-between;">
+                    <span>ℹ️ Info</span>
                 </div>
             </div>
-            <div class="ve-menu-footer" style="padding: 8px 10px; color: #666; font-size: 0.75rem; border-top: 1px solid #2a2a2a; margin-top: 6px; line-height: 1.3;">
-                Last edited by ${author}<br>${formattedDate}
+            <div class="ve-menu-divider"></div>
+            <div class="ve-menu-group">
+                <div class="ve-menu-item danger" data-action="delete" style="display:flex; align-items:center; justify-content:space-between;">
+                    <span>🗑️ Delete Album</span>
+                </div>
             </div>
         `;
 
-        const rect = triggerBtnEl.getBoundingClientRect();
-        this.element.style.top = `${rect.bottom + 8}px`;
-        this.element.style.left = `${Math.min(rect.left, window.innerWidth - 220)}px`;
         this.element.classList.remove('hidden');
 
-        // Bind clicks
+        const rect = triggerBtnEl.getBoundingClientRect();
+        const menuHeight = this.element.offsetHeight || 160;
+        const menuWidth = this.element.offsetWidth || 200;
+
+        let top = rect.bottom + 6;
+        if (top + menuHeight > window.innerHeight - 10) {
+            top = Math.max(10, rect.top - menuHeight - 6);
+        }
+
+        let left = Math.max(10, Math.min(rect.left, window.innerWidth - menuWidth - 10));
+
+        this.element.style.top = `${top}px`;
+        this.element.style.left = `${left}px`;
+
         this.element.querySelectorAll('.ve-menu-item').forEach(item => {
             item.onclick = (e) => {
                 const action = item.dataset.action;

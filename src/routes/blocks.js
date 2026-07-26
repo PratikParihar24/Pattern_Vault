@@ -420,7 +420,7 @@ router.post('/:id/duplicate', authMiddleware, async (req, res) => {
             pageId: originalPage.pageId,
             parentBlockId: originalPage.parentBlockId,
             type: 'page',
-            content: `${originalPage.content} (Copy)`,
+            content: originalPage.content,
             properties: { ...originalPage.properties },
             order: originalPage.order + 0.1,
             group: originalPage.group

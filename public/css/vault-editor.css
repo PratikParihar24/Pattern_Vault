@@ -205,6 +205,14 @@
     border-left: 2px solid var(--ve-accent);
 }
 
+.ve-tree-node.is-favorite {
+    border-left: 2px solid #ffd700;
+}
+
+.ve-tree-node.is-favorite.active-page {
+    border-left: 3px solid #ffd700;
+}
+
 .ve-tree-node-left {
     display: flex !important;
     align-items: center !important;

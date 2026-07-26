@@ -126,6 +126,20 @@ const SlashMenu = {
         } else if (e.key === 'Escape') {
             this.hide();
             return true;
+        } else if (e.key === 'Backspace') {
+            // Let the default delete happen, then check if '/' is gone
+            setTimeout(() => {
+                if (this.activeBlockEl) {
+                    const contentEl = this.activeBlockEl.querySelector('[contenteditable]');
+                    if (contentEl) {
+                        const text = contentEl.innerText;
+                        if (text.lastIndexOf('/') === -1) {
+                            this.hide();
+                        }
+                    }
+                }
+            }, 0);
+            return false; // don't prevent default — let the character delete
         }
 
         return false;
